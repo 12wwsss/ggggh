@@ -1,0 +1,17 @@
+# 矿内 frpc：主动连云端，把本机 8443（nginx TLS）暴露为云端 7100。
+serverAddr = "cloud.example.com"
+serverPort = 7000
+
+auth.method = "token"
+auth.token = "CHANGE_ME_LONG_RANDOM"
+
+log.to = "/var/log/frpc.log"
+log.level = "info"
+log.maxDays = 7
+
+[[proxies]]
+name = "rag-443"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = 8443
+remotePort = 7100

@@ -1,0 +1,28 @@
+
+== 一、主机与操作系统 ==
+主机名              DESKTOP-8JQCL9P                                              [OK]
+操作系统             windows Microsoft Windows [Version 10.0.19045.6456]          [OK]
+CPU 架构           amd64                                                        [OK]
+CPU 逻辑核数         16                                                           [OK]
+glibc 版本         不适用（非 Linux）                                                 [OK]
+Go 运行时           go1.23.5                                                     [OK]
+
+== 二、内存与磁盘 ==
+物理内存             33252948 KB                                                  [OK]
+可用内存             17164424 KB                                                  [OK]
+当前磁盘可用空间         274.4 GB                                                     [OK]
+
+== 三、GPU 与驱动 ==
+GPU 型号与显存        NVIDIA GeForce GTX 1660 SUPER, 6144 MiB, 555.99              [OK]
+
+== 四、数据库 ==
+版本               PostgreSQL 18.6 on x86_64-windows, compiled by msvc-19.51.36260, 64-bit [OK]
+扩展 pg_trgm       1.6                                                          [OK]
+
+== 五、模型接口 ==
+对话接口             http://127.0.0.1:8000/v1 不可达: Get "http://127.0.0.1:8000/v1/models": dial tcp 127.0.0.1:8000: connectex: No connection could be made because the target machine actively refused it. [未知]
+嵌入接口             http://127.0.0.1:8000/v1 不可达: Get "http://127.0.0.1:8000/v1/models": dial tcp 127.0.0.1:8000: connectex: No connection could be made because the target machine actively refused it. [未知]
+
+== 六、出站能力 ==
+出站 223.5.5.5:443 可达，耗时 8ms                                                    [OK]
+出站 www.baidu.com:443 可达，耗时 11ms                                                   [OK]

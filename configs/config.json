@@ -1,0 +1,45 @@
+{
+  "app_name": "煤矿安全员AI智能体平台",
+  "http_addr": "127.0.0.1:8080",
+  "dsn": "postgres://postgres@127.0.0.1:55432/coalrag?sslmode=disable",
+  "jwt_secret": "dev-only-change-me",
+  "jwt_ttl": "8h0m0s",
+  "storage_dir": "storage",
+  "log_level": "info",
+  "bootstrap": true,
+  "tunnel_addr": "",
+  "llm": {
+    "provider": "stub",
+    "base_url": "http://127.0.0.1:8000/v1",
+    "api_key": "",
+    "model": "deepseek-r1:14b",
+    "timeout": "90s",
+    "temperature": 0.2,
+    "max_tokens": 1024
+  },
+  "embed": {
+    "provider": "stub",
+    "base_url": "http://127.0.0.1:8000/v1",
+    "api_key": "",
+    "model": "bge-m3",
+    "dim": 1024,
+    "timeout": "30s"
+  },
+  "vector": {
+    "kind": "memory",
+    "dim": 1024
+  },
+  "retrieval": {
+    "top_k": 6,
+    "min_score": 0.08,
+    "max_context_chars": 6000
+  },
+  "security": {
+    "max_login_failures": 5,
+    "lock_minutes": 15,
+    "rate_per_minute": 600
+  },
+  "task": {
+    "retention_days": 7
+  }
+}

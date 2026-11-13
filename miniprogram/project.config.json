@@ -1,0 +1,12 @@
+{
+  "description": "煤矿安全员智能体 · 小程序",
+  "appid": "touristappid",
+  "projectname": "coalrag-miniapp",
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "minified": true
+  },
+  "compileType": "miniprogram",
+  "libVersion": "3.5.0"
+}

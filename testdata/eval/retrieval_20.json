@@ -1,0 +1,24 @@
+{
+  "cases": [
+    { "question": "瓦斯浓度达到1.5%时怎么办？", "expect_clause": "第一百三十六条" },
+    { "question": "检修电气设备要执行哪些制度？", "expect_clause": "第四百四十二条" },
+    { "question": "敲帮问顶应该怎么做？", "expect_clause": "第六条" },
+    { "question": "采煤工作面上下安全出口有什么要求？", "expect_clause": "第七条" },
+    { "question": "停风时怎么处理？", "expect_clause": "第一百三十八条" },
+    { "question": "接近老空区必须执行什么制度？", "expect_clause": "第二百八十六条" },
+    { "question": "出现透水征兆怎么办？", "expect_clause": "第二百八十八条" },
+    { "question": "主要排水泵房需要几台水泵？", "expect_clause": "第二百八十七条" },
+    { "question": "提升装置需要哪些保护？", "expect_clause": "第四百四十四条" },
+    { "question": "遇到断层破碎带怎么办？", "expect_clause": "第八条" },
+    { "question": "从业人员上岗前需要什么？", "expect_clause": "第四条" },
+    { "question": "瓦斯检查三对口指什么？", "expect_clause": "第一百三十五条" },
+    { "question": "局部通风机由谁管理？", "expect_clause": "第一百三十七条" },
+    { "question": "矿井为什么要建立瓦斯抽采系统？", "expect_clause": "第一百三十九条" },
+    { "question": "井下电缆应该怎么悬挂？", "expect_clause": "第四百四十五条" },
+    { "question": "煤矿企业为什么要建立安全生产责任制？", "expect_clause": "第二条" },
+    { "question": "煤矿企业必须设置什么机构？", "expect_clause": "第三条" },
+    { "question": "单体液压支柱的初撑力有什么要求？", "expect_clause": "第九条" },
+    { "question": "井下可以带电检修电气设备吗？", "expect_clause": "第四百四十三条" },
+    { "question": "制定煤矿安全规程的目的是什么？", "expect_clause": "第一条" }
+  ]
+}

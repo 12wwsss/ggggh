@@ -1,0 +1,15 @@
+# 云端 frps：接收矿内主动连接，把 7100 端口映射到矿内 8443。
+bindAddr = "0.0.0.0"
+bindPort = 7000
+
+auth.method = "token"
+auth.token = "CHANGE_ME_LONG_RANDOM"
+
+# 只允许矿内声明 7100，避免被当成通用代理
+allowPorts = [
+  { start = 7100, end = 7100 }
+]
+
+log.to = "/var/log/frps.log"
+log.level = "info"
+log.maxDays = 7

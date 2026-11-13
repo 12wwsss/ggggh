@@ -1,0 +1,3 @@
+.fallback { padding: 120rpx 40rpx; text-align: center; }
+.tip { font-size: 30rpx; color: #3c352b; margin-bottom: 40rpx; }
+.btn { height: 88rpx; line-height: 88rpx; background: #a5311f; color: #fff; font-size: 32rpx; }

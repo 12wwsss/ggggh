@@ -1,0 +1,62 @@
+-- 0002 角色策略与基础分类
+
+insert into role_policy (role, resource, action, scope) values
+    ('admin',       'doc',        'read',    'all'),
+    ('admin',       'doc',        'write',   'all'),
+    ('admin',       'qa',         'read',    'all'),
+    ('admin',       'qa',         'write',   'all'),
+    ('admin',       'learn',      'read',    'all'),
+    ('admin',       'learn',      'write',   'all'),
+    ('admin',       'exam',       'read',    'all'),
+    ('admin',       'exam',       'write',   'all'),
+    ('admin',       'broadcast',  'read',    'all'),
+    ('admin',       'broadcast',  'write',   'all'),
+    ('admin',       'issue',      'read',    'all'),
+    ('admin',       'issue',      'write',   'all'),
+    ('admin',       'user',       'read',    'all'),
+    ('admin',       'user',       'write',   'all'),
+    ('admin',       'dept',       'read',    'all'),
+    ('admin',       'dept',       'write',   'all'),
+    ('admin',       'audit',      'read',    'all'),
+    ('admin',       'task',       'read',    'all'),
+    ('admin',       'task',       'write',   'all'),
+    ('admin',       'dashboard',  'read',    'all'),
+    ('admin',       'eval',       'write',   'all'),
+    ('admin',       'eval',       'read',    'all'),
+
+    ('dept_leader', 'doc',        'read',    'all'),
+    ('dept_leader', 'qa',         'read',    'dept'),
+    ('dept_leader', 'qa',         'write',   'all'),
+    ('dept_leader', 'learn',      'read',    'dept'),
+    ('dept_leader', 'learn',      'write',   'dept'),
+    ('dept_leader', 'exam',       'read',    'dept'),
+    ('dept_leader', 'exam',       'write',   'dept'),
+    ('dept_leader', 'broadcast',  'read',    'dept'),
+    ('dept_leader', 'broadcast',  'write',   'dept'),
+    ('dept_leader', 'issue',      'read',    'dept'),
+    ('dept_leader', 'issue',      'write',   'dept'),
+    ('dept_leader', 'user',       'read',    'dept'),
+    ('dept_leader', 'dept',       'read',    'dept'),
+    ('dept_leader', 'dashboard',  'read',    'dept'),
+
+    ('employee',    'doc',        'read',    'all'),
+    ('employee',    'qa',         'read',    'self'),
+    ('employee',    'qa',         'write',   'self'),
+    ('employee',    'learn',      'read',    'self'),
+    ('employee',    'learn',      'write',   'self'),
+    ('employee',    'exam',       'read',    'self'),
+    ('employee',    'exam',       'write',   'self'),
+    ('employee',    'broadcast',  'read',    'self'),
+    ('employee',    'broadcast',  'write',   'self'),
+    ('employee',    'issue',      'read',    'self'),
+    ('employee',    'issue',      'write',   'self')
+on conflict (role, resource, action) do update set scope = excluded.scope;
+
+insert into issue_cate (name, sort) values
+    ('顶板管理', 10),
+    ('通风瓦斯', 20),
+    ('机电运输', 30),
+    ('防治水', 40),
+    ('职业健康', 50),
+    ('其他', 90)
+on conflict (name) do nothing;

@@ -1,0 +1,7 @@
+{
+  "name": "coalrag-miniapp",
+  "version": "1.0.0",
+  "description": "煤矿安全员智能体 · 微信小程序外壳（登录 + web-view）",
+  "main": "app.js",
+  "private": true
+}

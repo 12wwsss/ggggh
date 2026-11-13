@@ -1,0 +1,8 @@
+<view wx:if="{{!failed}}">
+  <web-view src="{{src}}" binderror="onError"></web-view>
+</view>
+
+<view wx:if="{{failed}}" class="fallback">
+  <view class="tip">页面加载失败，请检查网络后重试</view>
+  <button class="btn" bindtap="retry">重新加载</button>
+</view>

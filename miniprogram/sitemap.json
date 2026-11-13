@@ -1,0 +1,4 @@
+{
+  "desc": "煤矿安全员智能体小程序",
+  "rules": [{ "action": "allow", "page": "*" }]
+}

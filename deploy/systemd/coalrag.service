@@ -1,0 +1,21 @@
+[Unit]
+Description=CoalRAG server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/coalrag
+Environment=COALRAG_HTTP_ADDR=127.0.0.1:8080
+Environment=COALRAG_DSN=postgres://coalrag@127.0.0.1:5432/coalrag?sslmode=disable
+Environment=COALRAG_JWT_SECRET=CHANGE_ME
+Environment=COALRAG_LOG_LEVEL=info
+# 只允许矿内网段访问业务接口（可选）
+# Environment=COALRAG_ALLOWED_CIDRS=10.20.0.0/16
+ExecStart=/opt/coalrag/bin/coalrag-server
+Restart=always
+RestartSec=3
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

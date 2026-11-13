@@ -1,0 +1,21 @@
+<view class="page">
+  <view class="brand">
+    <view class="seal">安</view>
+    <view class="title">煤矿安全员</view>
+    <view class="sub">AI 智能体平台</view>
+  </view>
+
+  <view wx:if="{{!needBind}}" class="card">
+    <view class="hint">{{loading ? '正在登录…' : '正在进入…'}}</view>
+    <button class="btn" loading="{{loading}}" bindtap="login">重新登录</button>
+  </view>
+
+  <view wx:if="{{needBind}}" class="card">
+    <view class="hint">首次使用，请绑定工号</view>
+    <input class="input" placeholder="工号" value="{{username}}" bindinput="onUsername" />
+    <input class="input" placeholder="初始口令" password value="{{password}}" bindinput="onPassword" />
+    <button class="btn" loading="{{loading}}" bindtap="bind">绑定并进入</button>
+  </view>
+
+  <view wx:if="{{error}}" class="error">{{error}}</view>
+</view>

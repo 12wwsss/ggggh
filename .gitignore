@@ -1,0 +1,12 @@
+.tools/
+.data/
+storage/
+bin/
+*.exe
+*.log
+_doc_dump.md
+_doc_paras.txt
+web/node_modules/
+web/dist/*
+!web/dist/.gitkeep
+backups/

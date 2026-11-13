@@ -1,0 +1,14 @@
+{
+  "pages": [
+    "pages/login/login",
+    "pages/index/index"
+  ],
+  "window": {
+    "navigationBarTitleText": "煤矿安全员",
+    "navigationBarBackgroundColor": "#a5311f",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#f2ece0"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

@@ -1,0 +1,21 @@
+[
+  {
+    "file": "page.png",
+    "state": null,
+    "size": "390x844",
+    "zoom": 1,
+    "animationWaitMs": 0,
+    "issues": [],
+    "lint": [
+      {
+        "rule": "contrastLow",
+        "label": "文字对比度不达标（正文低于 3:1，大字低于 2.5:1）",
+        "count": 2,
+        "examples": [
+          "input#van-field-1-input.van-field__control（1.63:1）",
+          "input#van-field-2-input.van-field__control（1.63:1）"
+        ]
+      }
+    ]
+  }
+]
