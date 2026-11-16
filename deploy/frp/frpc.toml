@@ -15,3 +15,6 @@ type = "tcp"
 localIP = "127.0.0.1"
 localPort = 8443
 remotePort = 7100
+# 让矿内 nginx 能拿到真实客户端 IP（做来源白名单、日志用）。
+# 矿内 nginx 必须 listen ... ssl proxy_protocol; 否则握手会失败。
+transport.proxyProtocolVersion = "v2"
