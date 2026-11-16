@@ -183,11 +183,9 @@ func fuseHits(vecHits []vector.Hit, lexHits []search.Hit, lookup func(int64) (*v
 		if !admitted {
 			continue
 		}
-		score := c.vec
-		if score <= 0 {
-			score = lexNorm
-		}
-		list = append(list, ranked{id: id, fused: fused, score: score, lex: lexNorm})
+		// 对外一律报告余弦相似度：词法归一化分只在内部用于放行判断，
+		// 混进 score 会让“阈值/分数”这类分析失去意义（上限恒为 1.0）。
+		list = append(list, ranked{id: id, fused: fused, score: c.vec, lex: lexNorm})
 	}
 
 	// RRF 在两条候选表上是对称的：两个列表各排第 1、第 2 时分数相同。

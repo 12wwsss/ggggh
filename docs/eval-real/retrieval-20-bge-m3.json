@@ -1,0 +1,173 @@
+{
+  "total": 20,
+  "hits": 20,
+  "hit_rate": 1,
+  "mrr": 1,
+  "top_k": 6,
+  "min_score": 0.5,
+  "embed_model": "openai-compatible:bge-m3",
+  "vector_impl": "memory",
+  "generated_at": "2026-11-16T13:21:59.142793033+08:00",
+  "items": [
+    {
+      "question": "瓦斯浓度达到1.5%时怎么办？",
+      "expect_clause": "第一百三十六条",
+      "rank": 1,
+      "hit": true,
+      "top_clause": "第一百三十六条",
+      "top_score": 0.6892142295837402
+    },
+    {
+      "question": "检修电气设备要执行哪些制度？",
+      "expect_clause": "第四百四十二条",
+      "rank": 1,
+      "hit": true,
+      "top_clause": "第四百四十二条",
+      "top_score": 0.7521023750305176
+    },
+    {
+      "question": "敲帮问顶应该怎么做？",
+      "expect_clause": "第六条",
+      "rank": 1,
+      "hit": true,
+      "top_clause": "第六条",
+      "top_score": 0.6329988241195679
+    },
+    {
+      "question": "采煤工作面上下安全出口有什么要求？",
+      "expect_clause": "第七条",
+      "rank": 1,
+      "hit": true,
+      "top_clause": "第七条",
+      "top_score": 0.7609882950782776
+    },
+    {
+      "question": "停风时怎么处理？",
+      "expect_clause": "第一百三十八条",
+      "rank": 1,
+      "hit": true,
+      "top_clause": "第一百三十八条",
+      "top_score": 0.6535487771034241
+    },
+    {
+      "question": "接近老空区必须执行什么制度？",
+      "expect_clause": "第二百八十六条",
+      "rank": 1,
+      "hit": true,
+      "top_clause": "第二百八十六条",
+      "top_score": 0.5951367616653442
+    },
+    {
+      "question": "出现透水征兆怎么办？",
+      "expect_clause": "第二百八十八条",
+      "rank": 1,
+      "hit": true,
+      "top_clause": "第二百八十八条",
+      "top_score": 0.6405990719795227
+    },
+    {
+      "question": "主要排水泵房需要几台水泵？",
+      "expect_clause": "第二百八十七条",
+      "rank": 1,
+      "hit": true,
+      "top_clause": "第二百八十七条",
+      "top_score": 0.6475858092308044
+    },
+    {
+      "question": "提升装置需要哪些保护？",
+      "expect_clause": "第四百四十四条",
+      "rank": 1,
+      "hit": true,
+      "top_clause": "第四百四十四条",
+      "top_score": 0.7259024381637573
+    },
+    {
+      "question": "遇到断层破碎带怎么办？",
+      "expect_clause": "第八条",
+      "rank": 1,
+      "hit": true,
+      "top_clause": "第八条",
+      "top_score": 0.5685005187988281
+    },
+    {
+      "question": "从业人员上岗前需要什么？",
+      "expect_clause": "第四条",
+      "rank": 1,
+      "hit": true,
+      "top_clause": "第四条",
+      "top_score": 0.6869083642959595
+    },
+    {
+      "question": "瓦斯检查三对口指什么？",
+      "expect_clause": "第一百三十五条",
+      "rank": 1,
+      "hit": true,
+      "top_clause": "第一百三十五条",
+      "top_score": 0.5441358089447021
+    },
+    {
+      "question": "局部通风机由谁管理？",
+      "expect_clause": "第一百三十七条",
+      "rank": 1,
+      "hit": true,
+      "top_clause": "第一百三十七条",
+      "top_score": 0.7232865691184998
+    },
+    {
+      "question": "矿井为什么要建立瓦斯抽采系统？",
+      "expect_clause": "第一百三十九条",
+      "rank": 1,
+      "hit": true,
+      "top_clause": "第一百三十九条",
+      "top_score": 0.708681583404541
+    },
+    {
+      "question": "井下电缆应该怎么悬挂？",
+      "expect_clause": "第四百四十五条",
+      "rank": 1,
+      "hit": true,
+      "top_clause": "第四百四十五条",
+      "top_score": 0.7475977540016174
+    },
+    {
+      "question": "煤矿企业为什么要建立安全生产责任制？",
+      "expect_clause": "第二条",
+      "rank": 1,
+      "hit": true,
+      "top_clause": "第二条",
+      "top_score": 0.7274874448776245
+    },
+    {
+      "question": "煤矿企业必须设置什么机构？",
+      "expect_clause": "第三条",
+      "rank": 1,
+      "hit": true,
+      "top_clause": "第三条",
+      "top_score": 0.7151079773902893
+    },
+    {
+      "question": "单体液压支柱的初撑力有什么要求？",
+      "expect_clause": "第九条",
+      "rank": 1,
+      "hit": true,
+      "top_clause": "第九条",
+      "top_score": 0.6896598935127258
+    },
+    {
+      "question": "井下可以带电检修电气设备吗？",
+      "expect_clause": "第四百四十三条",
+      "rank": 1,
+      "hit": true,
+      "top_clause": "第四百四十三条",
+      "top_score": 0.7487515807151794
+    },
+    {
+      "question": "制定煤矿安全规程的目的是什么？",
+      "expect_clause": "第一条",
+      "rank": 1,
+      "hit": true,
+      "top_clause": "第一条",
+      "top_score": 0.7410764694213867
+    }
+  ]
+}

@@ -1,0 +1,329 @@
+{
+  "total": 30,
+  "answered": 22,
+  "correct": 30,
+  "fallback": 8,
+  "wrong": 0,
+  "mismatch": 0,
+  "false_positive": 0,
+  "accuracy": 1,
+  "model": "openai-compatible:qwen2.5-14b-instruct",
+  "generated_at": "2026-11-16T13:21:59.324419892+08:00",
+  "items": [
+    {
+      "question": "瓦斯浓度达到1.5%时怎么办？",
+      "expect_clause": "第一百三十六条",
+      "answered": true,
+      "correct": true,
+      "citations": [
+        "第一百三十六条"
+      ],
+      "answer": "依据：[第一百三十六条]",
+      "top_score": 0.6892142295837402
+    },
+    {
+      "question": "检修电气设备要执行哪些制度？",
+      "expect_clause": "第四百四十二条",
+      "answered": true,
+      "correct": true,
+      "citations": [
+        "第四百四十二条"
+      ],
+      "answer": "检修电气设备时，必须执行停电、验电、放电、挂牌、闭锁和专人监护制度，确认无电后方可作业。\n依据：[第四百四十二条]",
+      "top_score": 0.7521023750305176
+    },
+    {
+      "question": "敲帮问顶应该怎么做？",
+      "expect_clause": "第六条",
+      "answered": true,
+      "correct": true,
+      "citations": [
+        "第六条"
+      ],
+      "answer": "依据：[第六条]",
+      "top_score": 0.6329988241195679
+    },
+    {
+      "question": "采煤工作面上下安全出口有什么要求？",
+      "expect_clause": "第七条",
+      "answered": true,
+      "correct": true,
+      "citations": [
+        "第七条"
+      ],
+      "answer": "依据：[第七条]",
+      "top_score": 0.7609882950782776
+    },
+    {
+      "question": "停风时怎么处理？",
+      "expect_clause": "第一百三十八条",
+      "answered": true,
+      "correct": true,
+      "citations": [
+        "第一百三十八条"
+      ],
+      "answer": "依据：[第一百三十八条]",
+      "top_score": 0.6535487771034241
+    },
+    {
+      "question": "接近老空区必须执行什么制度？",
+      "expect_clause": "第二百八十六条",
+      "answered": true,
+      "correct": true,
+      "citations": [
+        "第二百八十六条"
+      ],
+      "answer": "1. 执行探放水制度\n依据：[第二百八十六条]",
+      "top_score": 0.5951367616653442
+    },
+    {
+      "question": "出现透水征兆怎么办？",
+      "expect_clause": "第二百八十八条",
+      "answered": true,
+      "correct": true,
+      "citations": [
+        "第二百八十八条"
+      ],
+      "answer": "依据：[第二百八十八条]",
+      "top_score": 0.6405990719795227
+    },
+    {
+      "question": "主要排水泵房需要几台水泵？",
+      "expect_clause": "第二百八十七条",
+      "answered": true,
+      "correct": true,
+      "citations": [
+        "第二百八十七条"
+      ],
+      "answer": "主要排水泵房必须有工作、备用和检修三台水泵。依据：[第二百八十七条]",
+      "top_score": 0.6475858092308044
+    },
+    {
+      "question": "提升装置需要哪些保护？",
+      "expect_clause": "第四百四十四条",
+      "answered": true,
+      "correct": true,
+      "citations": [
+        "第四百四十四条"
+      ],
+      "answer": "依据：[第四百四十四条]",
+      "top_score": 0.7259024381637573
+    },
+    {
+      "question": "遇到断层破碎带怎么办？",
+      "expect_clause": "第八条",
+      "answered": true,
+      "correct": true,
+      "citations": [
+        "第八条"
+      ],
+      "answer": "遇到断层、破碎带等地质构造时，需要编制专项安全技术措施，并经过矿总工程师审批后实施。依据：[第八条]",
+      "top_score": 0.5685005187988281
+    },
+    {
+      "question": "从业人员上岗前需要什么？",
+      "expect_clause": "第四条",
+      "answered": true,
+      "correct": true,
+      "citations": [
+        "第四条"
+      ],
+      "answer": "依据：[第四条]",
+      "top_score": 0.6869083642959595
+    },
+    {
+      "question": "瓦斯检查三对口指什么？",
+      "expect_clause": "第一百三十五条",
+      "answered": true,
+      "correct": true,
+      "citations": [
+        "第一百三十五条"
+      ],
+      "answer": "瓦斯检查三对口指瓦斯检查手册、记录牌板和班报三者内容必须一致。\n\n依据：[第一百三十五条]",
+      "top_score": 0.5441358089447021
+    },
+    {
+      "question": "局部通风机由谁管理？",
+      "expect_clause": "第一百三十七条",
+      "answered": true,
+      "correct": true,
+      "citations": [
+        "第一百三十七条"
+      ],
+      "answer": "局部通风机必须由指定人员负责管理。\n\n依据：[第一百三十七条]",
+      "top_score": 0.7232865691184998
+    },
+    {
+      "question": "矿井为什么要建立瓦斯抽采系统？",
+      "expect_clause": "第一百三十九条",
+      "answered": true,
+      "correct": true,
+      "citations": [
+        "第一百三十九条"
+      ],
+      "answer": "矿井必须建立瓦斯抽采系统，抽采达标后方可组织生产；抽采管路必须定期检查，严禁漏气。  \n依据：[第一百三十九条]",
+      "top_score": 0.708681583404541
+    },
+    {
+      "question": "井下电缆应该怎么悬挂？",
+      "expect_clause": "第四百四十五条",
+      "answered": true,
+      "correct": true,
+      "citations": [
+        "第四百四十五条"
+      ],
+      "answer": "依据：[第四百四十五条]",
+      "top_score": 0.7475977540016174
+    },
+    {
+      "question": "煤矿企业为什么要建立安全生产责任制？",
+      "expect_clause": "第二条",
+      "answered": true,
+      "correct": true,
+      "citations": [
+        "第一条",
+        "第二条"
+      ],
+      "answer": "为了保障煤矿安全生产和从业人员的人身安全与健康，防止煤矿事故与职业病危害，煤矿企业必须建立安全生产责任制。\n依据：[第一条、第二条]",
+      "top_score": 0.7274874448776245
+    },
+    {
+      "question": "煤矿企业必须设置什么机构？",
+      "expect_clause": "第三条",
+      "answered": true,
+      "correct": true,
+      "citations": [
+        "第三条"
+      ],
+      "answer": "煤矿企业必须设置安全生产管理机构，配备专职安全生产管理人员，建立健全安全生产管理制度和操作规程。\n依据：[第三条]",
+      "top_score": 0.7151079773902893
+    },
+    {
+      "question": "单体液压支柱的初撑力有什么要求？",
+      "expect_clause": "第九条",
+      "answered": true,
+      "correct": true,
+      "citations": [
+        "第九条"
+      ],
+      "answer": "单体液压支柱初撑力不得低于规定值。\n\n依据：[第九条]",
+      "top_score": 0.6896598935127258
+    },
+    {
+      "question": "井下可以带电检修电气设备吗？",
+      "expect_clause": "第四百四十三条",
+      "answered": true,
+      "correct": true,
+      "citations": [
+        "第四百四十三条"
+      ],
+      "answer": "不可以。\n1. 严禁带电检修电气设备。\n依据：[第四百四十三条]",
+      "top_score": 0.7487515807151794
+    },
+    {
+      "question": "制定煤矿安全规程的目的是什么？",
+      "expect_clause": "第一条",
+      "answered": true,
+      "correct": true,
+      "citations": [
+        "第一条"
+      ],
+      "answer": "保障煤矿安全生产和从业人员的人身安全与健康，防止煤矿事故与职业病危害。\n依据：[第一条]",
+      "top_score": 0.7410764694213867
+    },
+    {
+      "question": "安全出口的人行道宽度不得小于多少？",
+      "expect_clause": "第七条",
+      "answered": true,
+      "correct": true,
+      "citations": [
+        "第七条"
+      ],
+      "answer": "安全出口的人行道宽度不得小于0.8米。\n\n依据：[第七条]",
+      "top_score": 0.6436313390731812
+    },
+    {
+      "question": "停风后恢复通风前要先做什么？",
+      "expect_clause": "第一百三十八条",
+      "answered": true,
+      "correct": true,
+      "citations": [
+        "第一百三十八条"
+      ],
+      "answer": "1. 检查瓦斯\n依据：[第一百三十八条]",
+      "top_score": 0.6687019467353821
+    },
+    {
+      "question": "综采工作面采煤机滚筒截齿的更换周期是多少天？",
+      "expect_clause": "",
+      "answered": false,
+      "correct": true,
+      "citations": null,
+      "answer": "资料中未找到明确依据，建议查阅《煤矿安全规程》原文或向通风管理部门核实。",
+      "top_score": 0.4623579978942871
+    },
+    {
+      "question": "矿长每月下井次数的具体规定是多少？",
+      "expect_clause": "",
+      "answered": false,
+      "correct": true,
+      "citations": null,
+      "answer": "资料中未找到明确依据，建议查阅《煤矿安全规程》原文或向通风管理部门核实。",
+      "top_score": 0.5397200584411621
+    },
+    {
+      "question": "员工年休假天数如何计算？",
+      "expect_clause": "",
+      "answered": false,
+      "correct": true,
+      "citations": null,
+      "answer": "资料中未找到明确依据，建议查阅《煤矿安全规程》原文或向通风管理部门核实。",
+      "top_score": 0
+    },
+    {
+      "question": "井下动火作业审批流程是怎样的？",
+      "expect_clause": "",
+      "answered": false,
+      "correct": true,
+      "citations": null,
+      "answer": "资料中未找到明确依据，建议查阅《煤矿安全规程》原文或向通风管理部门核实。",
+      "top_score": 0.5375422835350037
+    },
+    {
+      "question": "爆破器材运输车辆有哪些要求？",
+      "expect_clause": "",
+      "answered": false,
+      "correct": true,
+      "citations": null,
+      "answer": "资料中未找到明确依据，建议查阅《煤矿安全规程》原文或向通风管理部门核实。",
+      "top_score": 0.5222421884536743
+    },
+    {
+      "question": "员工职业健康体检周期是多长？",
+      "expect_clause": "",
+      "answered": false,
+      "correct": true,
+      "citations": null,
+      "answer": "资料中未找到明确依据，建议查阅《煤矿安全规程》原文或向通风管理部门核实。",
+      "top_score": 0
+    },
+    {
+      "question": "瓦斯抽采泵站电机功率要求是多少？",
+      "expect_clause": "",
+      "answered": false,
+      "correct": true,
+      "citations": null,
+      "answer": "资料中未找到明确依据，建议查阅《煤矿安全规程》原文或向通风管理部门核实。",
+      "top_score": 0.5726439952850342
+    },
+    {
+      "question": "巷道锚杆间距标准是多少？",
+      "expect_clause": "",
+      "answered": false,
+      "correct": true,
+      "citations": null,
+      "answer": "资料中未找到明确依据，建议查阅《煤矿安全规程》原文或向通风管理部门核实。",
+      "top_score": 0
+    }
+  ]
+}

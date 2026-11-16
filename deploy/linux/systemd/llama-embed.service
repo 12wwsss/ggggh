@@ -7,7 +7,7 @@ Type=simple
 User=coalrag
 Group=coalrag
 # bge-m3 必须用 cls 池化，维度 1024
-Environment=LLAMA_EMBED_MODEL=/opt/models/bge-m3-q8_0.gguf
+Environment=LLAMA_EMBED_MODEL=/opt/models/bge-m3-Q8_0.gguf
 ExecStart=/opt/llama/llama-server \
   -m ${LLAMA_EMBED_MODEL} \
   --host 127.0.0.1 --port 8002 \
