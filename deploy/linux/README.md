@@ -1,6 +1,6 @@
 # Ubuntu 离线部署（单机）
 
-目标机器：Ubuntu 24.04 LTS，Xeon Silver 4210R（20 核 40 线程），128 GB 内存，4.5 TB 磁盘。
+目标机器：Ubuntu 24.04 LTS，Xeon Silver 4210R（20 核 40 线程），128 GB 内存，4.5 TB 磁盘，2 x NVIDIA RTX 2080 Ti（11 GB x 2，共 22 GB 显存）。
 服务、数据库、模型全部跑在这一台，数据不出机。
 
 ## 0. 先确认三件事
