@@ -33,6 +33,7 @@ func main() {
 	username := flag.String("user", "worker01", "压测账号")
 	password := flag.String("pass", "Worker@123456", "压测口令")
 	mix := flag.String("mix", "ask,search", "请求类型及权重，如 ask,search 或 ask,ask,search")
+	questions := flag.String("questions", "", "问题集（评测集 JSON 或每行一个问题），用于模拟真实用户的不同提问")
 	out := flag.String("out", "", "把结果写入 JSON 文件")
 	flag.Parse()
 
@@ -40,6 +41,14 @@ func main() {
 	if err != nil {
 		fmt.Println("登录失败:", err)
 		os.Exit(1)
+	}
+	prompts := loadQuestions(*questions)
+	if len(prompts) == 0 {
+		prompts = []string{
+			"瓦斯浓度达到1.5%时应当怎么处理？",
+			"停风时怎么处理？",
+			"敲帮问顶应该怎么做？",
+		}
 	}
 
 	kinds := strings.Split(*mix, ",")
@@ -62,7 +71,7 @@ func main() {
 			for time.Now().Before(deadline) {
 				kind := kinds[(worker+seq)%len(kinds)]
 				seq++
-				r := doOne(client, *base, token, kind)
+				r := doOne(client, *base, token, kind, prompts[(worker*7+seq)%len(prompts)])
 				atomic.AddInt64(&sent, 1)
 				select {
 				case results <- r:
@@ -130,16 +139,16 @@ func login(base, user, pass string) (string, error) {
 	return out.Data.Token, nil
 }
 
-func doOne(client *http.Client, base, token, kind string) result {
+func doOne(client *http.Client, base, token, kind, question string) result {
 	var path string
 	var payload any
 	switch kind {
 	case "search":
 		path = "/api/v1/qa/search"
-		payload = map[string]any{"question": "瓦斯浓度达到1.5%时怎么办？", "top_k": 6}
+		payload = map[string]any{"question": question, "top_k": 6}
 	default:
 		path = "/api/v1/qa/ask"
-		payload = map[string]any{"question": "瓦斯浓度达到1.5%时应当怎么处理？"}
+		payload = map[string]any{"question": question}
 	}
 	body, _ := json.Marshal(payload)
 	req, _ := http.NewRequest(http.MethodPost, base+path, bytes.NewReader(body))
@@ -154,6 +163,40 @@ func doOne(client *http.Client, base, token, kind string) result {
 	defer resp.Body.Close()
 	_, _ = io.Copy(io.Discard, resp.Body)
 	return result{latency: time.Since(start), status: resp.StatusCode}
+}
+
+// loadQuestions 从评测集 JSON（{"cases":[{"question":...}]}）或纯文本（每行一个问题）读入问题。
+// 同一句话反复压测会命中 llama.cpp 的前缀缓存，QPS 会被显著高估，所以默认要求轮换问题。
+func loadQuestions(path string) []string {
+	if path == "" {
+		return nil
+	}
+	b, err := os.ReadFile(path)
+	if err != nil {
+		fmt.Println("读取问题集失败:", err)
+		os.Exit(1)
+	}
+	var f struct {
+		Cases []struct {
+			Question string `json:"question"`
+		} `json:"cases"`
+	}
+	if json.Unmarshal(b, &f) == nil && len(f.Cases) > 0 {
+		out := make([]string, 0, len(f.Cases))
+		for _, c := range f.Cases {
+			if strings.TrimSpace(c.Question) != "" {
+				out = append(out, c.Question)
+			}
+		}
+		return out
+	}
+	var out []string
+	for _, line := range strings.Split(string(b), "\n") {
+		if t := strings.TrimSpace(line); t != "" {
+			out = append(out, t)
+		}
+	}
+	return out
 }
 
 func percentile(sorted []time.Duration, p float64) time.Duration {
