@@ -51,26 +51,76 @@ create database coalrag owner coalrag encoding 'UTF8';
 SQL
 ```
 
-## 3. 模型与 llama.cpp
+## 3. 模型与 llama.cpp（CUDA 13 注意）
+
+本机驱动 580.105.08 / CUDA 13.0。先确认运行时：
 
 ```bash
-sudo mkdir -p /opt/llama /opt/models
-# 预编译包：llama-bXXXX-bin-ubuntu-x64.zip（CPU）或 cuda 版，解压到 /opt/llama
-chmod +x /opt/llama/llama-server
-
-# 冒烟：直接用命令行问一句
-/opt/llama/llama-server -m /opt/models/qwen2.5-7b-instruct-q4_k_m.gguf \
-  --host 127.0.0.1 --port 8001 -c 8192 -t 20 -ngl 0
-curl -s http://127.0.0.1:8001/v1/models
+nvidia-smi | head -4
+ldconfig -p | grep -E 'libcudart|libvulkan'
+ls -d /usr/local/cuda* 2>/dev/null
+nvcc --version 2>/dev/null
 ```
 
-嵌入模型单独起一个实例（bge-m3 是 1024 维，`--pooling cls` 必须对）：
+| 检查结果 | 走哪条路 |
+| --- | --- |
+| 有 `libcudart.so.12` 或 CUDA 12 toolkit | 直接用 llama.cpp 的预编译 CUDA 包 |
+| 只有 CUDA 13、没有 12 | 源码编译（推荐）或 Vulkan 后端，见下 |
+| 都没有 | 先 `-ngl 0` 用 CPU 跑通链路，再补 GPU |
+
+源码编译（需要 cmake、g++、CUDA toolkit 13）：
 
 ```bash
+git clone https://github.com/ggml-org/llama.cpp  # 离线则摆渡源码包
+cd llama.cpp
+cmake -B build -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=75
+cmake --build build -j 20 --target llama-server
+sudo install -m 0755 build/bin/llama-server /opt/llama/llama-server
+```
+
+`CMAKE_CUDA_ARCHITECTURES=75` 是 2080 Ti 的算力等级，显式指定能省编译时间。
+
+Vulkan 兜底（不需要 CUDA，性能约为 CUDA 的 80%）：
+
+```bash
+cmake -B build -DGGML_VULKAN=ON
+cmake --build build -j 20 --target llama-server
+```
+
+### 模型选择
+
+22 GB 显存，14B 的 Q4/Q5/Q6 都放得下，**推荐 Q5_K_M**（质量接近 Q6，速度比 Q6 快）：
+
+| 量化 | 文件大小 | +8k KV | 预期速度（双卡） |
+| --- | --- | --- | --- |
+| Q4_K_M | ~9.0 GB | ~10.6 GB | 30–40 tok/s |
+| **Q5_K_M** | ~10.5 GB | ~12.1 GB | **25–35 tok/s** |
+| Q6_K | ~12.4 GB | ~14.0 GB | 20–28 tok/s |
+
+注意：桌面 GNOME 占 GPU0 约 0.4 GB，分片后每卡仍有 5–7 GB 余量，够 KV 缓存。
+显存不够时优先把 `-c` 从 8192 降到 4096，别先降量化。
+
+模型文件（ModelScope / HuggingFace 的 GGUF 仓库）：
+
+- 对话：`qwen2.5-14b-instruct-q5_k_m.gguf`
+- 嵌入：`bge-m3-q8_0.gguf`（1024 维）
+
+摆渡到 `/opt/models/` 后校验：
+
+```bash
+sha256sum /opt/models/*.gguf
+```
+
+### 启动
+
+```bash
+/opt/llama/llama-server -m /opt/models/qwen2.5-14b-instruct-q5_k_m.gguf \
+  --host 127.0.0.1 --port 8001 -c 8192 -t 8 -ngl 99 --tensor-split 11,11 --jinja
+curl -s http://127.0.0.1:8001/v1/models
+
 /opt/llama/llama-server -m /opt/models/bge-m3-q8_0.gguf \
   --host 127.0.0.1 --port 8002 --embeddings --pooling cls -c 512 -t 10
-curl -s http://127.0.0.1:8002/v1/embeddings \
-  -H 'Content-Type: application/json' \
+curl -s http://127.0.0.1:8002/v1/embeddings -H 'Content-Type: application/json' \
   -d '{"model":"bge-m3","input":"瓦斯浓度超限"}' | head -c 200
 ```
 

@@ -9,8 +9,10 @@ Group=coalrag
 # 2 x RTX 2080 Ti (11G each)：层全放显存，按显存比例分到两张卡。
 # 只有一张卡时把 --tensor-split 去掉；纯 CPU 用 -ngl 0 -t 20。
 Environment=CUDA_VISIBLE_DEVICES=0,1
+# 换模型只改这一行（Q4_K_M ~9G / Q5_K_M ~10.5G / Q6_K ~12.4G，22G 显存都放得下）
+Environment=LLAMA_MODEL=/opt/models/qwen2.5-14b-instruct-q5_k_m.gguf
 ExecStart=/opt/llama/llama-server \
-  -m /opt/models/qwen2.5-14b-instruct-q4_k_m.gguf \
+  -m ${LLAMA_MODEL} \
   --host 127.0.0.1 --port 8001 \
   -c 8192 -t 8 -ngl 99 --tensor-split 11,11 --jinja
 Restart=always
