@@ -1,0 +1,17 @@
+[Unit]
+Description=CoalRAG watchdog (healthz + metrics)
+After=network-online.target
+
+[Service]
+Type=simple
+User=coalrag
+Group=coalrag
+Environment=BASE=http://127.0.0.1:8080
+Environment=INTERVAL=60
+# Environment=WEBHOOK=https://example.com/hook
+ExecStart=/opt/coalrag/scripts/watch.sh
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
