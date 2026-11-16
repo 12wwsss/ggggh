@@ -15,7 +15,7 @@ JOBS="${JOBS:-20}"
 echo "[1/4] 检查依赖"
 for c in cmake g++ nvcc; do
   if ! command -v "$c" >/dev/null 2>&1; then
-    echo "缺少 $c，先安装：apt install -y cmake g++ 或装 CUDA toolkit" >&2
+    echo "缺少 $c：cmake 用 apt install -y cmake（3.27 即可），g++ 与 nvcc 见 README" >&2
     exit 1
   fi
 done
@@ -39,11 +39,13 @@ fi
 [ -d "$SRC" ] || { echo "源码目录不存在：$SRC" >&2; exit 1; }
 
 echo "[3/4] 编译（CUDA 架构 $ARCH，$JOBS 线程）"
+# g++ 13.3 + CUDA 12.4 会触发主机编译器版本检查，加 allow 标志跳过（仅告警层面放宽）
 cmake -S "$SRC" -B "$SRC/build" \
   -DGGML_CUDA=ON \
   -DCMAKE_CUDA_ARCHITECTURES="$ARCH" \
   -DLLAMA_CURL=OFF \
-  -DCMAKE_BUILD_TYPE=Release
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_CUDA_FLAGS=-allow-unsupported-compiler
 cmake --build "$SRC/build" --config Release -j "$JOBS" --target llama-server llama-cli
 
 echo "[4/4] 安装到 $PREFIX"

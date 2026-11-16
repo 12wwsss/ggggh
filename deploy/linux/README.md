@@ -95,6 +95,32 @@ cmake -B build -DGGML_VULKAN=ON
 cmake --build build -j 20 --target llama-server
 ```
 
+
+### 编译依赖
+
+本机只缺 cmake（3.27 即可），g++ 13.3 / git 2.43 已满足：
+
+`ash
+sudo apt install -y cmake          # 有网
+cmake --version | head -1
+`
+
+离线时二选一：
+
+`ash
+# A. deb 摆渡（在同版本 Ubuntu 24.04 上）
+apt-get download cmake libarchive13t64 librhash0 libjsoncpp25
+# 拷到服务器后
+sudo dpkg -i ./*.deb
+
+# B. pip 轮子（不需要 apt 源）
+python3 -m pip download cmake -d ./pkgs       # 联网机器
+python3 -m pip install --no-index --find-links ./pkgs cmake
+`
+
+g++ 13.3 + CUDA 12.4 会触发主机编译器版本检查，编译脚本已加
+-DCMAKE_CUDA_FLAGS=-allow-unsupported-compiler，不需要降级 g++。
+
 ### 模型选择
 
 22 GB 显存，14B 的 Q4/Q5/Q6 都放得下，**推荐 Q5_K_M**（质量接近 Q6，速度比 Q6 快）：
