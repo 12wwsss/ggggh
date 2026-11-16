@@ -119,6 +119,8 @@ docs              API 说明、实现对照、前端说明、验收输出、截�
 | `COALRAG_TOP_K` / `COALRAG_MIN_SCORE` | 检索条数与阈值 | 6 / 0.08 |
 | `COALRAG_TUNNEL_ADDR` | 隧道对端地址（仅探活） | 空=不配置 |
 | `COALRAG_TASK_RETENTION_DAYS` | 已结束任务的保留天数 | `7` |
+| `COALRAG_QA_LOG_DAYS` | 问答留痕保留天数（`qa_log` 只增不删） | `90` |
+| `COALRAG_AUDIT_LOG_DAYS` | 审计日志保留天数 | `180` |
 | `COALRAG_BOOTSTRAP` | 空库是否写演示数据 | `true` |
 
 ## 切换到矿内真实模型

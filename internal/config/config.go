@@ -109,6 +109,13 @@ type Task struct {
 	RetentionDays int `json:"retention_days"`
 }
 
+// Logs 描述日志表的保留策略。问答留痕每天新增，审计日志需要更长追溯期，
+// 两张表都只增不删，不设上限会一直涨。
+type Logs struct {
+	QALogDays int `json:"qa_log_days"`
+	AuditDays int `json:"audit_days"`
+}
+
 // Config 是服务全部配置。
 type Config struct {
 	AppName    string    `json:"app_name"`
@@ -127,6 +134,7 @@ type Config struct {
 	Retrieval  Retrieval `json:"retrieval"`
 	Security   Security  `json:"security"`
 	Task       Task      `json:"task"`
+	Logs       Logs      `json:"logs"`
 }
 
 // Default 返回开发与内网试运行均可用的默认配置。
@@ -162,6 +170,7 @@ func Default() *Config {
 		Retrieval: Retrieval{TopK: 6, MinScore: 0.08, MaxContextChars: 6000, Hybrid: true, LexicalMin: 0.9},
 		Security:  Security{MaxLoginFailures: 5, LockMinutes: 15, RatePerMinute: 600},
 		Task:      Task{RetentionDays: 7},
+		Logs:      Logs{QALogDays: 90, AuditDays: 180},
 	}
 }
 
@@ -278,4 +287,6 @@ func applyEnv(c *Config) {
 	integer("COALRAG_RATE_PER_MINUTE", &c.Security.RatePerMinute)
 
 	integer("COALRAG_TASK_RETENTION_DAYS", &c.Task.RetentionDays)
+	integer("COALRAG_QA_LOG_DAYS", &c.Logs.QALogDays)
+	integer("COALRAG_AUDIT_LOG_DAYS", &c.Logs.AuditDays)
 }

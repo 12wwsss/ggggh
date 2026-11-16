@@ -29,6 +29,7 @@ const (
 	TaskBroadcastScan = "broadcast_deadline_scan"
 	TaskExamTimeout   = "exam_timeout_sweep"
 	TaskRetention     = "task_retention"
+	TaskLogRetention  = "log_retention"
 )
 
 // Service 是业务编排入口。

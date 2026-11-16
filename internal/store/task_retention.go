@@ -20,6 +20,33 @@ func (s *Store) PurgeFinishedTasks(ctx context.Context, olderThan time.Duration)
 	return tag.RowsAffected(), nil
 }
 
+// PurgeQALogs 按保留期清理问答留痕：这张表每个提问都写一行，只增不删，
+// 压测时两小时就能到上万行，必须按天清理。
+func (s *Store) PurgeQALogs(ctx context.Context, olderThan time.Duration) (int64, error) {
+	if olderThan <= 0 {
+		olderThan = 90 * 24 * time.Hour
+	}
+	tag, err := s.pool.Exec(ctx, `delete from qa_log
+		where created_at < now() - $1::interval`, durationExpr(olderThan))
+	if err != nil {
+		return 0, wrapErr("清理问答留痕", err)
+	}
+	return tag.RowsAffected(), nil
+}
+
+// PurgeAuditLogs 清理审计日志。保留期比问答长，满足追溯要求。
+func (s *Store) PurgeAuditLogs(ctx context.Context, olderThan time.Duration) (int64, error) {
+	if olderThan <= 0 {
+		olderThan = 180 * 24 * time.Hour
+	}
+	tag, err := s.pool.Exec(ctx, `delete from audit_log
+		where created_at < now() - $1::interval`, durationExpr(olderThan))
+	if err != nil {
+		return 0, wrapErr("清理审计日志", err)
+	}
+	return tag.RowsAffected(), nil
+}
+
 // TaskStats 返回任务表总量与各状态计数，用于运维排查。
 func (s *Store) TaskStats(ctx context.Context) (map[string]int, error) {
 	rows, err := s.pool.Query(ctx, `select status, count(*) from task group by status`)

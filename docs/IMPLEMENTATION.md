@@ -93,6 +93,8 @@
 
 - **考试超时**：`exam_timeout_sweep` 每 5 分钟扫描 `in_progress` 且已超过试卷时长的记录，置 `timeout`、0 分、写入交卷时间；统计口径把 timeout 计入“已交卷未通过”，关掉浏览器不会永远停在“进行中”。
 - **任务表保留**：`task_retention` 每天清理超过 `task.retention_days`（默认 7 天）的已结束任务，避免扫描任务每小时新增 36 条把表撑大。
+- **日志表保留**：`log_retention` 每天按 `logs.qa_log_days`（默认 90 天）清理 `qa_log`、按 `logs.audit_days`（默认 180 天）清理 `audit_log`。两张表每个请求写一行，压测两小时 `qa_log` 就到 9258 行，不设上限会一直涨。实测：把一行改成 120 天前，任务触发后 `qa_log_removed=1`。
+- **系统日志上限**：`/etc/systemd/journald.conf` 设 `SystemMaxUse=1G`、`SystemMaxFileSize=100M`；实测从 3.9 GB 降到 978 MB。`/opt/coalrag/logs/*.log` 交给 logrotate（每周、保留 8 份、压缩）。
 - **备份恢复**：`scripts/backup.ps1` 导出 `pg_dump` + `storage` + manifest（sha256），默认保留 7 份；`scripts/restore.ps1` 校验 sha256 后删库重建并还原，支持 `-RestoreStorage`。已用独立库 `coalrag_restore_test` 做还原验证（8 用户 / 9 文档 / 189 切片一致）。
 
 ## 前端

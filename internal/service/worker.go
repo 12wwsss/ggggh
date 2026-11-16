@@ -65,6 +65,9 @@ func (w *Worker) enqueueRetention(ctx context.Context) {
 	if _, err := w.Svc.Store.Enqueue(ctx, TaskRetention, map[string]any{}, 0); err != nil {
 		w.Svc.Log.Error("投递任务清理失败", "err", err)
 	}
+	if _, err := w.Svc.Store.Enqueue(ctx, TaskLogRetention, map[string]any{}, 0); err != nil {
+		w.Svc.Log.Error("投递日志清理失败", "err", err)
+	}
 }
 
 // processOnce 领取并执行一批任务。
@@ -140,6 +143,28 @@ func (w *Worker) handle(ctx context.Context, t *model.Task) error {
 		}
 		if n > 0 {
 			w.Svc.Log.Info("清理历史任务", "removed", n, "retention_days", days)
+		}
+		return nil
+	case TaskLogRetention:
+		qaDays := w.Svc.Cfg.Logs.QALogDays
+		if qaDays <= 0 {
+			qaDays = 90
+		}
+		auditDays := w.Svc.Cfg.Logs.AuditDays
+		if auditDays <= 0 {
+			auditDays = 180
+		}
+		qa, err := w.Svc.Store.PurgeQALogs(ctx, time.Duration(qaDays)*24*time.Hour)
+		if err != nil {
+			return err
+		}
+		au, err := w.Svc.Store.PurgeAuditLogs(ctx, time.Duration(auditDays)*24*time.Hour)
+		if err != nil {
+			return err
+		}
+		if qa+au > 0 {
+			w.Svc.Log.Info("清理历史日志", "qa_log_removed", qa, "audit_removed", au,
+				"qa_days", qaDays, "audit_days", auditDays)
 		}
 		return nil
 	default:
