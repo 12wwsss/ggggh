@@ -12,6 +12,11 @@ PREFIX="${PREFIX:-/opt/llama}"
 ARCH="${ARCH:-75}"          # 2080 Ti = 7.5
 JOBS="${JOBS:-20}"
 
+# 非登录 shell（sudo/ssh 命令）不会带上 CUDA 的 PATH，必须显式补；
+# 否则 cmake 报 "No CMAKE_CUDA_COMPILER could be found"。
+export PATH="/usr/local/cuda/bin:${PATH}"
+export CUDACXX="${CUDACXX:-/usr/local/cuda/bin/nvcc}"
+
 echo "[1/4] 检查依赖"
 for c in cmake g++ nvcc; do
   if ! command -v "$c" >/dev/null 2>&1; then
