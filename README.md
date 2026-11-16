@@ -14,7 +14,31 @@
 | 数据目录 | `.data\pg` | 开发库 `coalrag` |
 | 上传与评测产物 | `storage\` | 运行时生成 |
 
-工具链与数据目录都在仓库内且已加入 `.gitignore`，不写入系统 PATH，迁移机器时整目录拷走即可。
+本机开发用的便携工具链（`.tools`）与数据库数据（`.data`）都在 `.gitignore` 里，**仓库不包含**；换机器需要自备 Go 1.23+、Node 20+、PostgreSQL 18，或按下面“从源码构建”操作。
+
+## 从源码构建（新机器）
+
+仓库不含 `web/dist`（前端构建产物）和便携工具链，第一次克隆后请按顺序来：
+
+```powershell
+# 1) 前端：安装依赖并构建（产物供 go:embed 打包）
+cd web
+pnpm install
+pnpm build
+cd ..
+
+# 2) 后端：构建（dist 缺失时 go:embed 会直接报错，这是有意的）
+go build -o bin\coalrag-server.exe .\cmd\server
+
+# 3) 数据库：准备一个 PostgreSQL，设置连接串后启动
+$env:COALRAG_DSN = "postgres://postgres:<口令>@127.0.0.1:5432/coalrag?sslmode=disable"
+.\bin\coalrag-server.exe
+```
+
+空库首次启动会自动建表并写入演示数据（`COALRAG_BOOTSTRAP=true`）。
+
+> 只改后端时不需要重复构建前端；改过 `web/src` 后必须重新 `pnpm build` 并重新编译二进制，
+> 否则页面还是旧版本。`scripts\build-web.ps1` 封装了这一步。
 
 ## 快速开始
 
@@ -25,10 +49,10 @@ powershell -ExecutionPolicy Bypass -File scripts\dev.ps1
 # 2) 浏览器打开：员工端 http://127.0.0.1:8080/ ，管理端 http://127.0.0.1:8080/admin/
 #    前端已构建并内嵌在二进制里；改前端后执行 scripts\build-web.ps1 重新打包
 
-# 3) 另一个终端跑端到端验收（68 项断言）
+# 3) 另一个终端跑端到端验收（103 项断言）
 powershell -ExecutionPolicy Bypass -File scripts\selftest.ps1
 
-# 4) 浏览器界面回归（Edge/Chrome 无头，16 项断言 + 截图）
+# 4) 浏览器界面回归（Edge/Chrome 无头，39 项断言 + 截图）
 node web\scripts\verify-ui.mjs --base http://127.0.0.1:8080
 
 # 5) 单元测试
@@ -50,7 +74,7 @@ $env:PATH = "D:\rag\.tools\go\bin;$env:PATH"; go test ./...
 
 ```
 cmd/server        服务入口（HTTP + 进程内任务 worker）
-cmd/smoke         端到端自测（68 项断言，对应验收判据）
+cmd/smoke         端到端自测（103 项断言，对应验收判据）
 cmd/tune          检索阈值标定工具（换嵌入模型后重新标定 min_score）
 cmd/envprobe      环境探针（S0，输出 env-report.txt）
 cmd/userctl       账号急救：查看锁定状态、解锁、重置口令（直连数据库）
@@ -119,8 +143,8 @@ docs              API 说明、实现对照、前端说明、验收输出、截�
 
 ## 验收与留档
 
-- `docs/smoke-output.txt`：最近一次后端端到端自测输出，95 项全部通过。
-- `docs/ui-verification.txt` + `docs/screenshots/`：浏览器回归输出（32 项断言）与员工端/后台截图。
+- `docs/smoke-output.txt`：最近一次后端端到端自测输出，103 项全部通过。
+- `docs/ui-verification.txt` + `docs/screenshots/`：浏览器回归输出（39 项断言）与员工端/后台截图。
 - `docs/IMPLEMENTATION.md`：S0–S7 与前端每项的实现位置、判据证据。
 - `docs/API.md`：接口清单（方法、权限、数据范围）。
 - `docs/UI.md`：前端页面清单、构建方式、设计约定。
