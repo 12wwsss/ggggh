@@ -68,7 +68,15 @@ nvcc --version 2>/dev/null
 | 只有 CUDA 13、没有 12 | 源码编译（推荐）或 Vulkan 后端，见下 |
 | 都没有 | 先 `-ngl 0` 用 CPU 跑通链路，再补 GPU |
 
-源码编译（需要 cmake、g++、CUDA toolkit 13）：
+**本机已装 CUDA 12.4 + nvcc**，直接用仓库里的脚本编译（约 15–25 分钟）：
+
+`ash
+sudo bash deploy/linux/build-llama.sh      # 默认 SRC=/opt/src/llama.cpp PREFIX=/opt/llama ARCH=75
+`
+
+离线时把 llama.cpp 源码包放到 /tmp/llama.cpp.tar.gz，脚本自动解压、不联网。
+
+手工编译（需要 cmake、g++、CUDA toolkit 12.4）：
 
 ```bash
 git clone https://github.com/ggml-org/llama.cpp  # 离线则摆渡源码包
