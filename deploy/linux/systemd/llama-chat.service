@@ -14,7 +14,7 @@ Environment=LLAMA_MODEL=/opt/models/qwen2.5-14b-instruct-q5_k_m-00001-of-00003.g
 ExecStart=/opt/llama/llama-server \
   -m ${LLAMA_MODEL} \
   --host 127.0.0.1 --port 8001 \
-  -c 8192 -t 8 -ngl 99 --tensor-split 11,11 --jinja
+  -c 32768 --parallel 8 -t 8 -ngl 99 --tensor-split 11,11 --jinja
 Restart=always
 RestartSec=5
 LimitNOFILE=65535
