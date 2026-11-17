@@ -35,9 +35,16 @@ onMounted(async () => {
     remain.value = data.remaining_second || 0
     started.value = true
     const record = data.record
-    if (record && record.status !== 'in_progress') {
-      // 已交卷：直接展示成绩
-      result.value = { score: record.score, passed: record.passed, total_score: paper.value.total_score }
+    if (data.submitted || (record && record.status !== 'in_progress')) {
+      // 已交卷：展示成绩与答案，供复习
+      result.value = {
+        score: record.score,
+        passed: record.passed,
+        total_score: paper.value.total_score,
+        answers: record.answers || {},
+        questions: questions.value,
+        review: true,
+      }
       return
     }
     timer = setInterval(() => {
@@ -61,7 +68,7 @@ async function autoSubmit() {
 }
 
 async function submit(auto = false) {
-  if (busy.value) return
+  if (busy.value || result.value) return
   if (!auto) {
     const answered = Object.keys(answers.value).length
     if (answered < questions.value.length) {
@@ -74,11 +81,23 @@ async function submit(auto = false) {
   }
   busy.value = true
   try {
-    result.value = await api.post(`/api/v1/exam/papers/${route.params.id}/submit`, {
+    const res = await api.post(`/api/v1/exam/papers/${route.params.id}/submit`, {
       answers: answers.value,
     })
     clearInterval(timer)
-    showToast(result.value.passed ? '已通过' : '未通过')
+    showToast(res.passed ? '已通过' : '未通过')
+    // 交卷后重新拉一次：拿含正确答案与解析的复习数据；失败也不影响成绩
+    try {
+      const data = await api.post(`/api/v1/exam/papers/${route.params.id}/start`)
+      result.value = {
+        ...res,
+        answers: answers.value,
+        questions: data.questions || questions.value,
+        review: true,
+      }
+    } catch {
+      result.value = { ...res, review: false }
+    }
   } catch (e) {
     showToast(e.message)
   } finally {
@@ -109,6 +128,32 @@ async function submit(auto = false) {
           <van-button block @click="router.replace('/exams')">返回考试列表</van-button>
         </div>
       </div>
+
+      <template v-if="result && result.review">
+        <div class="muted" style="margin: 14px 0 4px">答案与解析</div>
+        <div v-for="(q, qi) in result.questions" :key="q.id" class="card">
+          <div><strong>{{ qi + 1 }}. {{ q.stem }}</strong></div>
+          <div class="muted" style="margin-top: 4px">
+            我的答案：{{ result.answers[q.id] || '未作答' }} · 正确答案：{{ q.answer }}
+          </div>
+          <div
+            v-for="(opt, oi) in q.options"
+            :key="oi"
+            :style="{
+              marginTop: '6px',
+              color:
+                letterOf(opt, oi) === q.answer
+                  ? '#47624b'
+                  : letterOf(opt, oi) === result.answers[q.id]
+                    ? '#a5311f'
+                    : '',
+            }"
+          >
+            {{ opt }}
+          </div>
+          <div v-if="q.analysis" class="muted" style="margin-top: 6px">解析：{{ q.analysis }}</div>
+        </div>
+      </template>
 
       <template v-if="!result">
         <div v-for="(q, qi) in questions" :key="q.id" class="card">

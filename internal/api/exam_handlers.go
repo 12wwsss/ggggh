@@ -136,15 +136,26 @@ func (s *Server) startExam(c *gin.Context) {
 		fail(c, http.StatusInternalServerError, "开始考试失败")
 		return
 	}
-	if rec.Status != "in_progress" {
-		fail(c, http.StatusConflict, "已交卷，不能重复作答")
-		return
-	}
 	questions, err := s.Store.ListQuizQuestions(ctx, nil, paper.QuestionIDs)
 	if err != nil {
 		fail(c, http.StatusInternalServerError, "查询题目失败")
 		return
 	}
+
+	// 已交卷：不再返回 409，而是作为“查看成绩与答案”返回。
+	// 题目保留 answer/analysis，供复习；只有本人能取到自己的记录。
+	if rec.Status != "in_progress" {
+		ok(c, gin.H{
+			"record":           rec,
+			"paper":            paper,
+			"questions":        questions,
+			"submitted":        true,
+			"server_time":      now,
+			"remaining_second": 0,
+		})
+		return
+	}
+
 	for i := range questions {
 		questions[i].Answer = ""
 		questions[i].Analysis = ""
