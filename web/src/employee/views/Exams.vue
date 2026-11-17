@@ -52,6 +52,13 @@ function open(p) {
   router.push(`/exams/${p.id}/run`)
 }
 
+// 点“最近得分”看上次成绩，不消耗次数
+function openResult(p) {
+  const i = info(p)
+  if (!i.latest || i.inProgress) return
+  router.push(`/exams/${p.id}/run?view=1`)
+}
+
 onMounted(async () => {
   try {
     const [p, r] = await Promise.all([
@@ -87,7 +94,14 @@ onMounted(async () => {
         <div class="muted" style="margin-top: 6px">
           <template v-if="info(p).used">
             已考 {{ info(p).used }} 次 · 剩余 {{ info(p).remaining }} 次 ·
-            最近得分 {{ info(p).latest.score }}
+            <span
+              v-if="info(p).latest && !info(p).inProgress"
+              style="color: #47624b; text-decoration: underline"
+              @click="openResult(p)"
+            >
+              最近得分 {{ info(p).latest.score }} ›
+            </span>
+            <template v-else>最近得分 {{ info(p).latest.score }}</template>
           </template>
           <template v-else>还可考 {{ info(p).remaining }} 次</template>
         </div>
