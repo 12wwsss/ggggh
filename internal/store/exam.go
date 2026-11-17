@@ -9,20 +9,21 @@ import (
 
 // ListPapers 查询试卷。
 func (s *Store) ListPapers(ctx context.Context, status string, deptID *int64, limit, offset int) ([]model.ExamPaper, int, error) {
-	rows, err := s.pool.Query(ctx, `select id, title, dept_id, question_ids, total_score, pass_score,
+	rows, err := s.pool.Query(ctx, `select id, title, dept_id, dept_ids, question_ids, total_score, pass_score,
 		duration_min, start_at, end_at, status, created_by, created_at, max_attempts, count(*) over() as total
 		from exam_paper
-		where ($1='' or status=$1) and ($2::bigint is null or dept_id is null or dept_id=$2)
+		where ($1='' or status=$1)
+		  and ($2::bigint is null or cardinality(dept_ids)=0 or $2 = any(dept_ids))
 		order by id desc limit $3 offset $4`, status, deptID, limit, offset)
 	if err != nil {
 		return nil, 0, wrapErr("查询试卷", err)
 	}
 	defer rows.Close()
-	var out []model.ExamPaper
+	out := []model.ExamPaper{}
 	total := 0
 	for rows.Next() {
 		var p model.ExamPaper
-		if err := rows.Scan(&p.ID, &p.Title, &p.DeptID, &p.QuestionIDs, &p.TotalScore, &p.PassScore,
+		if err := rows.Scan(&p.ID, &p.Title, &p.DeptID, &p.DeptIDs, &p.QuestionIDs, &p.TotalScore, &p.PassScore,
 			&p.DurationMin, &p.StartAt, &p.EndAt, &p.Status, &p.CreatedBy, &p.CreatedAt, &p.MaxAttempts, &total); err != nil {
 			return nil, 0, err
 		}
@@ -34,9 +35,9 @@ func (s *Store) ListPapers(ctx context.Context, status string, deptID *int64, li
 // GetPaper 取试卷。
 func (s *Store) GetPaper(ctx context.Context, id int64) (*model.ExamPaper, error) {
 	var p model.ExamPaper
-	err := s.pool.QueryRow(ctx, `select id, title, dept_id, question_ids, total_score, pass_score,
+	err := s.pool.QueryRow(ctx, `select id, title, dept_id, dept_ids, question_ids, total_score, pass_score,
 		duration_min, start_at, end_at, status, created_by, created_at, max_attempts from exam_paper where id=$1`, id).
-		Scan(&p.ID, &p.Title, &p.DeptID, &p.QuestionIDs, &p.TotalScore, &p.PassScore,
+		Scan(&p.ID, &p.Title, &p.DeptID, &p.DeptIDs, &p.QuestionIDs, &p.TotalScore, &p.PassScore,
 			&p.DurationMin, &p.StartAt, &p.EndAt, &p.Status, &p.CreatedBy, &p.CreatedAt, &p.MaxAttempts)
 	if isNoRows(err) {
 		return nil, ErrNotFound
@@ -51,11 +52,24 @@ func (s *Store) GetPaper(ctx context.Context, id int64) (*model.ExamPaper, error
 func (s *Store) CreatePaper(ctx context.Context, p *model.ExamPaper) (int64, error) {
 	var id int64
 	err := s.pool.QueryRow(ctx, `insert into exam_paper
-		(title, dept_id, question_ids, total_score, pass_score, duration_min, start_at, end_at, status, created_by, max_attempts)
-		values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) returning id`,
-		p.Title, p.DeptID, arr64(p.QuestionIDs), p.TotalScore, p.PassScore, p.DurationMin,
+		(title, dept_id, dept_ids, question_ids, total_score, pass_score, duration_min, start_at, end_at, status, created_by, max_attempts)
+		values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) returning id`,
+		p.Title, p.DeptID, arr64(p.DeptIDs), arr64(p.QuestionIDs), p.TotalScore, p.PassScore, p.DurationMin,
 		p.StartAt, p.EndAt, p.Status, p.CreatedBy, p.MaxAttempts).Scan(&id)
 	return id, wrapErr("新建试卷", err)
+}
+
+// SetPaperDepts 设置试卷的发布范围（发布前调用）。空数组表示全员。
+func (s *Store) SetPaperDepts(ctx context.Context, id int64, deptIDs []int64) error {
+	tag, err := s.pool.Exec(ctx, `update exam_paper set dept_ids=$2
+		where id=$1 and status='draft'`, id, arr64(deptIDs))
+	if err != nil {
+		return wrapErr("更新发布部门", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 // SetPaperStatus 变更试卷状态。

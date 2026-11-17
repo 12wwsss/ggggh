@@ -59,6 +59,7 @@ func (s *Server) getPaper(c *gin.Context) {
 type paperReq struct {
 	Title       string  `json:"title" binding:"required"`
 	DeptID      *int64  `json:"dept_id"`
+	DeptIDs     []int64 `json:"dept_ids"`
 	QuestionIDs []int64 `json:"question_ids" binding:"required"`
 	PassScore   int     `json:"pass_score"`
 	DurationMin int     `json:"duration_min"`
@@ -90,8 +91,14 @@ func (s *Server) createPaper(c *gin.Context) {
 		status = "draft"
 	}
 	cl := claims(c)
+	var firstDept *int64
+	if len(req.DeptIDs) > 0 {
+		firstDept = &req.DeptIDs[0]
+	} else {
+		firstDept = req.DeptID
+	}
 	id, err := s.Store.CreatePaper(c.Request.Context(), &model.ExamPaper{
-		Title: req.Title, DeptID: req.DeptID, QuestionIDs: req.QuestionIDs,
+		Title: req.Title, DeptID: firstDept, DeptIDs: req.DeptIDs, QuestionIDs: req.QuestionIDs,
 		TotalScore: 100, PassScore: req.PassScore, DurationMin: req.DurationMin,
 		Status: status, CreatedBy: &cl.UserID, MaxAttempts: req.MaxAttempts,
 	})
@@ -107,9 +114,10 @@ func (s *Server) publishPaper(c *gin.Context) {
 	if !okID {
 		return
 	}
-	// 发布时可以顺带设置允许考试次数
+	// 发布时可以顺带设置考试次数与发布部门
 	var req struct {
-		MaxAttempts *int `json:"max_attempts"`
+		MaxAttempts *int     `json:"max_attempts"`
+		DeptIDs     *[]int64 `json:"dept_ids"`
 	}
 	_ = c.ShouldBindJSON(&req)
 	if req.MaxAttempts != nil {
@@ -119,6 +127,17 @@ func (s *Server) publishPaper(c *gin.Context) {
 		}
 		if err := s.Store.SetPaperMaxAttempts(c.Request.Context(), id, *req.MaxAttempts); err != nil {
 			fail(c, http.StatusConflict, "只有草稿状态可以修改考试次数")
+			return
+		}
+	}
+	if req.DeptIDs != nil {
+		ids := *req.DeptIDs
+		if len(ids) > 20 {
+			fail(c, http.StatusBadRequest, "部门数量过多")
+			return
+		}
+		if err := s.Store.SetPaperDepts(c.Request.Context(), id, ids); err != nil {
+			fail(c, http.StatusConflict, "只有草稿状态可以修改发布部门")
 			return
 		}
 	}

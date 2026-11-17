@@ -164,9 +164,12 @@ type QuizQuestion struct {
 
 // ExamPaper 试卷。
 type ExamPaper struct {
-	ID          int64      `json:"id"`
-	Title       string     `json:"title"`
-	DeptID      *int64     `json:"dept_id,omitempty"`
+	ID     int64  `json:"id"`
+	Title  string `json:"title"`
+	DeptID *int64 `json:"dept_id,omitempty"`
+	// DeptIDs 是发布范围，空数组表示全员。
+	DeptIDs     []int64    `json:"dept_ids"`
+	DeptNames   []string   `json:"dept_names,omitempty"`
 	QuestionIDs []int64    `json:"question_ids"`
 	TotalScore  int        `json:"total_score"`
 	PassScore   int        `json:"pass_score"`

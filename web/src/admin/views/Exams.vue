@@ -1,6 +1,6 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import { api, download } from '../../shared/http'
 import { examStatus, fmtTime } from '../../shared/format'
 
@@ -10,12 +10,21 @@ const loading = ref(false)
 const page = reactive({ page: 1, page_size: 20 })
 
 const allQuestions = ref([])
+const depts = ref([])
 const dialog = ref(false)
-const form = reactive({ title: '', question_ids: [], pass_score: 60, duration_min: 60, max_attempts: 1 })
+const form = reactive({ title: '', question_ids: [], pass_score: 60, duration_min: 60, max_attempts: 1, dept_ids: [] })
+
+const publishDialog = ref(false)
+const publishForm = reactive({ id: 0, title: '', max_attempts: 1, dept_ids: [] })
 
 const recordsDialog = ref(false)
 const records = ref([])
 const currentPaper = ref(null)
+
+function deptText(ids) {
+  if (!ids || !ids.length) return '全员'
+  return ids.map((id) => depts.value.find((d) => d.id === id)?.name || `#${id}`).join('、')
+}
 
 async function load() {
   loading.value = true
@@ -39,13 +48,29 @@ async function loadQuestions() {
   }
 }
 
+async function loadDepts() {
+  try {
+    depts.value = (await api.get('/api/v1/depts')) || []
+  } catch {
+    depts.value = []
+  }
+}
+
 onMounted(async () => {
   await load()
   await loadQuestions()
+  await loadDepts()
 })
 
 function openCreate() {
-  Object.assign(form, { title: '', question_ids: [], pass_score: 60, duration_min: 60, max_attempts: 1 })
+  Object.assign(form, {
+    title: '',
+    question_ids: [],
+    pass_score: 60,
+    duration_min: 60,
+    max_attempts: 1,
+    dept_ids: [],
+  })
   dialog.value = true
 }
 
@@ -61,6 +86,7 @@ async function save() {
       pass_score: Number(form.pass_score),
       duration_min: Number(form.duration_min),
       max_attempts: Number(form.max_attempts),
+      dept_ids: form.dept_ids,
     })
     ElMessage.success('已创建草稿试卷')
     dialog.value = false
@@ -70,23 +96,25 @@ async function save() {
   }
 }
 
-async function publish(row) {
+function openPublish(row) {
+  publishForm.id = row.id
+  publishForm.title = row.title
+  publishForm.max_attempts = row.max_attempts || 1
+  publishForm.dept_ids = [...(row.dept_ids || [])]
+  publishDialog.value = true
+}
+
+async function confirmPublish() {
   try {
-    const { value } = await ElMessageBox.prompt(
-      `发布《${row.title}》后员工即可参加。可考次数（1–10），员工用完后不能再进入：`,
-      '确认发布',
-      {
-        inputValue: String(row.max_attempts || 1),
-        inputPattern: /^([1-9]|10)$/,
-        inputErrorMessage: '请输入 1–10 的整数',
-        type: 'warning',
-      },
-    )
-    await api.post(`/api/v1/exam/papers/${row.id}/publish`, { max_attempts: Number(value) })
+    await api.post(`/api/v1/exam/papers/${publishForm.id}/publish`, {
+      max_attempts: Number(publishForm.max_attempts),
+      dept_ids: publishForm.dept_ids,
+    })
     ElMessage.success('已发布')
+    publishDialog.value = false
     await load()
   } catch (e) {
-    if (e !== 'cancel') ElMessage.error(e.message)
+    ElMessage.error(e.message)
   }
 }
 
@@ -120,6 +148,9 @@ function exportRecords() {
       <el-table-column prop="pass_score" label="及格" width="72" />
       <el-table-column prop="duration_min" label="时长(分)" width="90" />
       <el-table-column prop="max_attempts" label="可考次数" width="90" />
+      <el-table-column label="发布部门" min-width="140">
+        <template #default="{ row }">{{ deptText(row.dept_ids) }}</template>
+      </el-table-column>
       <el-table-column label="状态" width="96">
         <template #default="{ row }">
           <el-tag :type="row.status === 'published' ? 'success' : 'info'" size="small">{{ examStatus[row.status] }}</el-tag>
@@ -130,7 +161,7 @@ function exportRecords() {
       </el-table-column>
       <el-table-column label="操作" width="180">
         <template #default="{ row }">
-          <el-button v-if="row.status === 'draft'" link type="success" @click="publish(row)">发布</el-button>
+          <el-button v-if="row.status === 'draft'" link type="success" @click="openPublish(row)">发布</el-button>
           <el-button link type="primary" @click="openRecords(row)">成绩</el-button>
         </template>
       </el-table-column>
@@ -154,10 +185,33 @@ function exportRecords() {
           <el-input-number v-model="form.max_attempts" :min="1" :max="10" />
           <span class="muted" style="margin-left: 8px">发布时还可以再改</span>
         </el-form-item>
+        <el-form-item label="发布部门">
+          <el-select v-model="form.dept_ids" multiple filterable style="width: 100%" placeholder="不选表示全员">
+            <el-option v-for="d in depts" :key="d.id" :label="d.name" :value="d.id" />
+          </el-select>
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="dialog = false">取消</el-button>
         <el-button type="primary" @click="save">保存</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="publishDialog" title="发布考试" width="480px">
+      <el-form label-width="88px">
+        <el-form-item label="试卷">{{ publishForm.title }}</el-form-item>
+        <el-form-item label="发布部门">
+          <el-select v-model="publishForm.dept_ids" multiple filterable style="width: 100%" placeholder="不选表示全员">
+            <el-option v-for="d in depts" :key="d.id" :label="d.name" :value="d.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="可考次数">
+          <el-input-number v-model="publishForm.max_attempts" :min="1" :max="10" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="publishDialog = false">取消</el-button>
+        <el-button type="primary" @click="confirmPublish">确认发布</el-button>
       </template>
     </el-dialog>
 
