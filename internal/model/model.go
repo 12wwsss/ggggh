@@ -208,6 +208,9 @@ type BroadcastTask struct {
 	CreatedAt   time.Time  `json:"created_at"`
 	TotalCount  int        `json:"total_count"`
 	AckCount    int        `json:"ack_count"`
+	// MyStatus 是“当前用户”的签收状态：pending / read / ack。
+	// 只在 /broadcast/mine 返回，管理员列表为空。
+	MyStatus string `json:"my_status,omitempty"`
 }
 
 // BroadcastRecord 宣贯签收记录。

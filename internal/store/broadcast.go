@@ -60,7 +60,7 @@ func (s *Store) ListBroadcastTasks(ctx context.Context, status string, limit, of
 		return nil, 0, wrapErr("查询宣贯任务", err)
 	}
 	defer rows.Close()
-	var out []model.BroadcastTask
+	out := []model.BroadcastTask{}
 	total := 0
 	for rows.Next() {
 		var t model.BroadcastTask
@@ -76,7 +76,7 @@ func (s *Store) ListBroadcastTasks(ctx context.Context, status string, limit, of
 // ListMyBroadcasts 员工端查询自己需要签收的任务。
 func (s *Store) ListMyBroadcasts(ctx context.Context, userID int64, onlyPending bool) ([]model.BroadcastTask, error) {
 	rows, err := s.pool.Query(ctx, `select t.id, t.title, t.content, t.doc_ids, t.dept_ids,
-		t.publisher_id, t.require_ack, t.deadline, t.status, t.created_at,
+		t.publisher_id, t.require_ack, t.deadline, t.status, t.created_at, r.status,
 		(select count(*) from broadcast_record r2 where r2.task_id=t.id),
 		(select count(*) from broadcast_record r2 where r2.task_id=t.id and r2.status='ack')
 		from broadcast_task t join broadcast_record r on r.task_id=t.id and r.user_id=$1
@@ -86,11 +86,11 @@ func (s *Store) ListMyBroadcasts(ctx context.Context, userID int64, onlyPending 
 		return nil, wrapErr("查询我的宣贯任务", err)
 	}
 	defer rows.Close()
-	var out []model.BroadcastTask
+	out := []model.BroadcastTask{}
 	for rows.Next() {
 		var t model.BroadcastTask
 		if err := rows.Scan(&t.ID, &t.Title, &t.Content, &t.DocIDs, &t.DeptIDs, &t.PublisherID,
-			&t.RequireAck, &t.Deadline, &t.Status, &t.CreatedAt, &t.TotalCount, &t.AckCount); err != nil {
+			&t.RequireAck, &t.Deadline, &t.Status, &t.CreatedAt, &t.MyStatus, &t.TotalCount, &t.AckCount); err != nil {
 			return nil, err
 		}
 		out = append(out, t)

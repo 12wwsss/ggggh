@@ -11,7 +11,7 @@ const busy = ref(0)
 async function load() {
   loading.value = true
   try {
-    list.value = await api.get('/api/v1/broadcast/mine', { pending: false })
+    list.value = (await api.get('/api/v1/broadcast/mine', { pending: false })) || []
   } catch (e) {
     showToast(e.message)
   } finally {
@@ -49,11 +49,12 @@ function deadLineText(task) {
       <div v-for="t in list" :key="t.id" class="card">
         <div class="row-between">
           <strong>{{ t.title }}</strong>
-          <van-tag :type="t.require_ack ? 'warning' : 'primary'">{{ t.require_ack ? '需签收' : '知悉' }}</van-tag>
+          <van-tag v-if="t.my_status === 'ack'" type="success">已签收</van-tag>
+          <van-tag v-else :type="t.require_ack ? 'warning' : 'primary'">{{ t.require_ack ? '需签收' : '知悉' }}</van-tag>
         </div>
         <div class="muted" style="margin-top: 8px">{{ deadLineText(t) }}</div>
         <div style="margin-top: 10px; line-height: 1.8; white-space: pre-wrap">{{ t.content }}</div>
-        <div style="margin-top: 12px">
+        <div v-if="t.my_status !== 'ack'" style="margin-top: 12px">
           <van-button block type="primary" size="small" :loading="busy === t.id" @click="ack(t)">
             确认签收
           </van-button>
