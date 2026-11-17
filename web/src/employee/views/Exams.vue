@@ -95,16 +95,6 @@ onMounted(async () => {
           <van-button block :type="actionType(p)" @click="open(p)">
             {{ actionText(p) }}
           </van-button>
-          <van-button
-            v-if="info(p).latest && !info(p).inProgress"
-            block
-            size="small"
-            plain
-            style="margin-top: 8px"
-            @click="router.push(`/exams/${p.id}/run?view=1`)"
-          >
-            查看上次成绩
-          </van-button>
         </div>
       </div>
     </div>
