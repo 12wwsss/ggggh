@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showDialog, showToast } from 'vant'
 import { api } from '../../shared/http'
+import { fmtDate } from '../../shared/format'
 
 const route = useRoute()
 const router = useRouter()
@@ -12,6 +13,7 @@ const questions = ref([])
 const answers = ref({})
 const remain = ref(0)
 const result = ref(null)
+const attempts = ref([])
 const busy = ref(false)
 const started = ref(false)
 let timer = null
@@ -77,14 +79,17 @@ onMounted(async () => {
   }
 })
 
-// 拉取最近一次成绩与答案（不消耗次数）
-async function loadRecord() {
-  const data = await api.get(`/api/v1/exam/papers/${route.params.id}/record`)
+// 拉取成绩与答案（不消耗次数）；attemptNo 为空表示最近一次
+async function loadRecord(attemptNo) {
+  const q = attemptNo ? `?attempt=${attemptNo}` : ''
+  const data = await api.get(`/api/v1/exam/papers/${route.params.id}/record${q}`)
   paper.value = data.paper
   questions.value = data.questions || []
+  attempts.value = data.attempts || []
   result.value = {
     score: data.record.score,
     passed: data.record.passed,
+    attempt_no: data.record.attempt_no,
     total_score: data.paper.total_score,
     answers: data.record.answers || {},
     questions: questions.value,
@@ -126,18 +131,9 @@ async function submit(auto = false) {
     })
     clearInterval(timer)
     showToast(res.passed ? '已通过' : '未通过')
-    // 交卷后用成绩接口取正确答案与解析（不要用 start，否则会立刻开下一次）
+    // 交卷后用成绩接口取正确答案、解析与历次成绩（不要用 start，否则会立刻开下一次）
     try {
-      const data = await api.get(`/api/v1/exam/papers/${route.params.id}/record`)
-      result.value = {
-        ...res,
-        answers: answers.value,
-        questions: data.questions || questions.value,
-        max_attempts: data.max_attempts,
-        used_attempts: data.used_attempts,
-        remaining_attempts: data.remaining_attempts,
-        review: true,
-      }
+      await loadRecord()
     } catch {
       result.value = { ...res, review: false }
     }
@@ -167,6 +163,7 @@ async function submit(auto = false) {
           <van-tag :type="result.passed ? 'success' : 'danger'">{{ result.passed ? '通过' : '未通过' }}</van-tag>
         </div>
         <div class="muted" style="margin-top: 6px">满分 {{ result.total_score }} 分，成绩已记录</div>
+        <div v-if="result.attempt_no" class="muted" style="margin-top: 6px">第 {{ result.attempt_no }} 次考试</div>
         <div v-if="result.max_attempts" class="muted" style="margin-top: 6px">
           可考 {{ result.max_attempts }} 次 · 已考 {{ result.used_attempts }} 次 ·
           剩余 {{ result.remaining_attempts }} 次
@@ -176,6 +173,23 @@ async function submit(auto = false) {
           <van-button block :style="result.remaining_attempts > 0 ? 'margin-top: 8px' : ''" @click="router.replace('/exams')">
             返回考试列表
           </van-button>
+        </div>
+      </div>
+
+      <div v-if="attempts.length > 1" class="card" style="margin-top: 12px">
+        <div class="muted">历次成绩（点一次看当次答案）</div>
+        <div
+          v-for="a in attempts"
+          :key="a.id"
+          class="row-between"
+          :style="{ marginTop: '8px', cursor: 'pointer' }"
+          @click="loadRecord(a.attempt_no)"
+        >
+          <span>第 {{ a.attempt_no }} 次 · {{ fmtDate(a.submitted_at || a.started_at, true) }}</span>
+          <span>
+            <van-tag v-if="a.status === 'in_progress'" type="primary">进行中</van-tag>
+            <van-tag v-else :type="a.passed ? 'success' : 'warning'">{{ a.score }} 分</van-tag>
+          </span>
         </div>
       </div>
 

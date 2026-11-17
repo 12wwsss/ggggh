@@ -267,7 +267,8 @@ func (s *Server) submitExam(c *gin.Context) {
 	ok(c, gin.H{"score": score, "total_score": paper.TotalScore, "passed": passed, "pass_score": paper.PassScore})
 }
 
-// getExamRecord 查看本人最近一次成绩与答案（不新建考试次数）。
+// getExamRecord 查看本人成绩与答案（不新建考试次数）。
+// 带 ?attempt=N 看第 N 次；不带则看最近一次。返回全部历次成绩摘要。
 func (s *Server) getExamRecord(c *gin.Context) {
 	id, okID := idParam(c)
 	if !okID {
@@ -280,10 +281,25 @@ func (s *Server) getExamRecord(c *gin.Context) {
 		fail(c, http.StatusNotFound, "试卷不存在")
 		return
 	}
-	rec, err := s.Store.GetLatestExamRecord(ctx, id, cl.UserID)
-	if err != nil {
-		fail(c, http.StatusNotFound, "还没有参加考试")
-		return
+	attemptNo := 0
+	if v := c.Query("attempt"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			attemptNo = n
+		}
+	}
+	var rec *model.ExamRecord
+	if attemptNo > 0 {
+		rec, err = s.Store.GetExamAttempt(ctx, id, cl.UserID, attemptNo)
+		if err != nil {
+			fail(c, http.StatusNotFound, "没有这次考试记录")
+			return
+		}
+	} else {
+		rec, err = s.Store.GetLatestExamRecord(ctx, id, cl.UserID)
+		if err != nil {
+			fail(c, http.StatusNotFound, "还没有参加考试")
+			return
+		}
 	}
 	questions, err := s.Store.ListQuizQuestions(ctx, nil, paper.QuestionIDs)
 	if err != nil {
@@ -296,6 +312,11 @@ func (s *Server) getExamRecord(c *gin.Context) {
 			questions[i].Analysis = ""
 		}
 	}
+	attempts, err := s.Store.ListExamAttempts(ctx, id, cl.UserID)
+	if err != nil {
+		fail(c, http.StatusInternalServerError, "查询历次成绩失败")
+		return
+	}
 	used, _ := s.Store.CountExamAttempts(ctx, id, cl.UserID)
 	remaining := paper.MaxAttempts - used
 	if remaining < 0 {
@@ -305,6 +326,7 @@ func (s *Server) getExamRecord(c *gin.Context) {
 		"record":             rec,
 		"paper":              paper,
 		"questions":          questions,
+		"attempts":           attempts,
 		"max_attempts":       paper.MaxAttempts,
 		"used_attempts":      used,
 		"remaining_attempts": remaining,

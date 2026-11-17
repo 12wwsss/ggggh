@@ -164,6 +164,54 @@ func (s *Store) GetLatestExamRecord(ctx context.Context, paperID, userID int64) 
 	return &r, nil
 }
 
+// ListExamAttempts 按次数列出某人在某试卷上的全部记录（用于历次成绩）。
+func (s *Store) ListExamAttempts(ctx context.Context, paperID, userID int64) ([]model.ExamRecord, error) {
+	rows, err := s.pool.Query(ctx, `select id, paper_id, user_id, answers, score, passed, status, attempt_no,
+		started_at, submitted_at from exam_record
+		where paper_id=$1 and user_id=$2 order by attempt_no`, paperID, userID)
+	if err != nil {
+		return nil, wrapErr("查询考试记录", err)
+	}
+	defer rows.Close()
+	out := []model.ExamRecord{}
+	for rows.Next() {
+		var r model.ExamRecord
+		var answers []byte
+		if err := rows.Scan(&r.ID, &r.PaperID, &r.UserID, &answers, &r.Score, &r.Passed, &r.Status,
+			&r.AttemptNo, &r.StartedAt, &r.SubmittedAt); err != nil {
+			return nil, err
+		}
+		_ = json.Unmarshal(answers, &r.Answers)
+		if r.Answers == nil {
+			r.Answers = map[string]string{}
+		}
+		out = append(out, r)
+	}
+	return out, rows.Err()
+}
+
+// GetExamAttempt 取某人某试卷的第 N 次记录。
+func (s *Store) GetExamAttempt(ctx context.Context, paperID, userID int64, attemptNo int) (*model.ExamRecord, error) {
+	var r model.ExamRecord
+	var answers []byte
+	err := s.pool.QueryRow(ctx, `select id, paper_id, user_id, answers, score, passed, status, attempt_no,
+		started_at, submitted_at from exam_record
+		where paper_id=$1 and user_id=$2 and attempt_no=$3`, paperID, userID, attemptNo).
+		Scan(&r.ID, &r.PaperID, &r.UserID, &answers, &r.Score, &r.Passed, &r.Status, &r.AttemptNo,
+			&r.StartedAt, &r.SubmittedAt)
+	if isNoRows(err) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, wrapErr("查询考试记录", err)
+	}
+	_ = json.Unmarshal(answers, &r.Answers)
+	if r.Answers == nil {
+		r.Answers = map[string]string{}
+	}
+	return &r, nil
+}
+
 // CountExamAttempts 统计某人在某试卷上已经产生的记录数（含进行中）。
 func (s *Store) CountExamAttempts(ctx context.Context, paperID, userID int64) (int, error) {
 	var n int
