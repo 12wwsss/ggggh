@@ -1,0 +1,13 @@
+[Unit]
+Description=CoalRAG adaptive display (real monitor vs virtual)
+After=display-manager.service
+Wants=display-manager.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/coalrag-display-auto
+TimeoutStartSec=90
+
+[Install]
+WantedBy=multi-user.target
