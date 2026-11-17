@@ -11,7 +11,7 @@ const page = reactive({ page: 1, page_size: 20 })
 
 const allQuestions = ref([])
 const dialog = ref(false)
-const form = reactive({ title: '', question_ids: [], pass_score: 60, duration_min: 60 })
+const form = reactive({ title: '', question_ids: [], pass_score: 60, duration_min: 60, max_attempts: 1 })
 
 const recordsDialog = ref(false)
 const records = ref([])
@@ -45,7 +45,7 @@ onMounted(async () => {
 })
 
 function openCreate() {
-  Object.assign(form, { title: '', question_ids: [], pass_score: 60, duration_min: 60 })
+  Object.assign(form, { title: '', question_ids: [], pass_score: 60, duration_min: 60, max_attempts: 1 })
   dialog.value = true
 }
 
@@ -60,6 +60,7 @@ async function save() {
       question_ids: form.question_ids,
       pass_score: Number(form.pass_score),
       duration_min: Number(form.duration_min),
+      max_attempts: Number(form.max_attempts),
     })
     ElMessage.success('已创建草稿试卷')
     dialog.value = false
@@ -71,8 +72,17 @@ async function save() {
 
 async function publish(row) {
   try {
-    await ElMessageBox.confirm(`发布《${row.title}》后员工即可参加。`, '确认发布', { type: 'warning' })
-    await api.post(`/api/v1/exam/papers/${row.id}/publish`)
+    const { value } = await ElMessageBox.prompt(
+      `发布《${row.title}》后员工即可参加。可考次数（1–10），员工用完后不能再进入：`,
+      '确认发布',
+      {
+        inputValue: String(row.max_attempts || 1),
+        inputPattern: /^([1-9]|10)$/,
+        inputErrorMessage: '请输入 1–10 的整数',
+        type: 'warning',
+      },
+    )
+    await api.post(`/api/v1/exam/papers/${row.id}/publish`, { max_attempts: Number(value) })
     ElMessage.success('已发布')
     await load()
   } catch (e) {
@@ -109,6 +119,7 @@ function exportRecords() {
       </el-table-column>
       <el-table-column prop="pass_score" label="及格" width="72" />
       <el-table-column prop="duration_min" label="时长(分)" width="90" />
+      <el-table-column prop="max_attempts" label="可考次数" width="90" />
       <el-table-column label="状态" width="96">
         <template #default="{ row }">
           <el-tag :type="row.status === 'published' ? 'success' : 'info'" size="small">{{ examStatus[row.status] }}</el-tag>
@@ -139,6 +150,10 @@ function exportRecords() {
         <el-form-item label="时长(分)">
           <el-input-number v-model="form.duration_min" :min="5" :max="300" />
         </el-form-item>
+        <el-form-item label="可考次数">
+          <el-input-number v-model="form.max_attempts" :min="1" :max="10" />
+          <span class="muted" style="margin-left: 8px">发布时还可以再改</span>
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="dialog = false">取消</el-button>
@@ -151,6 +166,7 @@ function exportRecords() {
         <el-table-column prop="user_name" label="姓名" width="90" />
         <el-table-column prop="dept_name" label="部门" width="110" />
         <el-table-column prop="score" label="得分" width="72" />
+        <el-table-column prop="attempt_no" label="第几次" width="76" />
         <el-table-column label="结果" width="86">
           <template #default="{ row }">
             <el-tag :type="row.passed ? 'success' : 'danger'" size="small">{{ row.passed ? '通过' : '未通过' }}</el-tag>

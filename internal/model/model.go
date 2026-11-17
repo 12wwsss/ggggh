@@ -176,6 +176,8 @@ type ExamPaper struct {
 	Status      string     `json:"status"`
 	CreatedBy   *int64     `json:"created_by,omitempty"`
 	CreatedAt   time.Time  `json:"created_at"`
+	// MaxAttempts 是允许考试的次数，发布时设置，默认 1。
+	MaxAttempts int `json:"max_attempts"`
 }
 
 // ExamRecord 考试记录。
@@ -190,6 +192,7 @@ type ExamRecord struct {
 	Score       int               `json:"score"`
 	Passed      bool              `json:"passed"`
 	Status      string            `json:"status"`
+	AttemptNo   int               `json:"attempt_no"`
 	StartedAt   time.Time         `json:"started_at"`
 	SubmittedAt *time.Time        `json:"submitted_at,omitempty"`
 }

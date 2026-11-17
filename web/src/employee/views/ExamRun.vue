@@ -29,6 +29,24 @@ function letterOf(option, index) {
 
 onMounted(async () => {
   try {
+    // ?view=1：只看成绩，不占用新的考试次数
+    if (route.query.view) {
+      const data = await api.get(`/api/v1/exam/papers/${route.params.id}/record`)
+      paper.value = data.paper
+      questions.value = data.questions || []
+      result.value = {
+        score: data.record.score,
+        passed: data.record.passed,
+        total_score: data.paper.total_score,
+        answers: data.record.answers || {},
+        questions: questions.value,
+        max_attempts: data.max_attempts,
+        used_attempts: data.used_attempts,
+        remaining_attempts: data.remaining_attempts,
+        review: true,
+      }
+      return
+    }
     const data = await api.post(`/api/v1/exam/papers/${route.params.id}/start`)
     paper.value = data.paper
     questions.value = data.questions || []
@@ -43,6 +61,9 @@ onMounted(async () => {
         total_score: paper.value.total_score,
         answers: record.answers || {},
         questions: questions.value,
+        max_attempts: data.max_attempts,
+        used_attempts: data.used_attempts,
+        remaining_attempts: data.remaining_attempts,
         review: true,
       }
       return
@@ -61,6 +82,11 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => timer && clearInterval(timer))
+
+// 再考一次：回到不带 view 的答题页，start 会按次数生成新的记录
+function again() {
+  window.location.href = `/exams/${route.params.id}/run`
+}
 
 async function autoSubmit() {
   showToast('考试时间到，自动交卷')
@@ -86,13 +112,16 @@ async function submit(auto = false) {
     })
     clearInterval(timer)
     showToast(res.passed ? '已通过' : '未通过')
-    // 交卷后重新拉一次：拿含正确答案与解析的复习数据；失败也不影响成绩
+    // 交卷后用成绩接口取正确答案与解析（不要用 start，否则会立刻开下一次）
     try {
-      const data = await api.post(`/api/v1/exam/papers/${route.params.id}/start`)
+      const data = await api.get(`/api/v1/exam/papers/${route.params.id}/record`)
       result.value = {
         ...res,
         answers: answers.value,
         questions: data.questions || questions.value,
+        max_attempts: data.max_attempts,
+        used_attempts: data.used_attempts,
+        remaining_attempts: data.remaining_attempts,
         review: true,
       }
     } catch {
@@ -124,8 +153,15 @@ async function submit(auto = false) {
           <van-tag :type="result.passed ? 'success' : 'danger'">{{ result.passed ? '通过' : '未通过' }}</van-tag>
         </div>
         <div class="muted" style="margin-top: 6px">满分 {{ result.total_score }} 分，成绩已记录</div>
+        <div v-if="result.max_attempts" class="muted" style="margin-top: 6px">
+          可考 {{ result.max_attempts }} 次 · 已考 {{ result.used_attempts }} 次 ·
+          剩余 {{ result.remaining_attempts }} 次
+        </div>
         <div style="margin-top: 12px">
-          <van-button block @click="router.replace('/exams')">返回考试列表</van-button>
+          <van-button v-if="result.remaining_attempts > 0" type="primary" block @click="again">再考一次</van-button>
+          <van-button block :style="result.remaining_attempts > 0 ? 'margin-top: 8px' : ''" @click="router.replace('/exams')">
+            返回考试列表
+          </van-button>
         </div>
       </div>
 

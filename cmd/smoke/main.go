@@ -216,8 +216,12 @@ func main() {
 			"question": "瓦斯浓度达到1.5%时怎么办？", "top_k": 6,
 		})
 		if code == http.StatusOK && len(asList(res)) > 0 {
-			top = asList(res)[0].(map[string]any)
-			break
+			cand := asList(res)[0].(map[string]any)
+			// 嵌入还没就绪时只有词法命中，score 为 0；等到有向量分数再断言
+			if num(cand["score"]) > 0 {
+				top = cand
+				break
+			}
 		}
 		time.Sleep(time.Second)
 	}

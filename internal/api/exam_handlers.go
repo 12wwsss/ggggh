@@ -63,6 +63,7 @@ type paperReq struct {
 	PassScore   int     `json:"pass_score"`
 	DurationMin int     `json:"duration_min"`
 	Status      string  `json:"status"`
+	MaxAttempts int     `json:"max_attempts"`
 }
 
 func (s *Server) createPaper(c *gin.Context) {
@@ -77,6 +78,13 @@ func (s *Server) createPaper(c *gin.Context) {
 	if req.DurationMin <= 0 {
 		req.DurationMin = 60
 	}
+	if req.MaxAttempts <= 0 {
+		req.MaxAttempts = 1
+	}
+	if req.MaxAttempts > 10 {
+		fail(c, http.StatusBadRequest, "考试次数最多 10 次")
+		return
+	}
 	status := req.Status
 	if status == "" {
 		status = "draft"
@@ -85,7 +93,7 @@ func (s *Server) createPaper(c *gin.Context) {
 	id, err := s.Store.CreatePaper(c.Request.Context(), &model.ExamPaper{
 		Title: req.Title, DeptID: req.DeptID, QuestionIDs: req.QuestionIDs,
 		TotalScore: 100, PassScore: req.PassScore, DurationMin: req.DurationMin,
-		Status: status, CreatedBy: &cl.UserID,
+		Status: status, CreatedBy: &cl.UserID, MaxAttempts: req.MaxAttempts,
 	})
 	if err != nil {
 		fail(c, http.StatusInternalServerError, "新建试卷失败")
@@ -98,6 +106,21 @@ func (s *Server) publishPaper(c *gin.Context) {
 	id, okID := idParam(c)
 	if !okID {
 		return
+	}
+	// 发布时可以顺带设置允许考试次数
+	var req struct {
+		MaxAttempts *int `json:"max_attempts"`
+	}
+	_ = c.ShouldBindJSON(&req)
+	if req.MaxAttempts != nil {
+		if *req.MaxAttempts <= 0 || *req.MaxAttempts > 10 {
+			fail(c, http.StatusBadRequest, "考试次数需在 1–10 之间")
+			return
+		}
+		if err := s.Store.SetPaperMaxAttempts(c.Request.Context(), id, *req.MaxAttempts); err != nil {
+			fail(c, http.StatusConflict, "只有草稿状态可以修改考试次数")
+			return
+		}
 	}
 	if err := s.Store.SetPaperStatus(c.Request.Context(), id, "published"); err != nil {
 		fail(c, http.StatusNotFound, "试卷不存在")
@@ -131,8 +154,12 @@ func (s *Server) startExam(c *gin.Context) {
 		return
 	}
 	cl := claims(c)
-	rec, err := s.Store.StartExam(ctx, id, cl.UserID)
+	rec, err := s.Store.StartExam(ctx, id, cl.UserID, paper.MaxAttempts)
 	if err != nil {
+		if err == store.ErrConflict {
+			fail(c, http.StatusConflict, "考试次数已用完")
+			return
+		}
 		fail(c, http.StatusInternalServerError, "开始考试失败")
 		return
 	}
@@ -142,16 +169,25 @@ func (s *Server) startExam(c *gin.Context) {
 		return
 	}
 
+	used, _ := s.Store.CountExamAttempts(ctx, id, cl.UserID)
+	remaining := paper.MaxAttempts - used
+	if remaining < 0 {
+		remaining = 0
+	}
+
 	// 已交卷：不再返回 409，而是作为“查看成绩与答案”返回。
 	// 题目保留 answer/analysis，供复习；只有本人能取到自己的记录。
 	if rec.Status != "in_progress" {
 		ok(c, gin.H{
-			"record":           rec,
-			"paper":            paper,
-			"questions":        questions,
-			"submitted":        true,
-			"server_time":      now,
-			"remaining_second": 0,
+			"record":             rec,
+			"paper":              paper,
+			"questions":          questions,
+			"submitted":          true,
+			"max_attempts":       paper.MaxAttempts,
+			"used_attempts":      used,
+			"remaining_attempts": remaining,
+			"server_time":        now,
+			"remaining_second":   0,
 		})
 		return
 	}
@@ -162,12 +198,15 @@ func (s *Server) startExam(c *gin.Context) {
 	}
 	deadline := rec.StartedAt.Add(time.Duration(paper.DurationMin) * time.Minute)
 	ok(c, gin.H{
-		"record":           rec,
-		"paper":            paper,
-		"questions":        questions,
-		"server_time":      now,
-		"deadline":         deadline,
-		"remaining_second": int(time.Until(deadline).Seconds()),
+		"record":             rec,
+		"paper":              paper,
+		"questions":          questions,
+		"max_attempts":       paper.MaxAttempts,
+		"used_attempts":      used,
+		"remaining_attempts": remaining,
+		"server_time":        now,
+		"deadline":           deadline,
+		"remaining_second":   int(time.Until(deadline).Seconds()),
 	})
 }
 
@@ -192,7 +231,7 @@ func (s *Server) submitExam(c *gin.Context) {
 	}
 	rec, err := s.Store.GetExamRecordByPaper(ctx, id, cl.UserID)
 	if err != nil {
-		fail(c, http.StatusConflict, "尚未开始考试")
+		fail(c, http.StatusConflict, "没有进行中的考试（可能已交卷）")
 		return
 	}
 	if rec.Status != "in_progress" {
@@ -226,6 +265,50 @@ func (s *Server) submitExam(c *gin.Context) {
 		return
 	}
 	ok(c, gin.H{"score": score, "total_score": paper.TotalScore, "passed": passed, "pass_score": paper.PassScore})
+}
+
+// getExamRecord 查看本人最近一次成绩与答案（不新建考试次数）。
+func (s *Server) getExamRecord(c *gin.Context) {
+	id, okID := idParam(c)
+	if !okID {
+		return
+	}
+	ctx := c.Request.Context()
+	cl := claims(c)
+	paper, err := s.Store.GetPaper(ctx, id)
+	if err != nil {
+		fail(c, http.StatusNotFound, "试卷不存在")
+		return
+	}
+	rec, err := s.Store.GetLatestExamRecord(ctx, id, cl.UserID)
+	if err != nil {
+		fail(c, http.StatusNotFound, "还没有参加考试")
+		return
+	}
+	questions, err := s.Store.ListQuizQuestions(ctx, nil, paper.QuestionIDs)
+	if err != nil {
+		fail(c, http.StatusInternalServerError, "查询题目失败")
+		return
+	}
+	if rec.Status == "in_progress" {
+		for i := range questions {
+			questions[i].Answer = ""
+			questions[i].Analysis = ""
+		}
+	}
+	used, _ := s.Store.CountExamAttempts(ctx, id, cl.UserID)
+	remaining := paper.MaxAttempts - used
+	if remaining < 0 {
+		remaining = 0
+	}
+	ok(c, gin.H{
+		"record":             rec,
+		"paper":              paper,
+		"questions":          questions,
+		"max_attempts":       paper.MaxAttempts,
+		"used_attempts":      used,
+		"remaining_attempts": remaining,
+	})
 }
 
 func (s *Server) listExamRecords(c *gin.Context) {

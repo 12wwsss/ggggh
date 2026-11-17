@@ -157,6 +157,7 @@ func New(cfg *config.Config, st *store.Store, svc *service.Service, mgr *auth.Ma
 	authed.POST("/exam/papers/:id/publish", s.require("exam", "write"), s.publishPaper)
 	authed.POST("/exam/papers/:id/start", s.require("exam", "write"), s.startExam)
 	authed.POST("/exam/papers/:id/submit", s.require("exam", "write"), s.submitExam)
+	authed.GET("/exam/papers/:id/record", s.require("exam", "read"), s.getExamRecord)
 	authed.GET("/exam/records", s.require("exam", "read"), s.listExamRecords)
 	authed.GET("/exam/export", s.require("exam", "read"), s.exportExam)
 
