@@ -31,20 +31,7 @@ onMounted(async () => {
   try {
     // ?view=1：只看成绩，不占用新的考试次数
     if (route.query.view) {
-      const data = await api.get(`/api/v1/exam/papers/${route.params.id}/record`)
-      paper.value = data.paper
-      questions.value = data.questions || []
-      result.value = {
-        score: data.record.score,
-        passed: data.record.passed,
-        total_score: data.paper.total_score,
-        answers: data.record.answers || {},
-        questions: questions.value,
-        max_attempts: data.max_attempts,
-        used_attempts: data.used_attempts,
-        remaining_attempts: data.remaining_attempts,
-        review: true,
-      }
+      await loadRecord()
       return
     }
     const data = await api.post(`/api/v1/exam/papers/${route.params.id}/start`)
@@ -76,10 +63,37 @@ onMounted(async () => {
       }
     }, 1000)
   } catch (e) {
+    // 次数用完 / 已交卷：自动按“查看成绩”处理，不要弹错退回
+    if (/次数|已交卷/.test(e.message || '')) {
+      try {
+        await loadRecord()
+        return
+      } catch {
+        /* 没有记录就按原错误处理 */
+      }
+    }
     showToast(e.message)
     router.back()
   }
 })
+
+// 拉取最近一次成绩与答案（不消耗次数）
+async function loadRecord() {
+  const data = await api.get(`/api/v1/exam/papers/${route.params.id}/record`)
+  paper.value = data.paper
+  questions.value = data.questions || []
+  result.value = {
+    score: data.record.score,
+    passed: data.record.passed,
+    total_score: data.paper.total_score,
+    answers: data.record.answers || {},
+    questions: questions.value,
+    max_attempts: data.max_attempts,
+    used_attempts: data.used_attempts,
+    remaining_attempts: data.remaining_attempts,
+    review: true,
+  }
+}
 
 onBeforeUnmount(() => timer && clearInterval(timer))
 

@@ -42,6 +42,16 @@ function actionType(p) {
   return i.inProgress || i.remaining > 0 ? 'primary' : 'default'
 }
 
+function open(p) {
+  const i = info(p)
+  // 次数用完且没有进行中的记录：只看成绩，不调用 start
+  if (!i.inProgress && i.remaining <= 0) {
+    router.push(`/exams/${p.id}/run?view=1`)
+    return
+  }
+  router.push(`/exams/${p.id}/run`)
+}
+
 onMounted(async () => {
   try {
     const [p, r] = await Promise.all([
@@ -82,7 +92,7 @@ onMounted(async () => {
           <template v-else>还可考 {{ info(p).remaining }} 次</template>
         </div>
         <div style="margin-top: 12px">
-          <van-button block :type="actionType(p)" @click="router.push(`/exams/${p.id}/run`)">
+          <van-button block :type="actionType(p)" @click="open(p)">
             {{ actionText(p) }}
           </van-button>
           <van-button
