@@ -15,6 +15,46 @@ import (
 // 兼容层：小程序（原 Node 代理）使用 /api/*，响应约定 {ok:true,...}。
 // 先落地健康检查与问答，其余接口按页面逐步补齐。
 
+// compatProfile 个人资料（目前只读姓名，头像后续接上传）。
+func (s *Server) compatProfile(c *gin.Context) {
+	u := s.compatCurrentUser(c)
+	if u == nil {
+		c.JSON(http.StatusOK, gin.H{"ok": true, "name": "", "avatar": ""})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true, "name": u.Name, "role": u.Role, "post": u.Post, "avatar": ""})
+}
+
+// compatSaveProfile 保存姓名/头像；当前不改库，返回成功避免页面报错。
+func (s *Server) compatSaveProfile(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+// compatQuizStats 答题统计；题库接完后替换为真实数据。
+func (s *Server) compatQuizStats(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"ok": true, "mine": nil, "byTeam": []any{}, "passRate": 0, "total": 0})
+}
+
+// compatQGroups 题库分组（按岗位）。
+func (s *Server) compatQGroups(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"ok": true, "groups": []any{}, "items": []any{}})
+}
+
+// compatQuestions 题目列表；题库接完后替换。
+func (s *Server) compatQuestions(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"ok": true, "items": []any{}})
+}
+
+// compatExams 考试列表；考试页接完后替换。
+func (s *Server) compatExams(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"ok": true, "items": []any{}})
+}
+
+// compatFAQ 高频问题。
+func (s *Server) compatFAQ(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"ok": true, "items": []any{}})
+}
+
 // compatLogin 工号登录：返回小程序约定的 {ok, token, user}。
 func (s *Server) compatLogin(c *gin.Context) {
 	var req struct {

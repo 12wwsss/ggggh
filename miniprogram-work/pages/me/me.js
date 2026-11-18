@@ -42,17 +42,17 @@ Page({
     })
   },
 
-  /** 身份展示：工人自己填过名字就优先显示 */
+  /** 身份展示：工号登录优先显示姓名 */
   refreshIdentity() {
     const logged = !!auth.token()
     const u = auth.user()
-    const base = logged ? ((u && u.label) || '微信用户') : '本机账号'
+    const base = logged ? ((u && (u.name || u.label)) || '已登录') : '本机账号'
     const name = this.data.customName || base
     this.setData({
       bound: logged,
       meName: name,
       meInitial: name.slice(0, 1),
-      meInfo: logged ? '微信已绑定 · 学习记录跟着微信走' : '未绑定微信 · 记录只在这台手机上'
+      meInfo: logged ? '工号已登录 · 学习记录跟人走' : '未登录 · 记录只在这台手机上'
     })
   },
 
