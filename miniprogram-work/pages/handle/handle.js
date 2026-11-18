@@ -52,8 +52,8 @@ Page({
     const id = e.currentTarget.dataset.id
     const note = (this.data.note || '').trim()
     if (note.length < 4) return wx.showToast({ title: '写一句处置说明', icon: 'none' })
-    api.handleIssue({ id, note, handler: '安全科' }).then(() => {
-      wx.showToast({ title: '已闭环', icon: 'success' })
+    api.handleIssue({ id, note, handler: '安全科' }).then(res => {
+      wx.showToast({ title: '状态：' + ((res && res.status) || '已更新'), icon: 'none' })
       this.setData({ open: '', note: '' })
       this.fetch()
     }).catch(err => {

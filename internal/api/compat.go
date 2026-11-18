@@ -1,8 +1,11 @@
 package api
 
 import (
+	"encoding/base64"
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -10,6 +13,7 @@ import (
 
 	"coalrag/internal/auth"
 	"coalrag/internal/model"
+	"coalrag/internal/store"
 )
 
 // 兼容层：小程序（原 Node 代理）使用 /api/*，响应约定 {ok:true,...}。
@@ -53,6 +57,302 @@ func (s *Server) compatExams(c *gin.Context) {
 // compatFAQ 高频问题。
 func (s *Server) compatFAQ(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"ok": true, "items": []any{}})
+}
+
+// ---------- 隐患上报（兼容小程序 /api/issue*） ----------
+
+func compatIssueStatus(st string) string {
+	switch st {
+	case model.IssueReported:
+		return "待分派"
+	case model.IssueClosed:
+		return "已闭环"
+	case model.IssueRejected:
+		return "已驳回"
+	default:
+		return "处置中"
+	}
+}
+
+func (s *Server) compatUpload(c *gin.Context) {
+	var req struct {
+		Data string `json:"data"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil || req.Data == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "message": "缺少文件数据"})
+		return
+	}
+	b64 := req.Data
+	ext := ".bin"
+	if strings.HasPrefix(b64, "data:") {
+		parts := strings.SplitN(b64, ",", 2)
+		if len(parts) != 2 {
+			c.JSON(http.StatusBadRequest, gin.H{"ok": false, "message": "文件格式不正确"})
+			return
+		}
+		meta := parts[0]
+		b64 = parts[1]
+		switch {
+		case strings.Contains(meta, "image/png"):
+			ext = ".png"
+		case strings.Contains(meta, "image/webp"):
+			ext = ".webp"
+		case strings.Contains(meta, "image/jpeg"), strings.Contains(meta, "image/jpg"):
+			ext = ".jpg"
+		case strings.Contains(meta, "audio/mpeg"), strings.Contains(meta, "audio/mp3"):
+			ext = ".mp3"
+		case strings.Contains(meta, "audio/mp4"), strings.Contains(meta, "audio/m4a"):
+			ext = ".m4a"
+		}
+	}
+	raw, err := base64.StdEncoding.DecodeString(b64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "message": "文件解码失败"})
+		return
+	}
+	if len(raw) > 12<<20 {
+		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "message": "文件超过 12MB"})
+		return
+	}
+	dir := filepath.Join(s.Cfg.StorageDir, "uploads")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "message": "保存失败"})
+		return
+	}
+	name := fmt.Sprintf("%d_%d%s", time.Now().UnixNano(), os.Getpid(), ext)
+	if err := os.WriteFile(filepath.Join(dir, name), raw, 0o644); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "message": "保存失败"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true, "url": "/uploads/" + name})
+}
+
+func (s *Server) serveUpload(c *gin.Context) {
+	name := filepath.Base(c.Param("name"))
+	path := filepath.Join(s.Cfg.StorageDir, "uploads", name)
+	if _, err := os.Stat(path); err != nil {
+		c.Status(http.StatusNotFound)
+		return
+	}
+	c.File(path)
+}
+
+func (s *Server) compatCreateIssue(c *gin.Context) {
+	u := s.compatCurrentUser(c)
+	if u == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"ok": false, "message": "请先登录"})
+		return
+	}
+	var req struct {
+		Type     string   `json:"type"`
+		Title    string   `json:"title"`
+		Desc     string   `json:"desc"`
+		Urgent   bool     `json:"urgent"`
+		Loc      string   `json:"loc"`
+		Photos   []string `json:"photos"`
+		Audio    string   `json:"audio"`
+		AudioSec int      `json:"audioSec"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "message": "上报内容不正确"})
+		return
+	}
+	title := strings.TrimSpace(req.Title)
+	desc := strings.TrimSpace(req.Desc)
+	if title == "" {
+		title = desc
+	}
+	if r := []rune(title); len(r) > 40 {
+		title = string(r[:40])
+	}
+	if title == "" && req.Audio == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "message": "写一句或录一段语音"})
+		return
+	}
+	severity := "normal"
+	if req.Urgent {
+		severity = "high"
+	}
+	meta := []string{}
+	if req.Type != "" {
+		meta = append(meta, "【"+req.Type+"】")
+	}
+	if req.Loc != "" {
+		meta = append(meta, "位置："+req.Loc)
+	}
+	if len(meta) > 0 {
+		desc = strings.Join(meta, " ") + "\n" + desc
+	}
+	issue := &model.Issue{Title: title, Description: desc, Severity: severity, ReporterID: &u.ID}
+	if u.DeptID != nil {
+		issue.DeptID = u.DeptID
+	}
+	created, err := s.Store.CreateIssue(c.Request.Context(), issue)
+	if err != nil {
+		s.Log.Error("兼容上报失败", "err", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "message": "上报失败"})
+		return
+	}
+	files := append([]string{}, req.Photos...)
+	if req.Audio != "" {
+		files = append(files, req.Audio)
+	}
+	for _, raw := range files {
+		name := strings.TrimPrefix(raw, "/uploads/")
+		if name == raw || name == "" {
+			continue
+		}
+		_, _ = s.Store.AddIssueAttachment(c.Request.Context(), &model.IssueAttachment{
+			IssueID: created.ID, FileName: name, UploaderID: &u.ID,
+		})
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true, "item": gin.H{"id": created.ID, "code": created.Code}})
+}
+
+func (s *Server) compatListIssues(c *gin.Context) {
+	u := s.compatCurrentUser(c)
+	if u == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"ok": false, "message": "请先登录"})
+		return
+	}
+	var dept, reporter *int64
+	if u.Role == model.RoleEmployee {
+		reporter = &u.ID
+	} else if u.DeptID != nil {
+		dept = u.DeptID
+	}
+	list, _, err := s.Store.ListIssues(c.Request.Context(), "", dept, reporter, "", 100, 0)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "message": "查询失败"})
+		return
+	}
+	want := strings.TrimSpace(c.Query("status"))
+	items := make([]gin.H, 0, len(list))
+	for _, it := range list {
+		label := compatIssueStatus(it.Status)
+		if want != "" && label != want {
+			continue
+		}
+		photos := []string{}
+		if atts, err := s.Store.ListIssueAttachments(c.Request.Context(), it.ID); err == nil {
+			for _, a := range atts {
+				name := a.FileName
+				// 兼容层上传的附件是 uploads 下的裸文件名；历史附件存的是绝对路径，跳过
+				if name == "" || strings.Contains(name, "/") || strings.Contains(name, "\\") {
+					continue
+				}
+				if _, err := os.Stat(filepath.Join(s.Cfg.StorageDir, "uploads", name)); err != nil {
+					continue
+				}
+				photos = append(photos, "/uploads/"+name)
+			}
+		}
+		note := it.Result
+		if note == "" {
+			note = it.VerifyComment
+		}
+		items = append(items, gin.H{
+			"id":         it.ID,
+			"code":       it.Code,
+			"title":      it.Title,
+			"desc":       it.Description,
+			"type":       it.CateName,
+			"level":      it.Severity,
+			"status":     label,
+			"createdAt":  it.CreatedAt.Format(time.RFC3339),
+			"handleNote": note,
+			"photos":     photos,
+			"reporter":   it.Reporter,
+		})
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true, "items": items, "total": len(items)})
+}
+
+func (s *Server) compatIssueStats(c *gin.Context) {
+	u := s.compatCurrentUser(c)
+	if u == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"ok": false, "message": "请先登录"})
+		return
+	}
+	var dept *int64
+	if u.Role != model.RoleEmployee && u.DeptID != nil {
+		dept = u.DeptID
+	}
+	stats, err := s.Store.IssueStats(c.Request.Context(), dept)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "message": "统计失败"})
+		return
+	}
+	pending := stats[model.IssueReported]
+	closed := stats[model.IssueClosed]
+	overdue := stats["overdue"]
+	total := 0
+	for st, n := range stats {
+		if st == "overdue" {
+			continue
+		}
+		total += n
+	}
+	doing := total - pending - closed
+	c.JSON(http.StatusOK, gin.H{
+		"ok": true, "pending": pending, "doing": doing, "closed": closed,
+		"total": total, "overdue": overdue,
+	})
+}
+
+func (s *Server) compatHandleIssue(c *gin.Context) {
+	u := s.compatCurrentUser(c)
+	if u == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"ok": false, "message": "请先登录"})
+		return
+	}
+	if u.Role == model.RoleEmployee {
+		c.JSON(http.StatusForbidden, gin.H{"ok": false, "message": "没有处置权限"})
+		return
+	}
+	var req struct {
+		ID   int64  `json:"id"`
+		Note string `json:"note"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil || req.ID <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "message": "参数不正确"})
+		return
+	}
+	issue, err := s.Store.GetIssue(c.Request.Context(), req.ID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"ok": false, "message": "问题不存在"})
+		return
+	}
+	note := strings.TrimSpace(req.Note)
+	treq := store.TransitionRequest{IssueID: req.ID, ActorID: u.ID, Comment: note}
+	switch issue.Status {
+	case model.IssueReported:
+		treq.Action, treq.From, treq.To = "accept", []string{model.IssueReported}, model.IssueAccepted
+	case model.IssueAccepted:
+		treq.Action, treq.From, treq.To = "rectify", []string{model.IssueAccepted}, model.IssueRectified
+		treq.Result = note
+		if treq.Result == "" {
+			treq.Result = "已整改"
+		}
+	case model.IssueRectified:
+		treq.Action, treq.From, treq.To = "verify", []string{model.IssueRectified}, model.IssueVerified
+		treq.VerifyComment = note
+		if treq.VerifyComment == "" {
+			treq.VerifyComment = "验收通过"
+		}
+	case model.IssueVerified:
+		treq.Action, treq.From, treq.To = "close", []string{model.IssueVerified}, model.IssueClosed
+		treq.Close = true
+	default:
+		c.JSON(http.StatusConflict, gin.H{"ok": false, "message": "当前状态不能处置"})
+		return
+	}
+	updated, err := s.Store.TransitionIssue(c.Request.Context(), treq)
+	if err != nil {
+		c.JSON(http.StatusConflict, gin.H{"ok": false, "message": "状态流转失败"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true, "status": compatIssueStatus(updated.Status)})
 }
 
 // compatLogin 工号登录：返回小程序约定的 {ok, token, user}。
