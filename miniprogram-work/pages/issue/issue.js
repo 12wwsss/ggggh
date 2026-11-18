@@ -262,7 +262,7 @@ Page({
         const mime = ext === 'png' ? 'png' : ext === 'webp' ? 'webp' : 'jpeg'
         api.upload('data:image/' + mime + ';base64,' + r.data).then(res => {
           wx.hideLoading()
-          this.setData({ photos: this.data.photos.concat([res.url]) })
+          this.setData({ photos: this.data.photos.concat([api.absUrl(res.url)]) })
         }).catch(e => {
           wx.hideLoading()
           wx.showToast({ title: e.message || '上传失败', icon: 'none' })

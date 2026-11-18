@@ -61,6 +61,19 @@ func (s *Server) compatFAQ(c *gin.Context) {
 
 // ---------- 隐患上报（兼容小程序 /api/issue*） ----------
 
+// compatUploadName 从 "/uploads/xxx" 或完整 URL 中取出文件名。
+func compatUploadName(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if i := strings.Index(raw, "/uploads/"); i >= 0 {
+		raw = raw[i+len("/uploads/"):]
+	}
+	raw = strings.TrimPrefix(raw, "/")
+	if raw == "" || strings.Contains(raw, "..") {
+		return ""
+	}
+	return filepath.Base(raw)
+}
+
 func compatIssueStatus(st string) string {
 	switch st {
 	case model.IssueReported:
@@ -198,8 +211,8 @@ func (s *Server) compatCreateIssue(c *gin.Context) {
 		files = append(files, req.Audio)
 	}
 	for _, raw := range files {
-		name := strings.TrimPrefix(raw, "/uploads/")
-		if name == raw || name == "" {
+		name := compatUploadName(raw)
+		if name == "" {
 			continue
 		}
 		_, _ = s.Store.AddIssueAttachment(c.Request.Context(), &model.IssueAttachment{
