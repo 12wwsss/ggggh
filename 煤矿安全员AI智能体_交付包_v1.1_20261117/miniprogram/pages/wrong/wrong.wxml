@@ -1,0 +1,76 @@
+<view class="page">
+
+  <!-- 列表 -->
+  <block wx:if="{{mode === 'list'}}">
+    <view class="wrap">
+      <view class="card head-card">
+        <view class="between">
+          <view>
+            <view class="tiny muted bold">错题集</view>
+            <view class="row" style="margin-top: 8rpx">
+              <text class="big">{{total}}</text>
+              <text class="tiny muted" style="margin-left: 10rpx">道待巩固</text>
+            </view>
+          </view>
+          <view class="tiny muted" style="text-align: right; line-height: 34rpx">
+            <view>答对自动移出</view>
+            <view>按岗位筛选</view>
+          </view>
+        </view>
+      </view>
+
+      <view class="row jobs">
+        <text class="chip {{job === item ? 'chip-on' : ''}}" wx:for="{{jobs}}" wx:key="*this"
+              data-j="{{item}}" bindtap="pickJob">{{item}}</text>
+      </view>
+
+      <view wx:if="{{!list.length}}" class="tip">
+        当前范围没有错题。去「答题闯关」练几组，答错的会自动出现在这里。
+      </view>
+
+      <view class="card item" wx:for="{{list}}" wx:key="id" data-i="{{index}}" bindtap="startAt">
+        <view class="between">
+          <text class="tag">{{item.job || '通用'}}</text>
+          <text class="tiny muted">{{item.c || ''}}</text>
+        </view>
+        <view class="q">{{item.q}}</view>
+        <view class="row" style="margin-top: 14rpx">
+          <text class="tiny muted">错 {{item.times || 1}} 次</text>
+          <view class="grow"></view>
+          <text class="tiny accent bold">重做 ›</text>
+        </view>
+      </view>
+
+      <view class="tiny muted note">刷错题时答对，这道题会自动移出错题集；岗位分类由后台「基础配置 → 岗位」维护。</view>
+    </view>
+  </block>
+
+  <!-- 练习 -->
+  <block wx:if="{{mode === 'practice'}}">
+    <view class="wrap">
+      <view class="between" style="margin-top: 20rpx">
+        <text class="tiny muted" bindtap="backToList">‹ 返回错题集</text>
+        <text class="tiny muted">第 {{idx + 1}} / {{list.length}} 题</text>
+      </view>
+
+      <view class="card q-card">
+        <text class="tag">{{curMeta}}</text>
+        <view class="q-text">{{cur.q}}</view>
+
+        <view class="opt {{o.cls}}" wx:for="{{opts}}" wx:for-item="o" wx:key="i" data-i="{{o.i}}" bindtap="choose">
+          <text class="opt-key">{{o.k}}</text>
+          <text class="opt-text">{{o.t}}</text>
+        </view>
+      </view>
+
+      <view wx:if="{{checked}}" class="card fb {{ok ? 'fb-ok' : 'fb-bad'}}">
+        <view class="small bold">{{ok ? '答对了，已移出错题集' : '还是不对，先看解析'}}</view>
+        <view wx:if="{{!ok}}" class="small" style="margin-top: 10rpx">正确答案：{{rightText}}</view>
+        <view wx:if="{{cur.e}}" class="tiny muted" style="margin-top: 10rpx; line-height: 38rpx">{{cur.e}}</view>
+      </view>
+
+      <view class="btn-primary" style="margin-top: 30rpx" bindtap="submit">{{btnText}}</view>
+    </view>
+  </block>
+
+</view>

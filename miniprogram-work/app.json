@@ -1,0 +1,38 @@
+{
+  "pages": [
+    "pages/login/login",
+    "pages/home/home",
+    "pages/chat/chat",
+    "pages/handle/handle",
+    "pages/training/training",
+    "pages/article/article",
+    "pages/culture/culture",
+    "pages/quiz/quiz",
+    "pages/exam/exam",
+    "pages/study/study",
+    "pages/media/media",
+    "pages/wrong/wrong",
+    "pages/questions/questions",
+    "pages/policy/policy",
+    "pages/issue/issue",
+    "pages/me/me",
+    "pages/settings/settings"
+  ],
+  "window": {
+    "backgroundTextStyle": "dark",
+    "navigationBarBackgroundColor": "#FFFFFF",
+    "navigationBarTitleText": "煤矿安全智能体",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#F3F2ED"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
+  "permission": {
+    "scope.userLocation": {
+      "desc": "用于在问题上报时记录隐患位置"
+    }
+  },
+  "requiredPrivateInfos": [
+    "getLocation"
+  ]
+}

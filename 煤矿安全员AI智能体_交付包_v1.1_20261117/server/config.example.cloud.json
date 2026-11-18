@@ -1,0 +1,16 @@
+{
+  "apiKey": "",
+  "mock": true,
+  "deployMode": "cloud",
+  "baseUrl": "api.deepseek.com",
+  "modelPath": "/chat/completions",
+  "storageDir": "data",
+  "trustProxy": false,
+  "model": "deepseek-chat",
+  "temperature": 0.2,
+  "maxTokens": 900,
+  "topK": 3,
+  "rateLimitPerMin": 20,
+  "appId": "",
+  "appSecret": ""
+}

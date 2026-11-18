@@ -1,0 +1,60 @@
+<view class="page">
+  <view class="wrap">
+
+    <view class="card head">
+      <view class="between">
+        <view>
+          <view class="tiny muted bold">岗位题库</view>
+          <view class="row" style="margin-top: 8rpx">
+            <text class="job">{{job}}</text>
+            <text class="count">{{items.length}} 题</text>
+          </view>
+        </view>
+        <view class="tiny muted" style="text-align: right; line-height: 34rpx">
+          <view>先自己做</view>
+          <view>再对答案</view>
+        </view>
+      </view>
+    </view>
+
+    <view wx:if="{{loading}}" class="tip">加载中…</view>
+    <view wx:if="{{err}}" class="tip">没加载出来：{{err}}</view>
+    <view wx:if="{{!loading && !items.length}}" class="tip">
+      这个岗位还没有题目。到后台「题库管理」给题目选岗位，或用「未分配 → 某岗位」批量分配。
+    </view>
+
+    <view class="card q" wx:for="{{items}}" wx:key="id" data-i="{{index}}" bindtap="toggle">
+      <view class="row">
+        <text class="no">{{item.no}}</text>
+        <text class="grow q-text">{{item.q}}</text>
+        <text class="arrow {{open === index ? 'up' : ''}}">›</text>
+      </view>
+
+      <view wx:if="{{open === index}}" class="body">
+        <view class="opt {{checked ? (o.i === item.a ? 'right' : (o.i === picked ? 'wrong' : '')) : (o.i === picked ? 'on' : '')}}"
+              wx:for="{{item.opts}}" wx:for-item="o" wx:key="k" data-i="{{o.i}}" catchtap="choose">
+          <text class="k">{{o.k}}</text>
+          <text class="t">{{o.t}}</text>
+        </view>
+
+        <view wx:if="{{!checked}}" class="row" style="margin-top: 18rpx">
+          <view class="btn-mini" catchtap="check">提交答案</view>
+          <text class="tiny muted" style="margin-left: 18rpx">这里刷题不计入错题集</text>
+        </view>
+
+        <view wx:if="{{checked}}">
+          <view class="res {{picked === item.a ? 'ok' : 'bad'}}">
+            {{picked === item.a ? '答对了' : '答错了，正确答案是 ' + item.rightKey}}
+          </view>
+          <view wx:if="{{item.e}}" class="exp">解析：{{item.e}}</view>
+          <view wx:if="{{item.c}}" class="tiny muted" style="margin-top: 10rpx">依据：{{item.c}}</view>
+          <view class="row" style="margin-top: 20rpx">
+            <view class="btn-mini ghost" data-q="{{item.q}}" catchtap="askAI">问 AI</view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="tiny muted note">题目由后台「题库管理」维护，只显示当前岗位的题目；这里练题不进错题集，只有「小测」和「考试」会。</view>
+  </view>
+</view>

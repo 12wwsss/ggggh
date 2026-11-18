@@ -1,0 +1,56 @@
+.page { padding-top: 8rpx; }
+.label { font-size: 22rpx; color: #98A2AC; font-weight: 700; margin: 34rpx 0 16rpx; }
+.wrap-chips { flex-wrap: wrap; }
+
+.chip { margin-right: 16rpx; margin-bottom: 16rpx; height: 62rpx; padding: 0 28rpx; font-size: 24rpx; }
+
+.tip { margin-top: 36rpx; padding: 28rpx; }
+
+.head { padding: 20rpx 0 12rpx; }
+.bar { height: 10rpx; border-radius: 5rpx; background: #E9EEF4; overflow: hidden; }
+.bar-in { height: 10rpx; border-radius: 5rpx; background: #FFC400; transition: width .3s; }
+
+.q-card { margin-top: 24rpx; padding: 32rpx; }
+.q-text { font-size: 32rpx; font-weight: 700; line-height: 48rpx; }
+
+.opt {
+  display: flex; align-items: center;
+  margin-top: 20rpx;
+  padding: 26rpx 24rpx;
+  border: 2rpx solid #E6E5DE;
+  border-radius: 20rpx;
+  background: #fff;
+}
+.opt-key {
+  width: 48rpx; height: 48rpx; border-radius: 50%;
+  background: #F2F5F9; color: #59636E;
+  font-size: 24rpx; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  margin-right: 18rpx; flex: none;
+}
+.opt-text { font-size: 27rpx; line-height: 40rpx; flex: 1; }
+
+.opt-on { border-color: #A97900; background: #FFF9E6; }
+.opt-on .opt-key { background: #FFC400; color: #141A21; }
+.opt-right { border-color: #12B76A; background: #F2FBF7; }
+.opt-right .opt-key { background: #12B76A; color: #fff; }
+.opt-wrong { border-color: #E5484D; background: #FEF5F5; }
+.opt-wrong .opt-key { background: #E5484D; color: #fff; }
+
+.explain { margin-top: 24rpx; padding: 28rpx; }
+.badge.ok { color: #12B76A; background: #E7F8F0; }
+.badge.no { color: #E5484D; background: #FDECEC; }
+
+.score-card { margin-top: 24rpx; padding: 36rpx 32rpx; }
+.score { font-size: 96rpx; font-weight: 700; line-height: 100rpx; color: #A97900; }
+
+.wrong { margin-bottom: 16rpx; padding: 28rpx; }
+
+.btn-ghost {
+  height: 96rpx; border-radius: 48rpx;
+  background: #fff; border: 2rpx solid #E6E5DE;
+  color: #59636E; font-size: 30rpx;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.bottom-space { height: 60rpx; }

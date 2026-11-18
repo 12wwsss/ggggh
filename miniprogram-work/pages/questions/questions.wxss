@@ -1,0 +1,55 @@
+.page { background: #F3F2ED; min-height: 100vh; padding-bottom: 60rpx; }
+.wrap { padding: 24rpx 32rpx 60rpx; }
+
+.head { padding: 28rpx 30rpx; }
+.job { font-size: 44rpx; font-weight: 700; color: #10151A; }
+.count { font-size: 22rpx; color: #98A2AC; margin-left: 14rpx; }
+
+.q { padding: 26rpx 28rpx; margin-top: 16rpx; }
+.no {
+  width: 44rpx; height: 44rpx; border-radius: 10rpx; flex: none;
+  background: #FFF3C4; color: #A97900;
+  font-size: 22rpx; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  margin-right: 16rpx;
+}
+.q-text { font-size: 28rpx; font-weight: 700; line-height: 42rpx; color: #10151A; }
+.arrow { color: #C3CCD8; font-size: 32rpx; transform: rotate(90deg); margin-left: 10rpx; }
+.arrow.up { transform: rotate(-90deg); }
+
+.body { margin-top: 20rpx; padding-top: 20rpx; border-top: 2rpx solid #F0EFE8; }
+.opt {
+  display: flex; align-items: flex-start;
+  padding: 16rpx 18rpx; margin-bottom: 10rpx;
+  border: 2rpx solid #EFEEE7; border-radius: 12rpx;
+}
+.opt.on { border-color: #A97900; background: #FFF9E6; }
+.opt.right { border-color: #12B76A; background: #F2FBF7; }
+.opt.wrong { border-color: #E5484D; background: #FEF5F5; }
+.k {
+  width: 34rpx; height: 34rpx; border-radius: 8rpx; flex: none;
+  background: #F1F0EA; color: #59636E;
+  font-size: 20rpx; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  margin-right: 14rpx;
+}
+.opt.on .k { background: #A97900; color: #fff; }
+.opt.right .k { background: #12B76A; color: #fff; }
+.opt.wrong .k { background: #E5484D; color: #fff; }
+.t { flex: 1; font-size: 25rpx; line-height: 36rpx; }
+
+.res { margin-top: 18rpx; font-size: 25rpx; font-weight: 700; }
+.res.ok { color: #12B76A; }
+.res.bad { color: #E5484D; }
+.exp { margin-top: 14rpx; font-size: 24rpx; line-height: 38rpx; color: #39424C; }
+
+.btn-mini {
+  height: 60rpx; padding: 0 28rpx; border-radius: 30rpx;
+  background: #FFC400; color: #141A21;
+  font-size: 23rpx; font-weight: 700;
+  display: flex; align-items: center;
+}
+.btn-mini.ghost { background: #FFF3C4; color: #A97900; }
+
+.tip { text-align: center; color: #98A2AC; font-size: 24rpx; line-height: 38rpx; padding: 70rpx 20rpx; }
+.note { margin-top: 24rpx; line-height: 36rpx; }

@@ -1,0 +1,113 @@
+<view class="page">
+
+  <!-- 考试列表 -->
+  <block wx:if="{{mode === 'list'}}">
+    <view class="wrap">
+      <view class="card quick-card" bindtap="goQuiz">
+        <view class="grow">
+          <view class="small bold">随手练 5 题</view>
+          <view class="tiny muted" style="margin-top:6rpx">不限时 · 答错自动进错题本</view>
+        </view>
+        <text class="arrow">›</text>
+      </view>
+
+      <view wx:if="{{loading}}" class="tip">加载中…</view>
+
+      <view class="myjob">
+        <view class="tiny muted bold" style="margin-bottom: 10rpx">我的岗位（只显示/只允许本岗位的考试）</view>
+        <view class="row wrap-chips">
+          <text class="chip {{!myJob ? 'chip-on' : ''}}" data-j="全部" bindtap="pickMyJob">全部</text>
+          <text class="chip {{myJob === item ? 'chip-on' : ''}}" wx:for="{{jobOptions}}" wx:key="*this"
+                data-j="{{item}}" bindtap="pickMyJob">{{item}}</text>
+        </view>
+      </view>
+      <view wx:if="{{err}}" class="card err">
+        <view class="small bold" style="color:#E5484D">考试列表没加载出来</view>
+        <view class="tiny muted" style="margin-top:8rpx">{{err}}</view>
+        <text class="retry" bindtap="load">重试</text>
+      </view>
+
+      <view class="card ex" wx:for="{{exams}}" wx:key="id">
+        <view class="between">
+          <text class="ex-title">{{item.title}}</text>
+          <text class="tag {{item.status === 'done' ? (item.passed ? 'g' : 'r') : (item.mine ? 'y' : 'n')}}">
+            {{item.status === 'done' ? (item.passed ? '已通过' : '未通过') : (item.mine ? '未参加' : '非本岗位')}}
+          </text>
+        </view>
+        <view class="tiny muted" style="margin-top:12rpx">
+          {{item.job || '全部岗位'}} · {{item.questions}} 题 · {{item.minutes}} 分钟 · {{item.pass}} 分及格
+        </view>
+        <view wx:if="{{item.note}}" class="tiny muted" style="margin-top:6rpx">{{item.note}}</view>
+
+        <view wx:if="{{item.status === 'done'}}" class="row" style="margin-top:16rpx;align-items:flex-end">
+          <text class="ex-score {{item.passed ? 'ok' : 'bad'}}">{{item.score}}</text>
+          <text class="tiny muted" style="margin-left:8rpx;margin-bottom:8rpx">分 · {{item.submittedAt}}</text>
+        </view>
+
+        <view wx:if="{{item.status !== 'done' && item.mine}}" class="btn-primary" style="margin-top:20rpx" data-id="{{item.id}}" bindtap="start">开始考试</view>
+        <view wx:if="{{item.status !== 'done' && !item.mine}}" class="lock">非本岗位考试，请在上方切换「我的岗位」</view>
+        <view wx:if="{{item.status === 'done'}}" class="lock">已交卷，不可重考</view>
+      </view>
+
+      <view wx:if="{{!loading && !exams.length}}" class="tip">暂无考试安排</view>
+    </view>
+  </block>
+
+  <!-- 考试中 -->
+  <block wx:if="{{mode === 'run'}}">
+    <view class="bar">
+      <view class="between">
+        <text class="small bold">第 {{idx + 1}} / {{qs.length}} 题</text>
+        <text class="timer {{left < '05:00' ? 'danger' : ''}}">剩 {{left}}</text>
+      </view>
+      <view class="prog"><view class="prog-in" style="width: {{(idx + 1) / qs.length * 100}}%"></view></view>
+    </view>
+
+    <view class="wrap">
+      <view class="card q-card">
+        <view class="q-text">{{cur.q}}</view>
+        <view class="opt {{item.cls}}" wx:for="{{opts}}" wx:key="i" data-i="{{item.i}}" bindtap="pick">
+          <text class="opt-key">{{item.key}}</text>
+          <text class="opt-text">{{item.t}}</text>
+        </view>
+      </view>
+
+      <view class="row" style="margin-top:32rpx">
+        <view class="btn-ghost" bindtap="prev">上一题</view>
+        <view class="btn-primary" style="flex:1;margin-left:20rpx" bindtap="onNext">
+          {{idx + 1 >= qs.length ? '交卷' : '下一题'}}
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <!-- 成绩 -->
+  <block wx:if="{{mode === 'result'}}">
+    <view class="wrap">
+      <view class="card score-card">
+        <view class="tiny muted bold">{{result.title}}</view>
+        <view class="row" style="align-items:flex-end;margin-top:12rpx">
+          <text class="big-score {{result.passed ? 'ok' : 'bad'}}">{{result.score}}</text>
+          <text class="tiny muted" style="margin-left:10rpx;margin-bottom:12rpx">分 · {{result.passed ? '及格' : '不及格'}}</text>
+        </view>
+        <view class="tiny muted" style="margin-top:8rpx">
+          用时 {{result.usedSec}} 秒 · 交卷 {{result.at}}
+          {{result.late ? ' · 超时交卷' : ''}}
+        </view>
+      </view>
+
+      <view class="label">答题解析</view>
+      <view class="card dt" wx:for="{{detail}}" wx:key="q">
+        <view class="row">
+          <text class="dt-idx {{item.ok ? 'ok' : 'bad'}}">{{index + 1}}</text>
+          <text class="dt-q">{{item.q}}</text>
+        </view>
+        <view wx:if="{{!item.ok}}" class="tiny" style="margin-top:10rpx;color:#E5484D">你选：{{item.picked || '未答'}}</view>
+        <view class="tiny" style="margin-top:6rpx;color:#12B76A">正确：{{item.right}}</view>
+        <view class="tiny muted" style="margin-top:8rpx;line-height:36rpx">{{item.e}}</view>
+      </view>
+
+      <view class="btn-ghost" style="margin-top:28rpx" bindtap="back">返回考试列表</view>
+    </view>
+  </block>
+</view>

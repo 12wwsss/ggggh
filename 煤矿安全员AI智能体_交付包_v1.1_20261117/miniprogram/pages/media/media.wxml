@@ -1,0 +1,44 @@
+<view class="page">
+  <!-- 播放器 -->
+  <view wx:if="{{playing}}" class="player-wrap">
+    <video class="player" src="{{playing}}" autoplay controls object-fit="contain"
+           show-center-play-btn enable-play-gesture
+           bindended="closePlayer"></video>
+    <view class="player-bar">
+      <text class="p-title">{{playingTitle}}</text>
+      <text class="p-close" bindtap="closePlayer">关闭</text>
+    </view>
+  </view>
+
+  <view class="wrap">
+    <view class="cats">
+      <text class="chip {{cat === index ? 'chip-on' : ''}}" wx:for="{{cats}}" wx:key="*this"
+            data-i="{{index}}" bindtap="pickCat">{{item}}</text>
+    </view>
+
+    <view wx:if="{{loading}}" class="tip">加载中…</view>
+    <view wx:if="{{err}}" class="tip">没加载出来：{{err}}</view>
+
+    <view class="card m-item" wx:for="{{items}}" wx:key="id" data-i="{{index}}" bindtap="play">
+      <image wx:if="{{item.type === 'image'}}" class="m-thumb" src="{{item.url}}" mode="aspectFill" />
+      <view wx:else class="m-ico {{item.type === 'video' ? 'ico-video' : 'ico-doc'}}">
+        {{item.type === 'video' ? '▶' : '文'}}
+      </view>
+      <view class="grow">
+        <view class="m-title">{{item.title}}</view>
+        <view class="tiny muted" style="margin-top:6rpx">
+          {{item.cat}} · {{item.dateText}}
+          <text wx:if="{{item.sizeText}}"> · {{item.sizeText}}</text>
+        </view>
+        <view wx:if="{{item.desc}}" class="m-desc">{{item.desc}}</view>
+        <view class="m-act">{{item.type === 'video' ? '点击播放' : (item.type === 'image' ? '点击查看大图' : '点击打开文档')}}</view>
+      </view>
+      <text class="arrow">›</text>
+    </view>
+
+    <view wx:if="{{!loading && !items.length}}" class="empty">
+      <view class="small bold">还没有资料</view>
+      <view class="tiny muted" style="margin-top:8rpx">等安全科在后台「视频资料」上传后就能看到</view>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,59 @@
+.page { background: #F3F2ED; min-height: 100vh; }
+
+.head {
+  background: linear-gradient(160deg, #10151A, #1B2E45);
+  padding: 40rpx 32rpx 56rpx;
+  border-radius: 0 0 40rpx 40rpx;
+}
+.head-kicker { color: #93A7BC; font-size: 22rpx; }
+.head-title { color: #fff; font-size: 38rpx; font-weight: 700; margin-top: 12rpx; }
+.bar {
+  height: 12rpx; border-radius: 6rpx; background: rgba(255,255,255,.15);
+  margin-top: 28rpx; overflow: hidden;
+}
+.bar-in { height: 12rpx; border-radius: 6rpx; background: linear-gradient(90deg, #FFC400, #FFE38A); }
+
+.wrap { padding: 0 32rpx; }
+.label { font-size: 22rpx; color: #98A2AC; font-weight: 700; margin: 34rpx 0 16rpx; }
+
+.stages { padding: 28rpx 24rpx 8rpx; margin-top: -30rpx; }
+
+.stage { display: flex; }
+.stage-left { width: 64rpx; display: flex; flex-direction: column; align-items: center; flex: none; }
+.node {
+  width: 44rpx; height: 44rpx; border-radius: 50%;
+  background: #ECEBE4; color: #98A2AC;
+  font-size: 22rpx; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex: none;
+}
+.node-done { background: #12B76A; color: #fff; }
+.line { flex: 1; width: 3rpx; background: #ECEBE4; margin: 8rpx 0; min-height: 40rpx; }
+
+.stage-name { font-size: 28rpx; font-weight: 700; }
+.stage-week { font-size: 21rpx; color: #A8B2BC; }
+.task { font-size: 23rpx; color: #7C8B99; line-height: 38rpx; margin-top: 6rpx; }
+.stage { padding-bottom: 26rpx; }
+
+.weak { display: flex; align-items: center; padding: 26rpx 28rpx; margin-bottom: 16rpx; }
+.link { font-size: 23rpx; color: #A97900; font-weight: 700; }
+
+.mentor { padding: 26rpx 28rpx; margin-top: 8rpx; }
+
+.gap { margin-top: 36rpx; align-items: stretch; }
+.btn-ghost {
+  height: 96rpx; border-radius: 48rpx;
+  background: #fff; border: 2rpx solid #E6E5DE;
+  color: #59636E; font-size: 27rpx;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 28rpx;
+}
+
+.tip { text-align: center; color: #98A2AC; font-size: 24rpx; padding: 80rpx 0; }
+.err { padding: 32rpx; margin-top: 40rpx; }
+.retry {
+  display: inline-block; margin-top: 20rpx;
+  background: #FFC400; color: #141A21; font-size: 24rpx;
+  padding: 12rpx 32rpx; border-radius: 28rpx;
+}
+.bottom-space { height: 60rpx; }

@@ -1,0 +1,28 @@
+﻿[Unit]
+Description=Coal Mine Safety AI Agent - Backend
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=coaliai
+Group=coaliai
+WorkingDirectory=/opt/coal-ai
+ExecStart=/usr/bin/node /opt/coal-ai/index.js
+Restart=always
+RestartSec=3
+Environment=NODE_ENV=production
+Environment=PORT=8789
+StandardOutput=append:/opt/coal-ai/data/server.log
+StandardError=append:/opt/coal-ai/data/server.err.log
+
+# --- 基础加固 ---
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/opt/coal-ai/data
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

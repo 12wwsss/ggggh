@@ -1,0 +1,53 @@
+.page { background: #F3F2ED; min-height: 100vh; }
+.wrap { padding: 24rpx 32rpx 60rpx; }
+
+/* 播放器 */
+.player-wrap {
+  background: #000;
+  margin-bottom: 20rpx;
+}
+.player { width: 100%; height: 420rpx; display: block; background: #000; }
+.player-bar {
+  display: flex; align-items: center;
+  padding: 18rpx 28rpx; background: #111;
+}
+.p-title { color: #fff; font-size: 25rpx; flex: 1; }
+.p-close { color: #FFC400; font-size: 24rpx; font-weight: 700; }
+
+/* 分类 */
+.cats { display: flex; flex-wrap: wrap; margin-bottom: 16rpx; }
+.chip {
+  font-size: 23rpx; color: #59636E; background: #fff;
+  padding: 12rpx 26rpx; border-radius: 30rpx; margin: 0 12rpx 12rpx 0;
+}
+.chip-on { background: #FFF3C4; color: #A97900; font-weight: 700; }
+
+/* 列表 */
+.m-item {
+  display: flex; align-items: center;
+  padding: 26rpx 28rpx; margin-bottom: 14rpx;
+}
+.m-ico {
+  width: 88rpx; height: 88rpx; border-radius: 20rpx;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 30rpx; margin-right: 20rpx; flex: none;
+}
+.ico-video { background: #FFF3C4; color: #A97900; }
+.ico-doc { background: #EAF0FD; color: #2E6BE6; font-size: 26rpx; }
+.m-title { font-size: 28rpx; font-weight: 700; line-height: 40rpx; }
+.m-desc { font-size: 22rpx; color: #98A2AC; line-height: 32rpx; margin-top: 6rpx; }
+.arrow { color: #C3CDD8; font-size: 34rpx; }
+
+.tip { text-align: center; color: #98A2AC; font-size: 24rpx; padding: 40rpx 0; }
+.empty { text-align: center; padding: 80rpx 0; }
+
+.m-act {
+  display: inline-block; margin-top: 10rpx;
+  font-size: 20rpx; color: #A97900; background: #FFF3C4;
+  padding: 4rpx 14rpx; border-radius: 10rpx;
+}
+
+.m-thumb {
+  width: 88rpx; height: 88rpx; border-radius: 20rpx;
+  margin-right: 20rpx; flex: none; background: #ECEBE4;
+}

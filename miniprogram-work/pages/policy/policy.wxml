@@ -1,0 +1,62 @@
+<view class="page">
+  <view class="wrap">
+    <view wx:if="{{loading}}" class="tip">加载中…</view>
+
+    <view wx:if="{{err}}" class="card err">
+      <view class="small bold" style="color:#E5484D">制度没加载出来</view>
+      <view class="tiny muted" style="margin-top:8rpx">{{err}}</view>
+      <text class="retry" bindtap="retry">重试</text>
+    </view>
+
+    <block wx:if="{{!loading && !err}}">
+      <view class="card doc" wx:for="{{items}}" wx:key="id" data-id="{{item.id}}" bindtap="toggle">
+        <view class="between">
+          <text class="tag">{{item.tag}}</text>
+          <text class="tiny bold" style="color:#E5484D">{{item.deadline}} 截止</text>
+        </view>
+
+        <view class="h2" style="margin-top:18rpx">{{item.title}}</view>
+
+        <view class="bar"><view class="bar-in" style="width: {{item.rate}}%"></view></view>
+        <view class="between" style="margin-top:12rpx">
+          <text class="tiny muted">已学 {{item.done}} / {{item.total}} 人</text>
+          <text class="tiny accent bold">{{item.rate}}%</text>
+        </view>
+
+        <view wx:if="{{open === item.id}}" class="detail">
+          <view class="dt-label">解读要点</view>
+          <view class="pt" wx:for="{{item.points}}" wx:for-item="p" wx:key="*this">
+            <text class="pt-num">{{index + 1}}</text>
+            <text class="pt-txt">{{p}}</text>
+          </view>
+
+          <view class="dt-label">制度说明</view>
+          <view class="dt-text" wx:for="{{item.body}}" wx:for-item="b" wx:key="*this">{{b}}</view>
+
+          <view class="teams">
+            <view class="dt-label">按队完成情况</view>
+            <view class="team" wx:for="{{item.teams}}" wx:for-item="t" wx:key="team">
+              <text class="team-name">{{t.team}}</text>
+              <view class="track"><view class="track-in" style="width: {{t.rate}}%"></view></view>
+              <text class="tiny muted">{{t.done}}/{{t.total}}</text>
+            </view>
+          </view>
+
+          <view class="btn-mini" data-id="{{item.id}}" catchtap="startQuiz">开始答题 · {{item.questions}} 题</view>
+        </view>
+      </view>
+
+      <view wx:if="{{!items.length}}" class="tip">暂无制度</view>
+
+      <view wx:if="{{stats}}" class="card stat">
+        <view class="tiny muted bold">今日问题闭环</view>
+        <view class="row" style="margin-top:10rpx; align-items:flex-end">
+          <text class="stat-num">{{stats.closed}}</text>
+          <text class="tiny muted" style="margin-left:10rpx; margin-bottom:6rpx">
+            / {{stats.total}} 条 · 闭环率 {{stats.rate}}%
+          </text>
+        </view>
+      </view>
+    </block>
+  </view>
+</view>

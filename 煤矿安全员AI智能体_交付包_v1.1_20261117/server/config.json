@@ -1,0 +1,22 @@
+{
+  "apiKey": "",
+  "mock": false,
+
+  "deployMode": "cloud",
+  "baseUrl": "api.deepseek.com",
+  "modelPath": "/chat/completions",
+  "storageDir": "data",
+  "trustProxy": false,
+
+  "model": "deepseek-chat",
+  "temperature": 0.2,
+  "maxTokens": 1500,
+  "topK": 3,
+  "rateLimitPerMin": 20,
+
+  "adminUser": "admin",
+  "adminPassword": "coal2026",
+  "totpSecret": "",
+  "appId": "",
+  "appSecret": ""
+}

@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>题库维护 · 煤矿安全智能体</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+         background: #F5F7FA; color: #0F1B2A; font-size: 14px; }
+  .bar { background: #0B1520; padding: 16px 24px; display: flex; align-items: center; gap: 12px; }
+  .logo { width: 30px; height: 30px; border-radius: 9px; background: #FF6A2B; color: #fff;
+          font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+  .bar b { color: #fff; font-size: 15px; }
+  .bar span { color: #5C6E80; font-size: 11px; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 20px 24px 60px; }
+
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 16px; }
+  .kpi { background: #fff; border-radius: 12px; padding: 16px 18px; box-shadow: 0 4px 16px rgba(15,27,42,.05); }
+  .kpi .lb { font-size: 12px; color: #8090A0; font-weight: 600; }
+  .kpi .v { font-size: 26px; font-weight: 700; margin-top: 4px; }
+  .kpi .v small { font-size: 12px; color: #93A1B0; font-weight: 400; }
+
+  .card { background: #fff; border-radius: 12px; padding: 18px 20px; margin-bottom: 16px;
+          box-shadow: 0 4px 16px rgba(15,27,42,.05); }
+  h2 { font-size: 14px; margin-bottom: 4px; }
+  .hint { font-size: 12px; color: #93A1B0; margin-bottom: 12px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; font-size: 11px; color: #8090A0; font-weight: 600; padding: 8px; background: #FAFBFD; }
+  td { padding: 10px 8px; border-bottom: 1px solid #F2F5F8; vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  .b { font-weight: 700; }
+
+  button { font-family: inherit; font-size: 13px; border: none; cursor: pointer; border-radius: 8px;
+           padding: 8px 14px; background: #FF6A2B; color: #fff; font-weight: 600; }
+  button.ghost { background: #fff; color: #56677A; border: 1px solid #E7EBF1; font-weight: 500; }
+  button:active { opacity: .85; }
+  input[type=text], select, textarea {
+    font-family: inherit; font-size: 13px; border: 1px solid #E7EBF1; border-radius: 8px;
+    padding: 8px 10px; background: #fff; color: #0F1B2A; width: 100%;
+  }
+  textarea { resize: vertical; line-height: 1.6; }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .row > * { flex: none; }
+  .row .grow2 { flex: 1; }
+  .tag { font-size: 11px; padding: 3px 9px; border-radius: 10px; font-weight: 600; }
+  .tag.g { background: #E7F8F0; color: #12B76A; }
+  .tag.r { background: #FDECEC; color: #E5484D; }
+  .toast { position: fixed; left: 50%; bottom: 36px; transform: translateX(-50%);
+           background: #0F1B2A; color: #fff; font-size: 13px; padding: 10px 20px; border-radius: 9px;
+           opacity: 0; transition: .25s; pointer-events: none; }
+  .toast.on { opacity: .95; }
+  .empty { text-align: center; color: #B0BCC8; padding: 36px 0; }
+  .step { display: inline-flex; width: 18px; height: 18px; border-radius: 50%; background: #FF6A2B;
+          color: #fff; font-size: 11px; align-items: center; justify-content: center; margin-right: 6px; }
+</style>
+</head>
+<body>
+<div class="bar">
+  <div class="logo">题</div>
+  <div><b>题库维护</b><br><span>煤矿安全员 AI 智能体 · 安全科专用</span></div>
+  <div style="margin-left:auto;display:flex;gap:14px;align-items:center">
+    <a href="/admin" style="color:#93A6B8;font-size:12.5px;text-decoration:none">管理后台 ›</a>
+    <a href="#" onclick="logout();return false" style="color:#93A6B8;font-size:12.5px;text-decoration:none">退出</a>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="kpis" id="kpis"></div>
+
+  <div class="card">
+    <div class="row" style="margin-bottom:12px">
+      <h2 style="flex:1">题目列表</h2>
+      <select id="job" style="width:130px" onchange="load()">
+        <option value="">全部岗位</option>
+      </select>
+      <input type="text" id="kw" placeholder="搜题干 / 解析" style="width:180px"
+             onkeydown="if(event.key==='Enter')load()">
+      <button class="ghost" onclick="load()">查询</button>
+      <button onclick="newQ()">＋ 新增题目</button>
+    </div>
+    <table>
+      <thead><tr><th style="width:46%">题干</th><th style="width:70px">岗位</th><th style="width:60px">答案</th>
+      <th style="width:70px">状态</th><th style="width:200px">操作</th></tr></thead>
+      <tbody id="body"></tbody>
+    </table>
+  </div>
+
+  <div class="card" id="editor" style="display:none">
+    <h2 id="etitle">新增题目</h2>
+    <div class="hint">选项至少 2 个，最多 4 个；正确答案选对应的字母</div>
+    <div class="row" style="margin-bottom:10px">
+      <select id="fJob" style="width:150px">
+        <option value="">未分配岗位</option>
+      </select>
+      <input type="text" id="fCite" placeholder="依据，如 顶板管理" style="width:200px">
+      <label style="font-size:13px;color:#56677A"><input type="checkbox" id="fOn" checked> 启用</label>
+      <input type="hidden" id="fId">
+    </div>
+    <textarea id="fQ" placeholder="题干" style="height:60px;margin-bottom:10px"></textarea>
+    <div class="row" style="margin-bottom:10px">
+      <input type="text" id="fO0" placeholder="选项 A" class="grow2">
+      <input type="text" id="fO1" placeholder="选项 B" class="grow2">
+    </div>
+    <div class="row" style="margin-bottom:10px">
+      <input type="text" id="fO2" placeholder="选项 C（可空）" class="grow2">
+      <input type="text" id="fO3" placeholder="选项 D（可空）" class="grow2">
+    </div>
+    <div class="row" style="margin-bottom:10px">
+      <select id="fA" style="width:200px">
+        <option value="0">正确答案 A</option><option value="1">正确答案 B</option>
+        <option value="2">正确答案 C</option><option value="3">正确答案 D</option>
+      </select>
+    </div>
+    <textarea id="fE" placeholder="解析（员工答错时显示，建议写清为什么）" style="height:56px"></textarea>
+    <div class="row" style="margin-top:12px">
+      <button onclick="save()">保存</button>
+      <button class="ghost" onclick="hideEditor()">取消</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>从 Excel 粘贴导入</h2>
+    <div class="hint">
+      <span class="step">1</span>下载模板 → <span class="step">2</span>在 Excel 里按列填好 →
+      <span class="step">3</span>全选复制 → <span class="step">4</span>粘到下面 → 点导入
+    </div>
+    <div class="row" style="margin-bottom:10px">
+      <button class="ghost" onclick="location.href='/api/questions/template.csv'">下载导入模板</button>
+      <button class="ghost" onclick="location.href='/api/questions/export.csv'">导出全部题库</button>
+      <span style="font-size:12px;color:#93A1B0">导入后立即生效，员工下次答题就是新题</span>
+    </div>
+    <textarea id="importBox" style="height:120px"
+      placeholder="岗位	题干	选项A	选项B	选项C	选项D	正确答案	解析	依据&#10;从 Excel 复制后直接粘，Tab 分隔即可"></textarea>
+    <div class="row" style="margin-top:12px">
+      <button onclick="importQ()">导入</button>
+      <span id="importMsg" style="font-size:12px;color:#93A1B0"></span>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let list = [];
+
+function toast(m) {
+  const t = document.getElementById('toast');
+  t.textContent = m; t.classList.add('on');
+  clearTimeout(window._t); window._t = setTimeout(() => t.classList.remove('on'), 1800);
+}
+async function get(p) {
+  const r = await fetch(p);
+  if (r.status === 401) { location.href = '/login?next=/qbank'; return { items: [], total: 0, live: 0 }; }
+  return r.json();
+}
+async function logout() {
+  await fetch('/api/logout', { method: 'POST' });
+  location.href = '/login';
+}
+async function post(p, b) {
+  const r = await fetch(p, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) });
+  if (r.status === 401) { location.href = '/login?next=/qbank'; return { ok: false }; }
+  return r.json();
+}
+
+fillJobs();
+
+async function load() {
+  const job = document.getElementById('job').value;
+  const kw = document.getElementById('kw').value.trim();
+  const d = await get('/api/questions/admin?job=' + encodeURIComponent(job) + '&kw=' + encodeURIComponent(kw));
+  list = d.items || [];
+  const s = { total: d.total || list.length, live: d.live || list.length, byJob: d.byJob || {} };
+  const dist = Object.entries(s.byJob || {}).map(([k, v]) => k + ' ' + v).join(' · ');
+  document.getElementById('kpis').innerHTML =
+    `<div class="kpi"><div class="lb">题目总数</div><div class="v">${s.total}<small> 道</small></div></div>` +
+    `<div class="kpi"><div class="lb">启用中</div><div class="v">${s.live}<small> 道</small></div></div>` +
+    `<div class="kpi"><div class="lb">停用</div><div class="v">${s.total - s.live}<small> 道</small></div></div>` +
+    `<div class="kpi"><div class="lb">岗位分布</div><div class="v" style="font-size:13px;font-weight:500;line-height:1.5">${dist}</div></div>`;
+
+  document.getElementById('body').innerHTML = list.map(q => `
+    <tr>
+      <td class="b" style="line-height:1.5">${q.q}</td>
+      <td>${q.job}</td>
+      <td>${'ABCD'[q.a]}</td>
+      <td><span class="tag ${q.on === false ? 'r' : 'g'}">${q.on === false ? '停用' : '启用'}</span></td>
+      <td>
+        <button class="ghost" onclick="edit('${q.id}')">编辑</button>
+        <button class="ghost" onclick="toggle('${q.id}')">${q.on === false ? '启用' : '停用'}</button>
+        <button class="ghost" onclick="del('${q.id}')">删除</button>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="5" class="empty">还没有题目</td></tr>';
+}
+
+// ---------- 岗位：与「基础配置」同步 ----------
+function fillJobs() {
+  fetch('/api/options').then(r => r.json()).then(o => {
+    const jobs = o.jobs || [];
+    const filter = document.getElementById('job');
+    const cur = filter.value;
+    filter.innerHTML = '<option value="">全部岗位</option>' +
+      jobs.map(j => '<option>' + j + '</option>').join('');
+    if (cur && [...filter.options].some(x => x.value === cur)) filter.value = cur;
+
+    const sel = document.getElementById('fJob');
+    const cur2 = sel.value;
+    sel.innerHTML = '<option value="">未分配岗位</option>' +
+      jobs.map(j => '<option>' + j + '</option>').join('');
+    if (cur2 && [...sel.options].some(x => x.value === cur2)) sel.value = cur2;
+  }).catch(() => {});
+}
+
+function resolveJob() {
+  const sel = document.getElementById('fJob');
+  return sel ? sel.value : '';
+}
+
+function newQ() {
+  document.getElementById('etitle').textContent = '新增题目';
+  ['fQ','fO0','fO1','fO2','fO3','fE','fCite','fId'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('fJob').value = '';
+  document.getElementById('fA').value = '0';
+  document.getElementById('fOn').checked = true;
+  showEditor();
+}
+function edit(id) {
+  const q = list.find(x => x.id === id); if (!q) return;
+  document.getElementById('etitle').textContent = '编辑题目';
+  document.getElementById('fId').value = q.id;
+  const sel = document.getElementById('fJob');
+  const jv = q.job || '';
+  if (jv && ![...sel.options].some(o => o.value === jv)) {
+    const op = document.createElement('option');
+    op.value = jv; op.textContent = jv;
+    sel.appendChild(op);
+  }
+  sel.value = jv;
+  document.getElementById('fQ').value = q.q;
+  for (let i = 0; i < 4; i++) document.getElementById('fO' + i).value = q.o[i] || '';
+  document.getElementById('fA').value = String(q.a);
+  document.getElementById('fE').value = q.e || '';
+  document.getElementById('fCite').value = q.c || '';
+  document.getElementById('fOn').checked = q.on !== false;
+  showEditor();
+}
+function showEditor() {
+  const el = document.getElementById('editor');
+  el.style.display = 'block';
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+function hideEditor() { document.getElementById('editor').style.display = 'none'; }
+
+async function save() {
+  const o = [0,1,2,3].map(i => document.getElementById('fO' + i).value.trim()).filter(Boolean);
+  const item = {
+    id: document.getElementById('fId').value || undefined,
+    job: resolveJob(),
+    q: document.getElementById('fQ').value.trim(),
+    o,
+    a: Number(document.getElementById('fA').value),
+    e: document.getElementById('fE').value.trim(),
+    c: document.getElementById('fCite').value.trim(),
+    on: document.getElementById('fOn').checked
+  };
+  if (o.length < 2) return toast('至少填两个选项');
+  if (item.a >= o.length) return toast('正确答案超出选项范围');
+  const r = await post('/api/questions/save', { item });
+  if (r.ok) { toast('已保存，共 ' + r.total + ' 道'); hideEditor(); load(); }
+  else toast(r.error || '保存失败');
+}
+async function del(id) {
+  if (!confirm('删除这道题？建议用「停用」而不是删除')) return;
+  const r = await post('/api/questions/delete', { id });
+  if (r.ok) { toast('已删除'); load(); } else toast(r.error || '失败');
+}
+async function toggle(id) {
+  const r = await post('/api/questions/toggle', { id });
+  if (r.ok) load(); else toast(r.error || '失败');
+}
+async function importQ() {
+  const text = document.getElementById('importBox').value.trim();
+  if (!text) return toast('先粘贴内容');
+  const r = await post('/api/questions/import', { text });
+  if (r.ok) {
+    document.getElementById('importMsg').textContent =
+      `导入 ${r.added} 道` + (r.failed ? `，${r.failed} 行有问题：` + r.errors.join('；') : '');
+    document.getElementById('importBox').value = '';
+    load();
+  } else toast(r.error || '导入失败');
+}
+
+load();
+</script>
+</body>
+</html>

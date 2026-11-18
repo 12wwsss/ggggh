@@ -1,0 +1,90 @@
+<view class="page">
+  <view class="wrap">
+
+    <view class="card head-card">
+      <view class="row">
+        <view class="head-ico">学</view>
+        <view class="grow" style="margin-left: 22rpx">
+          <view class="h-title">岗位学习</view>
+          <view class="tiny muted" style="margin-top: 8rpx">
+            题库 {{total}} 题 · 错题 {{wrongCount}} 道 · 小测最好 {{best}} 分
+          </view>
+        </view>
+      </view>
+      <view class="head-line"></view>
+      <view class="row">
+        <view class="chip-mini" bindtap="goWrong">错题集 {{wrongCount}}</view>
+        <view class="chip-mini" bindtap="goExamList">我的考试</view>
+        <view class="chip-mini" bindtap="startTest">开始小测</view>
+      </view>
+    </view>
+
+    <view wx:if="{{loading}}" class="tip">正在加载…</view>
+
+    <view wx:if="{{err}}" class="card err">
+      <view class="small bold" style="color:#E5484D">没加载出来</view>
+      <view class="tiny muted" style="margin-top:8rpx">{{err}}</view>
+      <text class="retry" bindtap="retry">重试</text>
+    </view>
+
+    <block wx:if="{{qGroups.length}}">
+      <view class="sec-title">按岗位练题</view>
+      <view class="qgrid">
+        <view class="qcell {{item.count ? '' : 'qcell-off'}}" wx:for="{{qGroups}}" wx:key="name"
+              data-job="{{item.name}}" bindtap="practice">
+          <text class="qname">{{item.name}}</text>
+          <text class="qcount">{{item.count ? item.count + ' 题' : '待配题'}}</text>
+        </view>
+      </view>
+      <view class="tiny muted" style="margin: 14rpx 8rpx 0; line-height: 34rpx">
+        点岗位进去，先自己选答案，再对解析；这里刷题不进错题集。
+      </view>
+      <view wx:if="{{qGroups.length <= 1}}" class="tiny muted" style="margin: 10rpx 8rpx 0; line-height: 34rpx">
+        岗位还没配置。到后台「基础配置 → 岗位」一行一个填好（如 采煤 / 掘进 / 机电），这里就会按岗位分。
+      </view>
+    </block>
+
+    <view wx:if="{{!loading && !qGroups.length}}" class="tip">还没有题库，等安全科在后台录入后显示</view>
+
+    <block wx:if="{{exams.length}}">
+      <view class="between section">
+        <view class="row">
+          <text class="sec-num">03</text>
+          <text class="section-title">考试</text>
+        </view>
+        <text class="tiny muted" bindtap="goExamList">全部 ›</text>
+      </view>
+
+      <view class="card exam-item" wx:for="{{exams}}" wx:key="id" data-id="{{item.id}}" bindtap="openExam">
+        <view class="between">
+          <view class="grow" style="min-width: 0">
+            <view class="e-title">{{item.title}}</view>
+            <view class="tiny muted" style="margin-top: 8rpx">
+              {{item.job || '全部岗位'}} · {{item.questions}} 题 · {{item.minutes}} 分钟 · {{item.pass}} 分及格
+            </view>
+          </view>
+          <text class="e-tag {{item.status === 'done' ? 'done' : ''}}">
+            {{item.status === 'done' ? '已交卷 ' + (item.score || 0) + ' 分' : '去考试'}}
+          </text>
+        </view>
+      </view>
+
+      <view class="tiny muted" style="margin: 12rpx 8rpx 0; line-height: 34rpx">
+        交卷后成绩自动汇总到后台「考试成绩」，答错的题会进错题集。
+      </view>
+    </block>
+
+    <view wx:if="{{!loading && !exams.length}}" class="card empty-exam">
+      <view class="small bold">暂无考试</view>
+      <view class="tiny muted" style="margin-top: 8rpx">等安全科在后台「考试管理」发布后，这里会出现</view>
+    </view>
+  </view>
+
+  <view class="wrap cta">
+    <view class="btn-primary" bindtap="startTest">开始小测 · 5 题</view>
+    <view class="tiny muted cta-tip">答错自动加入错题本</view>
+  </view>
+
+  <view class="tabbar-space"></view>
+  <tabbar active="2" />
+</view>

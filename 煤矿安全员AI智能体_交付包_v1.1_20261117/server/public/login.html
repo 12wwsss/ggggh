@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>登录 · 煤矿安全智能体</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(150deg, #0B1520 0%, #16283C 100%); color: #0F1B2A;
+  }
+  .box { width: 360px; background: #fff; border-radius: 16px; padding: 32px 30px;
+         box-shadow: 0 24px 60px rgba(0,0,0,.35); }
+  .logo { width: 44px; height: 44px; border-radius: 12px; background: #FF6A2B; color: #fff;
+          font-weight: 700; font-size: 20px; display: flex; align-items: center; justify-content: center; }
+  h1 { font-size: 19px; margin: 16px 0 4px; }
+  .sub { font-size: 12.5px; color: #93A1B0; margin-bottom: 24px; }
+  label { display: block; font-size: 12px; color: #8090A0; font-weight: 600; margin: 14px 0 6px; }
+  input {
+    width: 100%; font-family: inherit; font-size: 14px; padding: 11px 13px;
+    border: 1px solid #E7EBF1; border-radius: 10px; background: #FBFCFE; color: #0F1B2A;
+  }
+  input:focus { outline: none; border-color: #FF6A2B; background: #fff; }
+  button {
+    width: 100%; margin-top: 22px; font-family: inherit; font-size: 14.5px; font-weight: 700;
+    padding: 12px; border: none; border-radius: 10px; background: #FF6A2B; color: #fff; cursor: pointer;
+  }
+  button:active { background: #E85A1E; }
+  button:disabled { opacity: .6; cursor: default; }
+  .err { margin-top: 14px; font-size: 12.5px; color: #E5484D; display: none; }
+  .foot { margin-top: 22px; font-size: 11px; color: #B0BCC8; text-align: center; line-height: 1.7; }
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="logo">安</div>
+  <h1>煤矿安全智能体</h1>
+  <div class="sub">管理后台 · 题库维护</div>
+
+  <label>账号</label>
+  <input id="u" type="text" placeholder="admin" autocomplete="username">
+
+  <label>密码</label>
+  <input id="p" type="password" placeholder="请输入密码" autocomplete="current-password">
+
+  <div id="codeBox" style="display:none">
+    <label>动态验证码（6 位）</label>
+    <input id="c" type="text" inputmode="numeric" maxlength="6" placeholder="手机验证器上的 6 位数字" autocomplete="one-time-code">
+  </div>
+
+  <button id="btn" onclick="login()">登 录</button>
+  <div class="err" id="err"></div>
+
+  <div class="foot">登录后 12 小时内免重复登录<br>忘记密码：修改 server/config.json 的 adminPassword 后重启</div>
+</div>
+
+<script>
+const next = new URLSearchParams(location.search).get('next') || '/admin'
+document.getElementById('p').addEventListener('keydown', e => { if (e.key === 'Enter') login() })
+
+async function login() {
+  const u = document.getElementById('u').value.trim()
+  const p = document.getElementById('p').value
+  const code = document.getElementById('c').value.trim()
+  const err = document.getElementById('err')
+  const btn = document.getElementById('btn')
+  err.style.display = 'none'
+  if (!u || !p) { err.textContent = '账号和密码都要填'; err.style.display = 'block'; return }
+
+  btn.disabled = true; btn.textContent = '登录中…'
+  try {
+    const r = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user: u, pass: p, code })
+    })
+    const d = await r.json()
+    if (d.ok) {
+      location.replace(next)
+    } else {
+      if (d.need2fa) {
+        document.getElementById('codeBox').style.display = 'block'
+        setTimeout(() => document.getElementById('c').focus(), 50)
+      }
+      err.textContent = d.error || '登录失败'
+      err.style.display = 'block'
+      btn.disabled = false; btn.textContent = '登 录'
+    }
+  } catch (e) {
+    err.textContent = '连不上后端，确认 server 那个黑窗口还开着'
+    err.style.display = 'block'
+    btn.disabled = false; btn.textContent = '登 录'
+  }
+}
+</script>
+</body>
+</html>

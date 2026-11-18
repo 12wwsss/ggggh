@@ -1,0 +1,62 @@
+<view class="page">
+  <view wx:if="{{loading}}" class="tip">加载中…</view>
+
+  <view wx:if="{{err}}" class="wrap">
+    <view class="card err">
+      <view class="small bold" style="color:#E5484D">带培计划没加载出来</view>
+      <view class="tiny muted" style="margin-top:8rpx">{{err}}</view>
+      <text class="retry" bindtap="retry">重试</text>
+    </view>
+  </view>
+
+  <block wx:if="{{plan}}">
+    <view class="head">
+      <view class="head-kicker">新员工带培 · 共 {{plan.totalWeeks}} 周</view>
+      <view class="head-title">{{plan.title}}</view>
+      <view class="bar"><view class="bar-in" style="width: {{progress}}%"></view></view>
+      <view class="row between" style="margin-top: 12rpx">
+        <text class="tiny" style="color:#8FA3B8">目标：{{plan.target}}</text>
+        <text class="tiny" style="color:#FFD3C0">已完成 {{progress}}%</text>
+      </view>
+    </view>
+
+    <view class="wrap">
+      <view class="label">阶段进度</view>
+      <view class="card stages">
+        <view class="stage" wx:for="{{plan.stages}}" wx:key="name">
+          <view class="stage-left">
+            <view class="node {{item.done ? 'node-done' : ''}}">{{item.done ? '✓' : index + 1}}</view>
+            <view class="line" wx:if="{{index < plan.stages.length - 1}}"></view>
+          </view>
+          <view class="grow">
+            <view class="row between">
+              <text class="stage-name">{{item.goal}}</text>
+              <text class="stage-week">{{item.name}}</text>
+            </view>
+            <view class="task" wx:for="{{item.tasks}}" wx:for-item="t" wx:key="*this">· {{t}}</view>
+          </view>
+        </view>
+      </view>
+
+      <view class="label">薄弱点（来自答题与训练）</view>
+      <view class="card weak" wx:for="{{plan.weakPoints}}" wx:key="title">
+        <view class="grow">
+          <view class="small bold">{{item.title}}</view>
+          <view class="tiny muted" style="margin-top:6rpx">{{item.from}}</view>
+        </view>
+        <text class="link" bindtap="toRisk">去复习 ›</text>
+      </view>
+
+      <view class="card mentor">
+        <view class="tiny muted bold">带培师傅</view>
+        <view class="small" style="margin-top:10rpx">{{plan.mentor}}</view>
+      </view>
+
+      <view class="row gap">
+        <view class="btn-ghost" bindtap="toQuiz">去练题</view>
+        <view class="btn-primary" style="flex:1;margin-left:20rpx" bindtap="toChat">模拟问答</view>
+      </view>
+      <view class="bottom-space"></view>
+    </view>
+  </block>
+</view>

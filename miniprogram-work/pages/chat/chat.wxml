@@ -1,0 +1,86 @@
+<view class="page">
+  <scroll-view class="scroll" scroll-y scroll-top="{{scrollTop}}" scroll-with-animation>
+    <view class="inner">
+      <view class="time">今天 08:12</view>
+
+      <block wx:for="{{msgs}}" wx:key="id">
+        <!-- 用户 -->
+        <view wx:if="{{item.role === 'user'}}" class="me">
+          <image wx:if="{{item.image}}" class="msg-img" src="{{item.image}}" mode="widthFix"
+                 data-src="{{item.image}}" bindtap="previewImg" />
+          <view class="bubble">{{item.text}}</view>
+        </view>
+
+        <!-- AI -->
+        <view wx:else class="card answer">
+          <view class="row">
+            <view class="dot"></view>
+            <text class="who accent bold">AI 安全员</text>
+            <text class="tiny muted" style="margin-left: auto" wx:if="{{!item.typing}}">{{item.cites.length ? '已引用 ' + item.cites.length + ' 条规程' : '通用建议 · 未引条款'}}</text>
+            <text class="tiny muted" style="margin-left: auto" wx:else>思考中</text>
+          </view>
+
+          <view class="answer-text">{{item.text}}<text wx:if="{{item.typing}}" class="cursor">▍</text></view>
+
+          <view wx:if="{{!item.typing && item.cites.length}}" class="cites">
+            <text class="cite" wx:for="{{item.cites}}" wx:for-item="c" wx:key="id">依据 · {{c.title}}</text>
+          </view>
+
+          <block wx:if="{{!item.typing && !item.greet}}">
+            <view class="hr"></view>
+            <view class="row acts">
+              <text class="act" bindtap="toHuman">转人工</text>
+              <text class="act" bindtap="voice">听语音</text>
+            </view>
+          </block>
+
+          <view wx:if="{{item.greet && !loading}}" class="suggests">
+            <text class="sug" wx:for="{{suggests}}" wx:key="*this" data-q="{{item}}" bindtap="tapSuggest">{{item}}</text>
+          </view>
+        </view>
+      </block>
+
+      <view wx:if="{{loading}}" class="card thinking">
+        <view class="dots"><view class="d"></view><view class="d"></view><view class="d"></view></view>
+        <text class="tiny muted" style="margin-left: 14rpx">正在查规程…</text>
+      </view>
+
+      <view wx:if="{{err}}" class="card errbox">
+        <view class="tiny bold" style="color: #E5484D">没连上 AI</view>
+        <view class="tiny muted" style="margin-top: 8rpx; line-height: 38rpx">{{err}}</view>
+        <view class="row" style="margin-top: 16rpx">
+          <text class="retry" bindtap="retry">重试</text>
+          <text class="retry ghost" bindtap="toHuman">转人工</text>
+        </view>
+      </view>
+
+      <view id="bottom" style="height: 24rpx"></view>
+    </view>
+  </scroll-view>
+
+  <view wx:if="{{pending}}" class="pending">
+    <image class="p-img" src="{{pending.local}}" mode="aspectFill" bindtap="previewPending" />
+    <view class="grow">
+      <view class="tiny bold">图片已添加</view>
+      <view class="tiny muted" style="margin-top: 4rpx">在下面写一句要问的问题，再点发送</view>
+    </view>
+    <text class="p-del" bindtap="removePending">×</text>
+  </view>
+
+  <view class="inputbar">
+    <view class="tool" bindtap="pickImage">
+      <text class="tool-ico">图片</text>
+    </view>
+    <view class="tool {{recording ? 'tool-rec' : ''}}" bindlongpress="startVoice" bindtouchend="stopVoice">
+      <text class="tool-ico">{{recording ? '松开' : '语音'}}</text>
+    </view>
+    <input class="input" placeholder="{{recording ? '正在录音…' : '问安全、查规程…'}}" placeholder-class="ph"
+           value="{{input}}" bindinput="onInput" bindconfirm="send" confirm-type="send"
+           adjust-position="{{true}}" cursor-spacing="20" />
+    <view class="send {{input ? 'send-on' : ''}}" bindtap="send">
+      <text class="send-txt">{{input ? '发送' : '发送'}}</text>
+    </view>
+  </view>
+
+  <view class="voice-tip">{{voiceHint || '长按「语音」说话，松开变文字'}}</view>
+</view>

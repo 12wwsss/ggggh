@@ -1,0 +1,33 @@
+<view class="page">
+  <view wx:if="{{loading}}" class="tip">加载中…</view>
+
+  <view wx:if="{{err}}" class="wrap">
+    <view class="card err">
+      <view class="small bold" style="color:#E5484D">内容没加载出来</view>
+      <view class="tiny muted" style="margin-top:8rpx">{{err}}</view>
+      <text class="retry" bindtap="retry">重试</text>
+    </view>
+  </view>
+
+  <block wx:if="{{item}}">
+    <view class="hero hero-{{item.cover}}">
+      <text class="hero-cat">{{item.cat}}</text>
+      <view class="hero-title">{{item.title}}</view>
+      <view class="hero-meta">{{item.date}} · 阅读约 {{item.minutes}} 分钟</view>
+    </view>
+
+    <view class="wrap">
+      <view class="card body">
+        <view class="para" wx:for="{{item.body}}" wx:key="*this">{{item}}</view>
+        <view class="src">内容仅供参考，以规程原文和现场指令为准</view>
+      </view>
+
+      <view class="row gap">
+        <view class="btn-ghost" bindtap="toQuiz">做一组相关的题</view>
+        <view class="btn-primary" style="flex:1;margin-left:20rpx" bindtap="askAI">问问 AI</view>
+      </view>
+
+      <view class="bottom-space"></view>
+    </view>
+  </block>
+</view>

@@ -86,6 +86,11 @@ func New(cfg *config.Config, st *store.Store, svc *service.Service, mgr *auth.Ma
 
 	v1 := s.Engine.Group("/api/v1", s.cidrMiddleware)
 
+	// 小程序兼容层（原 Node 代理的 /api/*）：先接健康检查与问答
+	compat := s.Engine.Group("/api", s.cidrMiddleware)
+	compat.GET("/health", s.compatHealth)
+	compat.POST("/chat", s.compatChat)
+
 	// 登录不需要令牌
 	v1.POST("/auth/login", s.login)
 	v1.POST("/auth/wx-login", s.wxLogin)

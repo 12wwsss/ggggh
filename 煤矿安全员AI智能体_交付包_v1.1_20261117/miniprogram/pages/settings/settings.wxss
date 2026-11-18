@@ -1,0 +1,42 @@
+.page { background: #F3F2ED; min-height: 100vh; padding-bottom: 60rpx; }
+.wrap { padding: 24rpx 32rpx; }
+
+.blk { padding: 28rpx 30rpx; margin-bottom: 18rpx; }
+.dev {
+  font-family: Menlo, Consolas, monospace;
+  font-size: 24rpx; color: #10151A;
+  background: #F3F2ED; border-radius: 12rpx;
+  padding: 10rpx 16rpx; flex: 1; margin-right: 16rpx;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.link { font-size: 24rpx; color: #A97900; font-weight: 700; flex: none; }
+.hr { height: 2rpx; background: #ECEBE4; margin: 22rpx 0; }
+.arrow { color: #B7C2CE; font-size: 32rpx; }
+
+.faq-q { padding: 20rpx 0; border-bottom: 2rpx solid #F3F2ED; }
+.faq-a {
+  font-size: 23rpx; color: #6B7A8C; line-height: 38rpx;
+  padding: 4rpx 0 22rpx;
+}
+
+.btn-danger {
+  margin-top: 30rpx;
+  height: 96rpx; border-radius: 48rpx;
+  background: #FFF1F0; color: #E5484D;
+  font-size: 28rpx; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.cnt {
+  font-size: 18rpx; color: #A97900; background: #FFF3C4;
+  padding: 2rpx 10rpx; border-radius: 10rpx; margin-left: 10rpx;
+}
+.faq-tag {
+  display: inline-block; margin-top: 10rpx;
+  font-size: 19rpx; color: #B26B00; background: #FFF6E5;
+  padding: 4rpx 12rpx; border-radius: 10rpx;
+}
+.faq-empty { font-size: 23rpx; color: #98A2AC; line-height: 38rpx; padding: 16rpx 0; }
+.ask-btn {
+  margin-top: 14rpx; font-size: 24rpx; color: #A97900; font-weight: 700;
+}

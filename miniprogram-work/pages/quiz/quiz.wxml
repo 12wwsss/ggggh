@@ -1,0 +1,108 @@
+<view class="page">
+
+  <!-- 选择岗位 -->
+  <block wx:if="{{mode === 'start'}}">
+    <view class="wrap">
+      <view class="h2" style="margin-top: 24rpx">今日练一练</view>
+      <view class="tiny muted" style="margin-top: 10rpx">按你的岗位出题，答错自动进错题本</view>
+
+      <block wx:if="{{jobs.length > 1}}">
+        <view class="label">选择范围</view>
+        <view class="row wrap-chips">
+          <text class="chip {{job === item ? 'chip-on' : ''}}" wx:for="{{jobs}}" wx:key="*this"
+                data-j="{{item}}" bindtap="pickJob">{{item}}</text>
+        </view>
+        <view wx:if="{{jobs.length <= 2}}" class="tiny muted" style="margin-top: 10rpx" bindtap="loadJobs">
+          没读到后台岗位 · 点这里重试
+        </view>
+      </block>
+
+      <view class="label">题目数量</view>
+      <view class="row">
+        <text class="chip {{count === item ? 'chip-on' : ''}}" wx:for="{{counts}}" wx:key="*this"
+              data-c="{{item}}" bindtap="pickCount">{{item}} 题</text>
+      </view>
+
+      <view class="card tip">
+        <view class="small bold">答题规则</view>
+        <view class="tiny muted" style="margin-top: 10rpx; line-height: 40rpx">
+          每题 4 个选项，选完全部提交；交卷后可看每题解析和依据。成绩会计入个人培训档案。
+        </view>
+      </view>
+
+      <view class="btn-primary" style="margin-top: 48rpx" bindtap="start">开始答题</view>
+      <view class="tiny muted" style="text-align: center; margin-top: 16rpx" wx:if="{{best > 0}}">
+        历史最好成绩：{{best}} 题
+      </view>
+    </view>
+  </block>
+
+  <!-- 答题中 -->
+  <block wx:if="{{mode === 'quiz'}}">
+    <view class="wrap">
+      <view class="between head">
+        <text class="small bold">第 {{idx + 1}} / {{qs.length}} 题</text>
+        <text class="tiny muted">{{cur.job}} · {{cur.c}}</text>
+      </view>
+      <view class="bar"><view class="bar-in" style="width: {{(idx + 1) / qs.length * 100}}%"></view></view>
+
+      <view class="card q-card">
+        <view class="q-text">{{cur.q}}</view>
+        <view class="opt {{item.cls}}" wx:for="{{opts}}" wx:key="idx" data-i="{{item.idx}}" bindtap="choose">
+          <text class="opt-key">{{item.key}}</text>
+          <text class="opt-text">{{item.t}}</text>
+        </view>
+      </view>
+
+      <view wx:if="{{answered}}" class="card explain">
+        <view class="row">
+          <text class="badge {{picked === cur.a ? 'ok' : 'no'}}">
+            {{picked === cur.a ? '答对了' : '答错了'}}
+          </text>
+          <text class="tiny muted" style="margin-left: 16rpx">正确答案：{{curAns}}</text>
+        </view>
+        <view class="small" style="margin-top: 16rpx; line-height: 42rpx">{{cur.e}}</view>
+        <view class="tiny muted" style="margin-top: 10rpx">依据：{{cur.c}}</view>
+      </view>
+
+      <view class="btn-primary" style="margin-top: 36rpx" bindtap="onAction">
+        {{answered ? (idx + 1 >= qs.length ? '看成绩' : '下一题') : '确认答案'}}
+      </view>
+    </view>
+  </block>
+
+  <!-- 成绩 -->
+  <block wx:if="{{mode === 'result'}}">
+    <view class="wrap">
+      <view class="card score-card">
+        <view class="tiny muted bold">本次得分</view>
+        <view class="row" style="align-items: flex-end; margin-top: 12rpx">
+          <text class="score">{{score}}</text>
+          <text class="tiny muted" style="margin-left: 10rpx; margin-bottom: 10rpx">/ {{qs.length}} 题</text>
+        </view>
+        <view class="tiny muted" style="margin-top: 8rpx">
+          用时 {{spent}} 秒 ·
+          {{score === qs.length ? '全对，可以上岗了' : (score >= qs.length * 0.6 ? '及格，错题建议再看一遍' : '不及格，按矿上规定需重考')}}
+        </view>
+      </view>
+
+      <view wx:if="{{wrong.length}}" class="label">错题解析（{{wrong.length}}）</view>
+      <view class="card wrong" wx:for="{{wrong}}" wx:key="id">
+        <view class="small bold">{{item.q}}</view>
+        <view class="tiny" style="margin-top: 12rpx; color: #E5484D">你选：{{item.your}}</view>
+        <view class="tiny" style="margin-top: 6rpx; color: #12B76A">正确：{{item.right}}</view>
+        <view class="tiny muted" style="margin-top: 10rpx; line-height: 38rpx">{{item.e}}</view>
+        <view class="tiny" style="margin-top: 8rpx; color: #2E6BE6">依据：{{item.c}}</view>
+      </view>
+
+      <view wx:if="{{!wrong.length}}" class="card wrong">
+        <view class="small bold">全对，没有错题</view>
+        <view class="tiny muted" style="margin-top: 10rpx">明天再来一组，保持手感。</view>
+      </view>
+
+      <view class="btn-primary" style="margin-top: 36rpx" bindtap="again">再来一组</view>
+      <view class="btn-ghost" style="margin-top: 20rpx" bindtap="backHome">回首页</view>
+      <view class="bottom-space"></view>
+    </view>
+  </block>
+</view>

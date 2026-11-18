@@ -1,0 +1,16 @@
+{
+  "apiKey": "",
+  "mock": true,
+  "deployMode": "lan",
+  "baseUrl": "10.0.0.21:8000",
+  "modelPath": "/v1/chat/completions",
+  "storageDir": "D:/data/coal-ai",
+  "trustProxy": true,
+  "model": "qwen2.5-32b-instruct",
+  "temperature": 0.2,
+  "maxTokens": 900,
+  "topK": 3,
+  "rateLimitPerMin": 20,
+  "appId": "",
+  "appSecret": ""
+}

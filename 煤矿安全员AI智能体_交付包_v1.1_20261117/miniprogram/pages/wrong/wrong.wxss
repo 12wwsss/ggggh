@@ -1,0 +1,39 @@
+.page { background: #F3F2ED; min-height: 100vh; padding-bottom: 60rpx; }
+.wrap { padding: 24rpx 32rpx 60rpx; }
+
+.head-card { padding: 28rpx 30rpx; }
+.big { font-size: 56rpx; font-weight: 700; line-height: 60rpx; color: #10151A; }
+
+.jobs { flex-wrap: wrap; margin: 20rpx 0 10rpx; }
+.jobs .chip { margin: 0 14rpx 14rpx 0; height: 58rpx; padding: 0 26rpx; font-size: 24rpx; }
+
+.item { padding: 26rpx 28rpx; margin-bottom: 16rpx; }
+.q { margin-top: 14rpx; font-size: 29rpx; font-weight: 700; line-height: 44rpx; color: #10151A; }
+
+.tip { text-align: center; color: #98A2AC; font-size: 24rpx; line-height: 38rpx; padding: 70rpx 20rpx; }
+.note { margin-top: 20rpx; line-height: 36rpx; }
+
+.q-card { padding: 30rpx 28rpx; margin-top: 20rpx; }
+.q-text { margin-top: 16rpx; font-size: 31rpx; font-weight: 700; line-height: 48rpx; color: #10151A; }
+
+.opt {
+  display: flex; align-items: flex-start;
+  padding: 22rpx; margin-top: 16rpx;
+  border: 2rpx solid #E6E5DE; border-radius: 16rpx; background: #fff;
+}
+.opt.on { border-color: #A97900; background: #FFF9E6; }
+.opt.right { border-color: #12B76A; background: #F2FBF7; }
+.opt.wrong { border-color: #E5484D; background: #FEF5F5; }
+.opt-key {
+  width: 44rpx; height: 44rpx; border-radius: 10rpx; flex: none;
+  background: #F1F0EA; color: #59636E;
+  font-size: 24rpx; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  margin-right: 16rpx;
+}
+.opt.right .opt-key { background: #12B76A; color: #fff; }
+.opt.wrong .opt-key { background: #E5484D; color: #fff; }
+.opt-text { flex: 1; font-size: 27rpx; line-height: 40rpx; }
+
+.fb { padding: 24rpx 26rpx; margin-top: 22rpx; border-left: 8rpx solid #12B76A; }
+.fb-bad { border-left-color: #E5484D; }

@@ -1,0 +1,26 @@
+<view class="page">
+  <view class="brand">
+    <view class="logo">安</view>
+    <view class="title">煤矿安全智能体</view>
+    <view class="sub">问答 · 学习 · 考试 · 隐患上报</view>
+  </view>
+
+  <view class="panel">
+    <view class="benefit">
+      <view class="b-item"><text class="dot"></text>登录后学习记录跟着微信走，换手机不丢</view>
+      <view class="b-item"><text class="dot"></text>不收集手机号、位置、通讯录</view>
+      <view class="b-item"><text class="dot"></text>一次登录，以后打开自动进入</view>
+    </view>
+
+    <button class="wx-login" loading="{{loading}}" bindtap="login">
+      微信一键登录
+    </button>
+
+    <view wx:if="{{err}}" class="err">{{err}}</view>
+    <view wx:if="{{tip}}" class="tip">{{tip}}</view>
+
+    <view class="local" bindtap="useLocal">先以本机模式进入 ›</view>
+  </view>
+
+  <view class="foot">登录代表同意仅将微信标识用于区分学习记录</view>
+</view>

@@ -1,0 +1,70 @@
+<view class="page">
+  <view class="head" style="padding-top: {{statusTop + 26}}px">
+    <view class="idrow">
+      <button class="avatar-btn" open-type="chooseAvatar" bind:chooseavatar="onChooseAvatar">
+        <image wx:if="{{avatar}}" class="avatar-img" src="{{avatar}}" mode="aspectFill" />
+        <view wx:else class="avatar">{{meInitial}}</view>
+        <view class="avatar-edit">换</view>
+      </button>
+      <view class="idbox">
+        <view class="name-row">
+          <text class="name" bindtap="editName">{{meName}}</text>
+          <text class="edit-link" bindtap="editName">改名</text>
+        </view>
+        <view class="id">{{meInfo}}</view>
+        <view wx:if="{{!bound}}" class="bind-wx" bindtap="bindWx">绑定微信 ›</view>
+      </view>
+    </view>
+    <view class="row stats">
+      <view class="stat" wx:for="{{stats}}" wx:key="lb">
+        <text class="stat-v">{{item.v}}</text>
+        <text class="stat-l">{{item.lb}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="wrap">
+    <view wx:if="{{score && score.attempts}}" class="card score">
+      <view class="between">
+        <text class="tiny muted bold">我的答题成绩</text>
+        <text class="tiny accent bold" bindtap="open" data-path="/pages/quiz/quiz">再练一组 ›</text>
+      </view>
+      <view class="row stats-row">
+        <view class="s-item">
+          <text class="s-num">{{score.attempts}}</text>
+          <text class="s-lb">已考次数</text>
+        </view>
+        <view class="s-item">
+          <text class="s-num accent">{{score.best}}</text>
+          <text class="s-lb">最好成绩</text>
+        </view>
+        <view class="s-item">
+          <text class="s-num">{{score.avg}}</text>
+          <text class="s-lb">平均分</text>
+        </view>
+        <view class="s-item">
+          <text class="s-num {{score.passRate >= 60 ? 'ok' : 'bad'}}">{{score.passRate}}%</text>
+          <text class="s-lb">及格率</text>
+        </view>
+      </view>
+      <view wx:if="{{teamStat}}" class="team-line">
+        本队参考 {{teamStat.users}} 人 · 均分 {{teamStat.avg}} · 及格率 {{teamStat.passRate}}%
+      </view>
+    </view>
+
+    <view class="card menu">
+      <view class="m-item" wx:for="{{menus}}" wx:key="t" data-i="{{index}}" bindtap="open">
+        <view class="m-ico" style="background: {{item.bg}}; color: {{item.c}}">{{item.ch}}</view>
+        <view class="grow">
+          <view class="small bold">{{item.t}}</view>
+          <view class="tiny muted" style="margin-top: 6rpx">{{item.sub}}</view>
+        </view>
+        <text class="c-call" wx:if="{{item.contact && contact}}">拨打 ›</text>
+        <text class="arrow" wx:else>›</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="tabbar-space"></view>
+  <tabbar active="3" />
+</view>

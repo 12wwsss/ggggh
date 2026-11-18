@@ -1,0 +1,1687 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>煤矿安全智能体 · 管理后台</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #F5F7FA; color: #0F1B2A; -webkit-font-smoothing: antialiased;
+  }
+  .layout { display: flex; min-height: 100vh; }
+
+  /* 侧边栏 */
+  .side { width: 216px; background: #0B1520; flex: none; display: flex; flex-direction: column; }
+  .brand { padding: 22px 24px; display: flex; align-items: center; gap: 10px; }
+  .logo { width: 34px; height: 34px; border-radius: 10px; background: #FF6A2B;
+          color: #fff; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  .brand b { color: #fff; font-size: 14px; }
+  .brand span { display: block; color: #5C6E80; font-size: 9px; letter-spacing: .08em; margin-top: 2px; }
+  .nav { padding: 8px; }
+  .nav a {
+    display: flex; align-items: center; gap: 10px;
+    padding: 11px 16px; border-radius: 9px; margin-bottom: 4px;
+    color: #93A6B8; font-size: 13px; text-decoration: none; cursor: pointer;
+  }
+  .nav a:hover { background: #14202E; }
+  .nav a.on { background: #16283C; color: #FF6A2B; font-weight: 700; }
+  .nav i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; opacity: .55; }
+  .side-foot { margin-top: auto; padding: 18px 22px; border-top: 1px solid #1B2836; color: #5C6E80; font-size: 11px; }
+
+  /* 主区 */
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .top {
+    height: 62px; background: #fff; border-bottom: 1px solid #E9EEF4;
+    display: flex; align-items: center; padding: 0 26px; gap: 14px;
+  }
+  .top h1 { font-size: 16px; font-weight: 700; }
+  .top .sub { font-size: 11px; color: #B0BCC8; }
+  .top .right { margin-left: auto; display: flex; gap: 10px; }
+  .pill { font-size: 11px; color: #56677A; background: #F1F4F8; border-radius: 15px; padding: 7px 14px; }
+  .content { padding: 24px 26px 60px; }
+  .view { display: none; }
+  .view.on { display: block; }
+
+  /* 卡片 */
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .card { background: #fff; border-radius: 14px; box-shadow: 0 6px 22px rgba(15,27,42,.05); }
+  .kpi { padding: 18px 20px; }
+  .kpi .lb { font-size: 12px; color: #8090A0; font-weight: 600; }
+  .kpi .val { font-size: 30px; font-weight: 700; margin-top: 6px; }
+  .kpi .val small { font-size: 12px; color: #93A1B0; font-weight: 400; margin-left: 4px; }
+  .kpi .delta { font-size: 11px; margin-top: 6px; color: #12B76A; }
+
+  .panel { padding: 20px 22px; margin-top: 16px; }
+  .panel h2 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+  .panel .hint { font-size: 11px; color: #93A1B0; margin-bottom: 14px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th { text-align: left; color: #8090A0; font-weight: 600; font-size: 11px; padding: 8px 10px; background: #FAFBFD; }
+  td { padding: 11px 10px; border-bottom: 1px solid #F2F5F8; }
+  tr:last-child td { border-bottom: none; }
+  .b { font-weight: 700; }
+  .ok { color: #12B76A; } .warn { color: #F79009; } .bad { color: #E5484D; } .muted { color: #93A1B0; }
+
+  .bar { height: 8px; background: #EEF1F5; border-radius: 4px; overflow: hidden; min-width: 80px; }
+  .bar > i { display: block; height: 8px; background: #FF6A2B; border-radius: 4px; }
+
+  button, .btn {
+    font-family: inherit; font-size: 12.5px; border: none; cursor: pointer;
+    border-radius: 9px; padding: 9px 16px; background: #FF6A2B; color: #fff; font-weight: 600;
+  }
+  .btn.ghost { background: #fff; color: #56677A; border: 1px solid #E7EBF1; font-weight: 500; }
+  .btn:active { opacity: .85; }
+  textarea {
+    width: 100%; height: 130px; font-family: inherit; font-size: 12.5px; line-height: 1.6;
+    border: 1px solid #E7EBF1; border-radius: 10px; padding: 12px; resize: vertical; background: #FBFCFE;
+  }
+  select.sel {
+    font-family: inherit; font-size: 12.5px; border: 1px solid #E7EBF1;
+    border-radius: 9px; padding: 9px 10px; background: #fff; color: #0F1B2A;
+  }
+  input.txt {
+    font-family: inherit; font-size: 13px; border: 1px solid #E7EBF1;
+    border-radius: 9px; padding: 10px 12px; background: #FBFCFE; color: #0F1B2A; width: 100%;
+  }
+  input.txt:focus { outline: none; border-color: #FF6A2B; background: #fff; }
+  input[type=text] {
+    font-family: inherit; font-size: 12.5px; border: 1px solid #E7EBF1;
+    border-radius: 9px; padding: 9px 12px; width: 240px;
+  }
+  .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .tag { font-size: 10.5px; padding: 3px 9px; border-radius: 11px; font-weight: 600; }
+  .tag.g { background: #E7F8F0; color: #12B76A; }
+  .tag.y { background: #FFF6E5; color: #F79009; }
+  .tag.r { background: #FDECEC; color: #E5484D; }
+  .toast {
+    position: fixed; left: 50%; bottom: 40px; transform: translateX(-50%);
+    background: #0F1B2A; color: #fff; font-size: 13px; padding: 11px 22px; border-radius: 10px;
+    opacity: 0; transition: .25s; pointer-events: none; z-index: 99;
+  }
+  .toast.on { opacity: .95; }
+  .empty { text-align: center; color: #B0BCC8; font-size: 12.5px; padding: 40px 0; }
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="side">
+    <div class="brand">
+      <div class="logo">安</div>
+      <div><b>煤矿安全智能体</b><span>AI SAFETY AGENT</span></div>
+    </div>
+    <nav class="nav" id="nav">
+      <a data-v="kb" class="on" data-roles="sysadmin,secadmin"><i></i>知识库</a>
+      <a data-v="qbank" data-roles="sysadmin,secadmin"><i></i>题库管理</a>
+      <a data-v="media" data-roles="sysadmin,secadmin"><i></i>视频资料</a>
+      <a data-v="culture" data-roles="sysadmin,secadmin"><i></i>制度宣贯</a>
+      <a data-v="issue" data-roles="sysadmin,secadmin"><i></i>问题工单</a>
+      <a data-v="quiz" data-roles="sysadmin,secadmin,auditor"><i></i>考试成绩</a>
+      <a data-v="exam" data-roles="sysadmin,secadmin"><i></i>考试管理</a>
+      <a data-v="base" data-roles="sysadmin,secadmin"><i></i>基础配置</a>
+      <a data-v="audit" data-roles="sysadmin,auditor"><i></i>审计日志</a>
+      <a data-v="users" data-roles="sysadmin"><i></i>用户管理</a>
+    </nav>
+    <div class="side-foot">v1.0 · 本地演示<br>数据存 server/data</div>
+  </aside>
+
+  <div class="main">
+    <div class="top">
+      <div>
+        <h1 id="ttl">数据看板</h1>
+        <div class="sub" id="crumb">首页 / 数据看板</div>
+      </div>
+      <div class="right">
+        <span class="pill" id="who" style="display:none"></span>
+        <button class="btn ghost" onclick="syncAll()" title="把内容重新加载，小程序立即读到">同步到小程序</button>
+        <span class="pill" id="health">检查中…</span>
+        <a href="/qbank" class="btn ghost" style="text-decoration:none;display:inline-flex;align-items:center">题库维护</a>
+        <button class="btn ghost" onclick="loadAll()">刷新</button>
+        <button class="btn ghost" onclick="openSec()">安全设置</button>
+        <button class="btn ghost" onclick="openPwd()">修改密码</button>
+        <button class="btn ghost" onclick="logout()">退出</button>
+      </div>
+    </div>
+
+    <div id="pwdWarn" style="display:none;background:#FFF6E5;border-bottom:1px solid #F5E2BC;color:#8A5A00;font-size:12.5px;padding:10px 26px">
+      ⚠ 当前使用默认密码 coal2026，建议立即修改，避免他人登录后台
+      <a href="#" onclick="openPwd();return false" style="color:#E85A1E;font-weight:700;margin-left:8px">现在修改</a>
+    </div>
+
+    <div class="content">
+      <!-- 知识库 -->
+      <div class="view" id="v-kb">
+        <div class="panel card">
+          <h2>知识库文件</h2>
+          <div class="hint">支持 .md / .txt；Word、PDF 请先另存为 txt 再上传。上传后立即生效，无需重启。</div>
+          <table>
+            <thead><tr><th style="width:38%">文件名</th><th>片段</th><th>大小</th><th>更新时间</th><th style="width:90px"></th></tr></thead>
+            <tbody id="kbBody"></tbody>
+          </table>
+        </div>
+        <div class="panel card">
+          <h2>待审核（提交后需审核才生效）</h2>
+          <div class="hint">上传的文件先进入待审区，点「通过」才会进入知识库并开始被检索</div>
+          <table>
+            <thead><tr><th style="width:45%">文件名</th><th>大小</th><th>提交时间</th><th style="width:170px">操作</th></tr></thead>
+            <tbody id="pendingBody"></tbody>
+          </table>
+        </div>
+
+        <div class="panel card">
+          <div class="row" style="margin-bottom:8px">
+            <h2 style="margin:0">新增内容</h2>
+            <button class="btn ghost" style="margin-left:auto" onclick="gotoView('media')">管理已上传的资料 ›</button>
+          </div>
+          <div class="hint">
+            <b>文本类</b>（.txt / .md）：选文件后自动填入下方文本框，点「文本入库」进入 AI 知识库。<br>
+            <b>其他文件</b>（PDF / Word / Excel / PPT / 视频 / 图片）：选完会自动上传到<b>视频资料库</b>，
+            员工在小程序「学习 → 操作视频与资料」里查看。
+          </div>
+          <div class="row" style="margin-bottom:10px">
+            <input type="text" id="kbName" placeholder="文件名，如 05-顶板管理.txt">
+            <input type="file" id="kbFile"
+                   accept=".txt,.md,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.zip,.mp4,.mov,.m4v,.webm,.jpg,.jpeg,.png"
+                   style="display:none">
+            <button class="btn ghost" onclick="document.getElementById('kbFile').click()">选择本地文件</button>
+            <button class="btn" onclick="uploadKb()">文本入库</button>
+            <span id="kbFileTip" style="font-size:12px;color:#93A1B0"></span>
+          </div>
+          <textarea id="kbContent" placeholder="把规程原文粘贴到这里，段落之间空一行。&#10;&#10;例如：&#10;采煤工作面上下端头必须加强支护，出口保持畅通。&#10;&#10;发现顶板来压预兆，立即撤出人员并报告调度室。"></textarea>
+        </div>
+      </div>
+
+      <!-- 题库 -->
+      <div class="view" id="v-qbank">
+        <div class="grid" id="qKpis"></div>
+        <div class="panel card" style="padding:16px 26px">
+          <div style="font-size:13px" id="qStat">题目统计加载中…</div>
+        </div>
+
+        <div class="panel card">
+          <div class="row" style="margin-bottom:12px">
+            <h2 style="margin:0">题目列表</h2>
+            <select id="qJob" class="sel" onchange="loadQuestions()">
+              <option value="">全部岗位</option>
+            </select>
+            <input type="text" id="qKw" placeholder="搜题干 / 解析" onkeydown="if(event.key==='Enter')loadQuestions()" style="width:180px">
+            <button class="btn ghost" onclick="loadQuestions()">查询</button>
+            <span style="margin-left:auto;font-size:12px;color:#93A1B0">勾选题目后可批量分配</span>
+            <select id="qAssignJob" class="sel" style="width:160px">
+              <option value="">选择目标岗位</option>
+            </select>
+            <button class="btn" onclick="assignSelected()">分配到该岗位</button>
+            <button class="btn ghost" onclick="selectAllQuestions()">全选/取消</button>
+            <button class="btn ghost" onclick="assignUnassigned()">未分配一键划归</button>
+            <button class="btn" style="margin-left:8px" onclick="newQ()">＋ 新增题目</button>
+          </div>
+          <table>
+            <thead><tr><th style="width:44px"><input type="checkbox" onclick="selectAllQuestions(this.checked)"></th><th style="width:44%">题干</th><th>岗位</th><th>答案</th><th>状态</th><th style="width:190px">操作</th></tr></thead>
+            <tbody id="qBody"></tbody>
+          </table>
+        </div>
+
+        <div class="panel card" id="qEditor" style="display:none">
+          <h2 id="qTitle">新增题目</h2>
+          <div class="hint">选项至少 2 个；正确答案填下标（0 = 第一个选项）</div>
+          <div class="row" style="margin-bottom:10px">
+            <select id="fJob" class="sel" style="width:170px">
+              <option value="">未分配岗位</option>
+            </select>
+            <input type="text" id="fCite" placeholder="依据，如：顶板管理" style="width:220px">
+          </div>
+          <textarea id="fQ" placeholder="题干" style="height:70px;margin-bottom:10px"></textarea>
+          <div class="row" style="margin-bottom:10px">
+            <input type="text" id="fO0" placeholder="选项 A" style="flex:1">
+            <input type="text" id="fO1" placeholder="选项 B" style="flex:1">
+          </div>
+          <div class="row" style="margin-bottom:10px">
+            <input type="text" id="fO2" placeholder="选项 C" style="flex:1">
+            <input type="text" id="fO3" placeholder="选项 D（可空）" style="flex:1">
+          </div>
+          <div class="row" style="margin-bottom:10px">
+            <select id="fA" class="sel">
+              <option value="0">正确答案：A（第 1 个）</option>
+              <option value="1">正确答案：B（第 2 个）</option>
+              <option value="2">正确答案：C（第 3 个）</option>
+              <option value="3">正确答案：D（第 4 个）</option>
+            </select>
+            <input type="text" id="fId" placeholder="ID（留空自动生成）" style="width:180px">
+            <label style="font-size:12.5px;color:#56677A"><input type="checkbox" id="fOn" checked> 启用</label>
+          </div>
+          <textarea id="fE" placeholder="解析（答错时显示）" style="height:60px"></textarea>
+          <div class="row" style="margin-top:12px">
+            <button class="btn" onclick="saveQ()">保存</button>
+            <button class="btn ghost" onclick="document.getElementById('qEditor').style.display='none'">取消</button>
+          </div>
+        </div>
+
+        <div class="panel card">
+          <h2>批量导入</h2>
+          <div class="hint">粘贴 JSON 数组即可，一次可导入几百道题。格式如下：</div>
+          <textarea id="importBox" style="height:130px" placeholder='[{"job":"采煤","q":"题干","o":["A","B","C","D"],"a":1,"e":"解析","c":"依据"}]'></textarea>
+          <div class="row" style="margin-top:12px">
+            <button class="btn" onclick="importQ()">导入</button>
+            <span class="muted" style="font-size:12px">导入后立即生效，小程序下次抽题就会用到</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 考试管理 -->
+      <div class="view" id="v-exam">
+        <div class="panel card">
+          <h2>新建考试</h2>
+          <div class="hint" id="exJobHint">加载题库现状中…</div>
+          <div class="row" style="margin-bottom:10px">
+            <input type="text" id="exTitle" list="" placeholder="考试名称（必填）" style="flex:1">
+            <select id="exJob" class="sel" style="width:170px">
+              <option value="">全部岗位</option>
+            </select>
+          </div>
+          <div class="row" style="margin-bottom:10px">
+            <input type="number" id="exCount" placeholder="题数" value="10" style="width:110px">
+            <input type="number" id="exMin" placeholder="时长(分钟)" value="15" style="width:130px">
+            <input type="number" id="exPass" placeholder="及格分" value="60" style="width:110px">
+            <input type="text" id="exNote" placeholder="说明（可空）" style="flex:1">
+          </div>
+          <div class="row">
+            <button class="btn" onclick="saveExam()">创建考试</button>
+            <span id="exMsg" style="font-size:12px;color:#93A1B0"></span>
+          </div>
+        </div>
+        <div class="panel card">
+          <h2>已创建的考试</h2>
+          <table>
+            <thead><tr><th>名称</th><th style="width:100px">岗位</th><th style="width:80px">题数</th>
+            <th style="width:90px">时长</th><th style="width:80px">及格</th><th style="width:90px">操作</th></tr></thead>
+            <tbody id="exBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 视频资料 -->
+      <div class="view" id="v-media">
+        <div class="panel card">
+          <h2>上传视频 / 资料</h2>
+          <div class="hint">
+            支持 mp4 / mov 视频，pdf / doc / xlsx / ppt 等资料，单个文件最大 300MB。<br>
+            上传后员工可在小程序「学习 → 操作视频」里观看。
+          </div>
+          <div class="row" style="margin-bottom:10px">
+            <input type="text" id="mdTitle" placeholder="标题，如 液压支架泄压操作演示" style="flex:1">
+            <select id="mdCat" class="sel" style="width:150px"></select>
+            <select id="mdJob" class="sel" style="width:150px">
+              <option value="">全部岗位</option>
+            </select>
+          </div>
+          <div class="row" style="margin-bottom:10px">
+            <input type="file" id="mdFile" style="flex:1">
+            <button class="btn" onclick="uploadMedia()">上传并保存</button>
+            <span id="mdMsg" style="font-size:12px;color:#93A1B0"></span>
+          </div>
+          <div id="mdProg" style="display:none">
+            <div style="height:6px;background:#EEF1F5;border-radius:3px;overflow:hidden">
+              <div id="mdBar" style="height:6px;width:0;background:#FF6A2B;transition:width .2s"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel card">
+          <div class="row" style="margin-bottom:12px">
+            <h2 style="margin:0">已上传</h2>
+            <button class="btn ghost" style="margin-left:auto" onclick="loadMedia()">刷新</button>
+          </div>
+          <table>
+            <thead><tr><th style="width:52px">类型</th><th>标题</th><th style="width:110px">分类</th>
+            <th style="width:100px">岗位</th><th style="width:90px">大小</th>
+            <th style="width:130px">上传时间</th><th style="width:140px">操作</th></tr></thead>
+            <tbody id="mdBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 问题工单 -->
+      <div class="view" id="v-issue">
+        <div class="grid" id="issueKpis"></div>
+        <div class="panel card">
+          <div class="row" style="margin-bottom:14px">
+            <h2 style="margin:0">员工上报的问题</h2>
+            <button class="btn ghost" style="margin-left:auto" onclick="location.href='/api/export/issues.csv'">导出 CSV</button>
+          </div>
+          <div class="hint">员工在小程序提交后这里能看到；点「处置」填写意见即闭环。</div>
+          <table>
+            <thead><tr><th style="width:110px">工单号</th><th>问题</th><th style="width:100px">类型</th>
+            <th style="width:80px">紧急</th><th style="width:90px">状态</th>
+            <th style="width:140px">上报时间</th><th style="width:120px">操作</th></tr></thead>
+            <tbody id="issueBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 成绩 -->
+      <div class="view" id="v-quiz">
+        <div class="grid" id="quizKpis"></div>
+        <div class="panel card">
+          <div class="row" style="margin-bottom:14px">
+            <h2 style="margin:0">按区队汇总</h2>
+            <button class="btn ghost" style="margin-left:auto" onclick="location.href='/api/export/quiz.csv'">导出 CSV</button>
+          </div>
+          <table>
+            <thead><tr><th>区队</th><th>参考人数</th><th>答题次数</th><th>平均分</th><th>及格率</th></tr></thead>
+            <tbody id="quizBody"></tbody>
+          </table>
+        </div>
+
+        <div class="panel card">
+          <div class="row" style="margin-bottom:14px">
+            <h2 style="margin:0">考试成绩（按场次）</h2>
+            <button class="btn ghost" style="margin-left:auto" onclick="location.href='/api/export/exam.csv'">导出成绩 CSV</button>
+          </div>
+          <div class="grid" id="examKpis"></div>
+          <table>
+            <thead><tr><th>考试名称</th><th>参考人次</th><th>参考人数</th><th>平均分</th>
+            <th>最高</th><th>最低</th><th>及格率</th></tr></thead>
+            <tbody id="examStatsBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 用户管理 -->
+      <div class="view" id="v-users">
+        <div class="panel card">
+          <div class="row" style="margin-bottom:12px">
+            <h2 style="margin:0">小程序用户</h2>
+            <button class="btn ghost" style="margin-left:auto" onclick="loadAppUsers()">刷新</button>
+          </div>
+          <div class="grid" id="auKpis"></div>
+          <div class="hint">员工在小程序点「微信一键登录」或直接进入后，会出现在这里。</div>
+          <table>
+            <thead><tr><th style="width:150px">账号</th><th style="width:110px">方式</th>
+            <th style="width:90px">登录次数</th><th style="width:90px">答题</th>
+            <th style="width:90px">上报</th><th>首次</th><th>最近活跃</th></tr></thead>
+            <tbody id="appUserBody"></tbody>
+          </table>
+        </div>
+
+        <div class="panel card">
+          <h2>三员账号</h2>
+          <div class="hint">系统管理员管用户与配置，安全管理员管审批与内容，审计管理员只看日志——三者职责分离，是等保三级的要求</div>
+          <table>
+            <thead><tr><th style="width:130px">账号</th><th style="width:120px">角色</th><th style="width:150px">姓名</th>
+            <th>状态</th><th style="width:180px">最近登录</th><th style="width:150px">操作</th></tr></thead>
+            <tbody id="userBody"></tbody>
+          </table>
+        </div>
+
+        <div class="panel card">
+          <h2>新增 / 重置账号</h2>
+          <div class="hint">已有账号填账号+新密码即为重置密码；账号名 3–20 位字母数字下划线</div>
+          <div class="row" style="margin-bottom:10px">
+            <input type="text" id="uName" placeholder="账号，如 secadmin2" style="width:180px">
+            <input type="text" id="uDisplay" placeholder="姓名/备注" style="width:160px">
+            <select id="uRole" class="sel" style="width:150px">
+              <option value="sysadmin">系统管理员</option>
+              <option value="secadmin">安全管理员</option>
+              <option value="auditor">审计管理员</option>
+            </select>
+            <input type="password" id="uPass" placeholder="密码（至少 8 位）" style="width:180px">
+            <button class="btn" onclick="saveUser()">保存</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 制度宣贯 / 企业文化 -->
+      <div class="view" id="v-culture">
+        <div class="panel card">
+          <h2>制度宣贯 · 企业文化</h2>
+          <div class="hint">
+            这里写的内容会显示在<b>小程序首页「制度宣贯」区块</b>。建议 1–3 条：标题一句话（理念 / 制度要求），正文两三句说清楚。
+          </div>
+          <div class="row" style="margin-bottom:10px">
+            <input type="text" id="culTag" placeholder="标签，如 企业信念 / 安全理念（可留空）" style="width:240px">
+            <input type="text" id="culTitle" placeholder="标题，如：安全为天，生命至上" style="flex:1">
+          </div>
+          <textarea id="culBody" placeholder="正文：这是我们秉承的信念、要打造的文化、制度上的要求……" style="height:110px;width:100%"></textarea>
+          <div class="row" style="margin-top:12px">
+            <button class="btn" onclick="saveCulture()">保存</button>
+            <button class="btn ghost" onclick="resetCulture()">清空 / 新增</button>
+            <span id="culMsg" style="font-size:12px;color:#93A1B0">当前 0 条</span>
+          </div>
+        </div>
+
+        <div class="panel card">
+          <h2>已发布的宣贯内容</h2>
+          <div class="hint">小程序首页最多显示前 3 条，按更新时间倒序</div>
+          <table>
+            <thead><tr><th style="width:120px">标签</th><th>标题与正文</th>
+            <th style="width:150px">更新时间</th><th style="width:170px">操作</th></tr></thead>
+            <tbody id="culList"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 基础配置 -->
+      <div class="view" id="v-base">
+        <div class="panel card">
+          <h2>区队与岗位</h2>
+          <div class="hint">
+            系统不预置任何区队/岗位，请按矿上实际组织填写：<b>一行一个</b>，也可用逗号分隔。保存后小程序立即生效。
+          </div>
+          <div style="margin-bottom:16px">
+            <div class="tiny muted bold" style="margin-bottom:6px">区队（可留空）</div>
+            <textarea id="optTeams" style="height:90px" placeholder="一行一个，例如：&lt;br&gt;综采一队&lt;br&gt;掘进队"></textarea>
+          </div>
+          <div style="margin-bottom:14px">
+            <div class="tiny muted bold" style="margin-bottom:6px">岗位（可留空；留空则小程序不显示岗位选择）</div>
+            <textarea id="optJobs" style="height:90px" placeholder="一行一个，例如：&lt;br&gt;采煤&lt;br&gt;掘进"></textarea>
+          </div>
+          <div style="margin-bottom:14px">
+            <div class="tiny muted bold" style="margin-bottom:6px">资料分类（视频/文件用，一行一个）</div>
+            <textarea id="optMediaCats" style="height:80px" placeholder="一行一个，例如：&lt;br&gt;操作视频&lt;br&gt;设备原理&lt;br&gt;规程制度&lt;br&gt;事故案例"></textarea>
+          </div>
+          <div class="row" style="margin-bottom:14px">
+            <div style="flex:1;margin-right:12px">
+              <div class="tiny muted bold" style="margin-bottom:6px">安全科联系电话（员工端「帮助与设置」里可一键拨打）</div>
+              <input type="text" id="optContact" placeholder="如 0351-1234567" style="width:100%">
+            </div>
+            <div style="width:140px">
+              <div class="tiny muted bold" style="margin-bottom:6px">版本号</div>
+              <input type="text" id="optVersion" placeholder="1.0" style="width:100%">
+            </div>
+          </div>
+          <div class="row">
+            <button class="btn" onclick="saveOptions()">保存</button>
+            <span id="optMsg" style="font-size:12px;color:#93A1B0">当前未配置</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 审计 -->
+      <div class="view" id="v-audit">
+        <div class="panel card">
+          <div class="row" style="margin-bottom:12px">
+            <h2 style="margin:0">操作与访问日志</h2>
+            <select id="auditType" class="sel" onchange="loadAudit()" style="width:150px">
+              <option value="">全部类型</option>
+            </select>
+            <button class="btn ghost" onclick="loadAudit()">刷新</button>
+            <span class="muted" style="font-size:12px;margin-left:auto" id="auditHint"></span>
+          </div>
+          <table>
+            <thead><tr><th style="width:150px">时间</th><th style="width:110px">类型</th><th>内容</th></tr></thead>
+            <tbody id="auditBody"></tbody>
+          </table>
+          <div class="row" style="margin-top:14px">
+            <button class="btn ghost" onclick="verifyLog()">校验日志完整性</button>
+            <span id="verifyMsg" style="font-size:12px;color:#93A1B0">检查日志是否被删除或篡改</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<div id="secMask" style="display:none;position:fixed;inset:0;background:rgba(15,27,42,.45);z-index:100;align-items:center;justify-content:center">
+  <div style="width:420px;background:#fff;border-radius:14px;padding:24px">
+    <h2 style="font-size:15px;margin-bottom:4px">安全设置 · 双因素认证</h2>
+    <div class="hint">开启后登录需「密码 + 手机动态码」，满足等保三级身份鉴别要求</div>
+    <div id="secStatus" style="font-size:13px;margin:12px 0;padding:10px 12px;border-radius:9px;background:#F5F7FA"></div>
+    <div id="secSetup" style="display:none">
+      <div class="hint" style="margin-bottom:6px">用「Google Authenticator / 微软 Authenticator」扫码或手动输入下面这串密钥：</div>
+      <div id="secSecret" style="font-family:Consolas,monospace;font-size:15px;font-weight:700;letter-spacing:1px;background:#FFF6E5;padding:12px;border-radius:9px;word-break:break-all"></div>
+    </div>
+    <input type="password" id="secCode" class="txt" placeholder="输入手机上的 6 位动态码" style="margin-top:12px">
+    <div id="secErr" style="font-size:12px;color:#E5484D;min-height:18px;margin-top:6px"></div>
+    <div class="row" style="margin-top:8px;justify-content:flex-end">
+      <button class="btn ghost" onclick="closeSec()">关闭</button>
+      <button class="btn ghost" id="secGen" onclick="genSecret()">生成密钥</button>
+      <button class="btn" id="secSave" onclick="saveSec()">启用</button>
+    </div>
+  </div>
+</div>
+
+<div id="pwdMask" style="display:none;position:fixed;inset:0;background:rgba(15,27,42,.45);z-index:100;align-items:center;justify-content:center">
+  <div style="width:360px;background:#fff;border-radius:14px;padding:24px 24px 20px">
+    <h2 style="font-size:15px;margin-bottom:4px">修改登录密码</h2>
+    <div class="hint">修改后所有设备需重新登录；新密码至少 8 位，且要同时包含字母和数字</div>
+    <input type="password" id="pwdOld" placeholder="原密码" style="width:100%;margin-bottom:10px" class="txt">
+    <input type="password" id="pwdNew" placeholder="新密码（至少 6 位）" style="width:100%;margin-bottom:10px" class="txt">
+    <input type="password" id="pwdNew2" placeholder="再输一次新密码" style="width:100%;margin-bottom:6px" class="txt">
+    <div id="pwdErr" style="font-size:12px;color:#E5484D;min-height:18px"></div>
+    <div class="row" style="margin-top:10px;justify-content:flex-end">
+      <button class="btn ghost" onclick="closePwd()">取消</button>
+      <button class="btn" onclick="savePwd()">确认修改</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// 把后端的 ISO(UTC) 时间转成本地时间显示
+function fmtTime(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return String(iso).slice(0, 16).replace('T', ' ');
+  const p = n => (n < 10 ? '0' : '') + n;
+  return (d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+}
+
+const T = {
+  kb: ['知识库', '首页 / 知识库'],
+  qbank: ['题库管理', '首页 / 题库管理'],
+  media: ['视频资料', '首页 / 视频资料'],
+  culture: ['制度宣贯', '首页 / 制度宣贯'],
+  quiz: ['考试成绩', '首页 / 考试成绩'],
+  exam: ['考试管理', '首页 / 考试管理'],
+  issue: ['问题工单', '首页 / 问题工单'],
+  base: ['基础配置', '首页 / 基础配置'],
+  audit: ['审计日志', '首页 / 审计日志'],
+  workers: ['员工名册', '首页 / 员工名册'],
+  users: ['用户管理', '首页 / 用户管理']
+};
+let state = {};
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('on');
+  clearTimeout(window._t);
+  window._t = setTimeout(() => el.classList.remove('on'), 1800);
+}
+
+document.getElementById('nav').addEventListener('click', e => {
+  const a = e.target.closest('a');
+  if (!a) return;
+  document.querySelectorAll('.nav a').forEach(x => x.classList.remove('on'));
+  a.classList.add('on');
+  const v = a.dataset.v;
+  document.querySelectorAll('.view').forEach(x => x.classList.remove('on'));
+  document.getElementById('v-' + v).classList.add('on');
+  const meta = T[v] || [v, v];
+  document.getElementById('ttl').textContent = meta[0];
+  if (v === 'qbank') loadQuestions();
+  if (v === 'audit') loadAudit();
+  if (v === 'base') loadOptions();
+  if (v === 'users') { loadUsers(); loadAppUsers(); }
+  if (v === 'exam') { fillJobSelects(); loadExams(); }
+  if (v === 'issue') loadIssues();
+  if (v === 'media') loadMedia();
+  if (v === 'culture') loadCulture();
+  if (v === 'quiz') loadExamStats();
+  document.getElementById('crumb').textContent = meta[1];
+});
+
+function gotoView(v) {
+  const a = document.querySelector('.nav a[data-v="' + v + '"]');
+  if (a) a.click();
+}
+
+async function get(path) {
+  const r = await fetch(path);
+  if (r.status === 401) { location.href = '/login?next=' + encodeURIComponent(location.pathname); return {}; }
+  return r.json();
+}
+async function logout() {
+  await fetch('/api/logout', { method: 'POST' });
+  location.href = '/login';
+}
+async function post(path, body) {
+  const r = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (r.status === 401) { location.href = '/login?next=' + encodeURIComponent(location.pathname); return { ok: false }; }
+  return r.json();
+}
+
+function kpi(label, value, unit, delta) {
+  return `<div class="card kpi"><div class="lb">${label}</div>
+    <div class="val">${value}<small>${unit || ''}</small></div>
+    ${delta ? `<div class="delta">${delta}</div>` : ''}</div>`;
+}
+
+async function loadAll() {
+  try {
+    const h = await get('/api/health');
+    document.getElementById('health').textContent =
+      (h.key === 'configured' ? '模型已就绪' : '模型未配置') + ' · 知识块 ' + h.kbChunks;
+    if (h.defaultPassword) document.getElementById('pwdWarn').style.display = 'block';
+  } catch (e) {
+    document.getElementById('health').textContent = '后端未连接';
+  }
+
+  // 看板
+  try {
+    const s = await get('/api/stats');
+    const q = await get('/api/quiz/stats');
+    const i = await get('/api/issues/stats');
+    const kp = document.getElementById('kpis');
+    if (kp) kp.innerHTML =
+      kpi('累计问答', s.chatTotal, '次') +
+      kpi('今日问答', s.chatToday, '次') +
+      kpi('答题人次', q.total, '次') +
+      kpi('问题闭环率', i.rate, '%', i.total ? `已闭环 ${i.closed}/${i.total}` : '暂无工单');
+    const tq = (s.topQuestions || []);
+    document.getElementById('topq').innerHTML = tq.length
+      ? `<table><tbody>${tq.map((x, n) => `<tr><td style="width:34px" class="muted">${n + 1}</td><td>${x[0]}</td><td class="b" style="width:70px">${x[1]} 次</td></tr>`).join('')}</tbody></table>`
+      : '<div class="empty">还没有问答记录</div>';
+  } catch (e) { document.getElementById('kpis').innerHTML = '<div class="empty">统计接口异常</div>'; }
+
+  // 知识库
+  try {
+    const k = await get('/api/kb/list');
+    document.getElementById('kbBody').innerHTML = (k.files || []).map(f => `
+      <tr><td class="b">${f.name}</td><td>${f.chunks}</td>
+      <td class="muted">${(f.size / 1024).toFixed(1)} KB</td>
+      <td class="muted">${f.updated.slice(0, 16).replace('T', ' ')}</td>
+      <td><button class="btn ghost" onclick="delKb('${f.name}')">删除</button></td></tr>`).join('')
+      || '<tr><td colspan="5" class="empty">还没有知识库文件</td></tr>';
+  } catch (e) {}
+
+
+  // 题库
+  if (document.getElementById('v-qbank').classList.contains('on')) loadQuestions();
+
+  // 工单
+  try {
+    const i = await get('/api/issues/stats');
+    document.getElementById('issueKpis').innerHTML =
+      kpi('工单总数', i.total, '条') +
+      kpi('待处理', i.open, '条') +
+      kpi('已闭环', i.closed, '条') +
+      kpi('闭环率', i.rate, '%');
+    const list = await get('/api/issues');
+    document.getElementById('issueBody').innerHTML = (list.items || []).map(x => `
+      <tr><td class="muted">${x.id}</td>
+      <td class="b">${x.title}${x.urgent ? ' <span class="tag r">紧急</span>' : ''}${x.audio ? ' <a href="' + x.audio + '" target="_blank" style="font-size:12px">▶语音</a>' : ''}</td>
+      <td>${x.team}</td>
+      <td><span class="tag ${x.status === '已闭环' ? 'g' : 'y'}">${x.status}</span></td>
+      <td class="muted">${fmtTime(x.createdAt)}</td>
+      <td class="muted">${x.handleNote || '—'}</td></tr>`).join('')
+      || '<tr><td colspan="6" class="empty">还没有工单</td></tr>';
+  } catch (e) {}
+
+  // 成绩
+  try {
+    const q = await get('/api/quiz/stats');
+    document.getElementById('quizKpis').innerHTML =
+      kpi('答题人次', q.total, '次') +
+      kpi('参考人数', q.users, '人') +
+      kpi('平均分', q.avg, '分') +
+      kpi('及格率', q.passRate, '%');
+    document.getElementById('quizBody').innerHTML = (q.byTeam || []).map(t => `
+      <tr><td class="b">${t.team}</td><td>${t.users}</td><td>${t.attempts}</td>
+      <td class="b">${t.avg}</td><td class="${t.passRate >= 80 ? 'ok' : t.passRate >= 60 ? 'warn' : 'bad'}">${t.passRate}%</td>
+      <td><div class="bar"><i style="width:${t.passRate}%"></i></div></td></tr>`).join('')
+      || '<tr><td colspan="6" class="empty">还没有答题记录</td></tr>';
+  } catch (e) {}
+
+  // 宣贯
+  try {
+    const n = await get('/api/notices');
+    const nb = document.getElementById('noticeBody');
+    if (nb) nb.innerHTML = (n.items || []).map(x => `
+      <tr><td class="b">${x.title}<div class="muted" style="font-weight:400;margin-top:3px">${x.tag} · ${x.questions} 题</div></td>
+      <td class="muted">${x.deadline}</td><td>${x.done}/${x.total}</td>
+      <td><div class="row"><div class="bar" style="flex:1"><i style="width:${x.rate}%"></i></div><span class="b" style="width:40px">${x.rate}%</span></div></td></tr>`).join('')
+      || '<tr><td colspan="4" class="empty">暂无制度</td></tr>';
+  } catch (e) {}
+
+  // 问答记录
+  try {
+    const s = await get('/api/stats');
+    const cb = document.getElementById('chatBody');
+    if (cb) cb.innerHTML = (s.recentChat || []).map(c => `
+      <tr><td>${c.q}</td><td class="muted">${(c.cites || []).join(' / ') || '—'}</td><td class="muted">${c.ms || 0} ms</td></tr>`).join('')
+      || '<tr><td colspan="3" class="empty">还没有问答记录</td></tr>';
+  } catch (e) {}
+}
+
+let qList = [];
+
+async function loadPending() {
+  try {
+    const d = await get('/api/kb/pending');
+    document.getElementById('pendingBody').innerHTML = (d.files || []).map(f => `
+      <tr><td class="b">${f.name}</td>
+      <td class="muted">${(f.size / 1024).toFixed(1)} KB</td>
+      <td class="muted">${f.updated.slice(0, 16).replace('T', ' ')}</td>
+      <td>
+        <button class="btn" onclick="kbApprove('${f.name}','approve')">通过</button>
+        <button class="btn ghost" onclick="kbApprove('${f.name}','reject')">驳回</button>
+      </td></tr>`).join('') || '<tr><td colspan="4" class="empty">没有待审文件</td></tr>';
+  } catch (e) {}
+}
+
+async function kbApprove(name, action) {
+  if (action === 'reject' && !confirm('驳回归档并删除该文件？')) return;
+  const r = await post('/api/kb/approve', { name, action });
+  if (r.ok) { toast(action === 'reject' ? '已驳回' : '已通过，知识库已更新'); // 已移除员工名册
+let wkAutoTimer = null;
+function ensureWkTimer() {
+  if (wkAutoTimer) return;
+  wkAutoTimer = setInterval(() => {
+    const v = document.getElementById('v-workers');
+    if (v && v.classList.contains('on')) loadWorkers();
+  }, 15000);
+}
+ensureWkTimer();
+
+loadMe().then(() => { fillJobSelects(); loadAll(); }); }
+  else toast(r.error || '操作失败');
+}
+
+function auditText(it) {
+  const d = it.detail || {};
+  if (it.file === 'chat.jsonl') return `问：${d.q || ''}`;
+  if (it.file === 'auth.jsonl') return `${d.action} ${d.user ? '用户 ' + d.user : ''} ${d.ip ? 'IP ' + d.ip : ''}`;
+  if (it.file === 'kb.jsonl') return `${d.action} ${d.file || ''}`;
+  if (it.file === 'question.jsonl') return `${d.action} ${d.id || ''} ${d.added ? '(' + d.added + ' 道)' : ''}`;
+  if (it.file === 'issue.jsonl') return `${d.id || ''} ${d.title || d.action || ''}`;
+  if (it.file === 'quiz.jsonl') return `${d.user || ''} ${d.score}/${d.total} 分`;
+  if (it.file === 'notice.jsonl') return `${d.id || ''} ${d.team || ''} 完成`;
+  return JSON.stringify(d).slice(0, 120);
+}
+
+async function loadAudit() {
+  const type = document.getElementById('auditType').value;
+  try {
+    const d = await get('/api/audit?limit=300' + (type ? '&type=' + type : ''));
+    const sel = document.getElementById('auditType');
+    if (sel.options.length <= 1 && d.types) {
+      d.types.forEach(t => { const o = document.createElement('option'); o.value = t.file; o.textContent = t.label; sel.appendChild(o); });
+    }
+    document.getElementById('auditHint').textContent = `共 ${d.total} 条，显示最近 ${Math.min(300, (d.items || []).length)} 条`;
+    document.getElementById('auditBody').innerHTML = (d.items || []).map(it => `
+      <tr><td class="muted">${String(it.t).slice(0, 19).replace('T', ' ')}</td>
+      <td><span class="tag y">${it.kind}</span></td>
+      <td>${auditText(it)}</td></tr>`).join('') || '<tr><td colspan="3" class="empty">暂无日志</td></tr>';
+  } catch (e) {
+    document.getElementById('auditBody').innerHTML = '<tr><td colspan="3" class="empty">加载失败</td></tr>';
+  }
+}
+
+let ME = { role: '', roleName: '', user: '' };
+
+async function loadMe() {
+  try {
+    const me = await get('/api/me');
+    if (!me.ok) return;
+    ME = me;
+    document.getElementById('who').textContent = me.roleName + ' · ' + me.user;
+  } catch (e) {}
+  const role = ME.role || 'sysadmin';
+  document.querySelectorAll('#nav a').forEach(a => {
+    const roles = (a.dataset.roles || '').split(',');
+    if (!roles.includes(role)) a.style.display = 'none';
+  });
+  // 默认展示第一个有权限的页
+  const first = [...document.querySelectorAll('#nav a')].find(a => a.style.display !== 'none');
+  if (first) first.click();
+}
+
+async function loadWorkers() {
+  const kw = document.getElementById('wkKw').value.trim();
+  try {
+    const d = await get('/api/workers?kw=' + encodeURIComponent(kw));
+    document.getElementById('wkKpis').innerHTML =
+      kpi('已绑定人数', d.total, '人') +
+      kpi('今日新增', d.today || 0, '人') +
+      kpi('绑定记录', d.total, '条', '一人一条，重复绑定只更新时间') +
+      kpi('微信凭证', (d.items || []).filter(x => x.wxSeen).length, '人');
+    document.getElementById('wkBody').innerHTML = (d.items || []).map(w => `
+      <tr>
+        <td class="b">${w.phoneMask}</td>
+        <td>${w.wxSeen ? '<span class="tag g">已获取</span>' : '<span class="tag y">未获取</span>'}</td>
+        <td>${w.bindCount}</td>
+        <td>${w.devices}</td>
+        <td class="muted">${(w.createdAt || '').slice(0, 16).replace('T', ' ') || '—'}</td>
+        <td class="muted">${(w.lastBindAt || '').slice(0, 16).replace('T', ' ') || '—'}</td>
+        <td>
+          <button class="btn ghost" onclick="unbind('${w.phoneTail}')">解绑</button>
+          <button class="btn ghost" onclick="delWorker('${w.phoneTail}')">删除</button>
+        </td>
+      </tr>`).join('') || '<tr><td colspan="7" class="empty">还没有人绑定：员工在小程序里输入手机号后，这里会自动出现</td></tr>';
+    const el = document.getElementById('wkSync');
+    if (el) el.textContent = '最后刷新 ' + new Date().toLocaleTimeString('zh-CN') + ' · 每 15 秒自动刷新';
+  } catch (e) {
+    document.getElementById('wkBody').innerHTML = '<tr><td colspan="7" class="empty">加载失败，请确认已登录</td></tr>';
+  }
+}
+
+async function importWorkers() {
+  const text = document.getElementById('wkImport').value.trim();
+  if (!text) return toast('先粘贴名单');
+  const r = await post('/api/workers/import', { text });
+  const msg = document.getElementById('wkMsg');
+  if (r.ok) {
+    msg.style.color = '#12B76A';
+    msg.textContent = `新增 ${r.added}，更新 ${r.updated}，失败 ${r.failed}` + (r.errors && r.errors.length ? '（' + r.errors.join('；') + '）' : '');
+    document.getElementById('wkImport').value = '';
+    loadWorkers();
+  } else { msg.style.color = '#E5484D'; msg.textContent = r.error || '导入失败'; }
+}
+
+async function editWorker(name, team, job) {
+  const t = prompt('修改 ' + name + ' 的区队（当前：' + team + '）', team || '');
+  if (t === null) return;
+  const j = prompt('修改岗位（当前：' + job + '）', job || '');
+  if (j === null) return;
+  const r = await post('/api/workers/update', { name, team: t.trim(), job: j.trim() });
+  if (r.ok) { toast('已更新'); loadWorkers(); } else toast(r.error || '失败');
+}
+
+async function delWorker(tail) {
+  if (!confirm('删除 ****' + tail + ' 的绑定记录？')) return;
+  const r = await post('/api/workers/delete', { phoneTail: tail });
+  if (r.ok) { toast('已删除，剩余 ' + r.total + ' 人'); loadWorkers(); } else toast(r.error || '失败');
+}
+
+async function unbind(tail) {
+  if (!confirm('解除 ****' + tail + ' 的绑定？解除后本人可重新绑定')) return;
+  const r = await post('/api/workers/unbind', { phoneTail: tail });
+  if (r.ok) { toast('已解绑 ' + r.removed + ' 条'); loadWorkers(); } else toast(r.error || '失败');
+}
+
+async function loadAppUsers() {
+  try {
+    const d = await get('/api/appusers');
+    const k = document.getElementById('auKpis');
+    if (k) k.innerHTML =
+      kpi('小程序用户', d.total, '人') + kpi('微信登录', d.wx, '人') +
+      kpi('本机模式', d.dev, '人');
+    const tb = document.getElementById('appUserBody');
+    if (tb) tb.innerHTML = (d.items || []).map(u => `
+      <tr>
+        <td class="b">${u.name || u.label}${u.name ? '<div class="muted" style="font-size:12px">' + u.label + '</div>' : ''}</td>
+        <td><span class="tag ${u.kind === 'wx' ? 'g' : 'y'}">${u.kindText}</span></td>
+        <td>${u.logins}</td>
+        <td>${u.quizzes}</td>
+        <td>${u.issues}</td>
+        <td class="muted">${fmtTime(u.firstAt)}</td>
+        <td class="muted">${fmtTime(u.lastAt)}</td>
+      </tr>`).join('') || '<tr><td colspan="7" class="empty">还没有小程序用户登录</td></tr>';
+  } catch (e) {}
+}
+
+async function loadUsers() {
+  try {
+    const d = await get('/api/users/list');
+    document.getElementById('userBody').innerHTML = (d.items || []).map(u => `
+      <tr>
+        <td class="b">${u.username}</td>
+        <td><span class="tag y">${u.roleName}</span></td>
+        <td>${u.display || ''}</td>
+        <td>${u.disabled ? '<span class="tag r">已停用</span>' : '<span class="tag g">正常</span>'}</td>
+        <td class="muted">${u.lastLogin ? u.lastLogin.slice(0, 19).replace('T', ' ') : '—'}</td>
+        <td>
+          <button class="btn ghost" onclick="editUser('${u.username}','${u.role}','${u.display || ''}')">编辑</button>
+          <button class="btn ghost" onclick="toggleUser('${u.username}','${u.role}','${u.display || ''}',${!u.disabled})">${u.disabled ? '启用' : '停用'}</button>
+        </td>
+      </tr>`).join('') || '<tr><td colspan="6" class="empty">无账号</td></tr>';
+  } catch (e) {}
+}
+
+function editUser(name, role, display) {
+  document.getElementById('uName').value = name;
+  document.getElementById('uDisplay').value = display;
+  document.getElementById('uRole').value = role;
+  document.getElementById('uPass').value = '';
+  document.getElementById('uName').focus();
+}
+
+function toggleUser(name, role, display, disabled) {
+  post('/api/users/save', { username: name, role, display, disabled }).then(r => {
+    if (r.ok) { toast('已更新'); loadUsers(); } else toast(r.error || '失败');
+  });
+}
+
+async function saveUser() {
+  const username = document.getElementById('uName').value.trim();
+  const display = document.getElementById('uDisplay').value.trim();
+  const role = document.getElementById('uRole').value;
+  const password = document.getElementById('uPass').value;
+  if (!username) return toast('请填账号');
+  if (password && password.length < 8) return toast('密码至少 8 位');
+  const r = await post('/api/users/save', { username, display, role, password });
+  if (r.ok) {
+    toast(r.created ? '账号已创建' : '账号已更新');
+    document.getElementById('uPass').value = '';
+    loadUsers();
+  } else toast(r.error || '保存失败');
+}
+
+async function syncAll() {
+  const r = await post('/api/reload', {});
+  if (r.ok) toast('已同步：小程序重新进入即可看到最新内容');
+  else toast(r.error || '同步失败');
+}
+
+async function loadNews() {
+  try {
+    const d = await get('/api/news');
+    document.getElementById('nwBody').innerHTML = (d.items || []).map(n => `
+      <tr>
+        <td class="muted">${n.date || ''}</td>
+        <td class="b">${n.title}${n.summary ? '<div class="tiny muted" style="margin-top:4px">' + n.summary + '</div>' : ''}</td>
+        <td class="muted">${n.source || '—'}</td>
+        <td><button class="btn ghost" onclick="delNews('${n.id}')">删除</button></td>
+      </tr>`).join('') || '<tr><td colspan="4" class="empty">还没有资讯，录入后小程序首页立刻能看到</td></tr>';
+  } catch (e) {}
+}
+
+async function saveNews() {
+  const title = document.getElementById('nwTitle').value.trim();
+  if (!title) return toast('请填标题');
+  const r = await post('/api/news/save', {
+    title,
+    date: document.getElementById('nwDate').value,
+    source: document.getElementById('nwSource').value,
+    link: document.getElementById('nwLink').value,
+    summary: document.getElementById('nwSummary').value
+  });
+  const msg = document.getElementById('nwMsg');
+  if (r.ok) {
+    msg.style.color = '#12B76A';
+    msg.textContent = '已发布';
+    ['nwTitle','nwSummary','nwLink'].forEach(id => document.getElementById(id).value = '');
+    loadNews();
+  } else { msg.style.color = '#E5484D'; msg.textContent = r.error || '失败'; }
+}
+
+async function delNews(id) {
+  if (!confirm('删除这条资讯？')) return;
+  const r = await post('/api/news/delete', { id });
+  if (r.ok) { toast('已删除'); loadNews(); } else toast(r.error || '失败');
+}
+
+async function loadOptions() {
+  try {
+    const d = await get('/api/options');
+    document.getElementById('optTeams').value = (d.teams || []).join('\n');
+    document.getElementById('optJobs').value = (d.jobs || []).join('\n');
+    document.getElementById('optMediaCats').value = (d.mediaCats || []).join('\n');
+    document.getElementById('optContact').value = d.contact || '';
+    document.getElementById('optVersion').value = d.version || '1.0';
+    document.getElementById('optMsg').textContent =
+      '当前：区队 ' + (d.teams || []).length + ' 个，岗位 ' + (d.jobs || []).length + ' 个';
+  } catch (e) {}
+}
+
+async function saveOptions() {
+  const teams = document.getElementById('optTeams').value;
+  const jobs = document.getElementById('optJobs').value;
+  const mediaCats = document.getElementById('optMediaCats').value;
+  const contact = document.getElementById('optContact').value;
+  const version = document.getElementById('optVersion').value;
+  const r = await post('/api/options/save', { teams, jobs, mediaCats, contact, version });
+  const msg = document.getElementById('optMsg');
+  if (r.ok) {
+    msg.style.color = '#12B76A';
+    msg.textContent = '已保存：区队 ' + r.teams.length + ' 个、岗位 ' + r.jobs.length
+      + ' 个、资料分类 ' + (r.mediaCats || []).length + ' 个（各处下拉已同步）'
+      + (r.movedToGeneral ? '；有 ' + r.movedToGeneral + ' 道题的原岗位已删除，已划到「通用」' : '');
+    await fillJobSelects();
+  } else {
+    msg.style.color = '#E5484D';
+    msg.textContent = r.error || '保存失败';
+  }
+}
+
+let culEditing = '';
+
+async function loadCulture() {
+  try {
+    const d = await get('/api/culture');
+    const items = d.items || [];
+    state.culture = items;
+    const tb = document.getElementById('culList');
+    if (tb) {
+      tb.innerHTML = items.map(x => `
+        <tr>
+          <td class="muted">${x.tag || '—'}</td>
+          <td class="b">${x.title}
+            <div class="muted" style="font-weight:400;margin-top:4px;line-height:1.6">${x.body || ''}</div>
+          </td>
+          <td class="muted">${(x.at || '').slice(0, 10)}</td>
+          <td>
+            <button class="btn ghost" onclick="editCulture('${x.id}')">编辑</button>
+            <button class="btn ghost" onclick="delCulture('${x.id}')">删除</button>
+          </td>
+        </tr>`).join('') || '<tr><td colspan="4" class="empty">还没有内容，上面写一条保存就会出现在小程序首页</td></tr>';
+    }
+    const m = document.getElementById('culMsg');
+    if (m && !culEditing) {
+      m.textContent = (d.error === 'not found')
+        ? '后端还没重启，接口不存在：先双击 server\\重启服务.bat'
+        : ('当前 ' + items.length + ' 条');
+    }
+  } catch (e) {}
+}
+
+function editCulture(id) {
+  const it = (state.culture || []).find(x => x.id === id);
+  if (!it) return;
+  culEditing = id;
+  document.getElementById('culTag').value = it.tag || '';
+  document.getElementById('culTitle').value = it.title || '';
+  document.getElementById('culBody').value = it.body || '';
+  document.getElementById('culMsg').textContent = '正在编辑：' + it.title;
+}
+
+function resetCulture() {
+  culEditing = '';
+  document.getElementById('culTag').value = '';
+  document.getElementById('culTitle').value = '';
+  document.getElementById('culBody').value = '';
+  const m = document.getElementById('culMsg');
+  m.style.color = '#93A1B0';
+  m.textContent = '当前 ' + ((state.culture || []).length) + ' 条';
+}
+
+async function saveCulture() {
+  const tag = document.getElementById('culTag').value.trim();
+  const title = document.getElementById('culTitle').value.trim();
+  const body = document.getElementById('culBody').value.trim();
+  const m = document.getElementById('culMsg');
+  if (!title) {
+    m.style.color = '#E5484D';
+    m.textContent = '标题不能为空';
+    return;
+  }
+  const r = await post('/api/culture/save', { item: { id: culEditing || undefined, tag, title, body } });
+  if (!r.ok) {
+    m.style.color = '#E5484D';
+    m.textContent = (r.error === 'not found')
+      ? '后端还没重启，接口不存在：先双击 server\\重启服务.bat，再刷新本页'
+      : (r.error || '保存失败');
+    return;
+  }
+  toast('已保存');
+  culEditing = '';
+  document.getElementById('culTag').value = '';
+  document.getElementById('culTitle').value = '';
+  document.getElementById('culBody').value = '';
+  loadCulture();
+}
+
+async function delCulture(id) {
+  if (!confirm('删除这条宣贯内容？小程序首页会同步消失。')) return;
+  const r = await post('/api/culture/delete', { id });
+  if (r.ok) { toast('已删除'); loadCulture(); } else toast(r.error || '删除失败');
+}
+
+function toggleNewJob(selId, inputId) {
+  const sel = document.getElementById(selId);
+  const inp = document.getElementById(inputId);
+  if (!sel || !inp) return;
+  inp.style.display = sel.value === '__new__' ? 'inline-block' : 'none';
+  if (sel.value === '__new__') inp.focus();
+}
+
+/** 取下拉里选中的岗位；选了「新岗位」就取输入框 */
+function resolveJob(selId) {
+  const sel = document.getElementById(selId);
+  return sel ? String(sel.value || '').trim() : '';
+}
+
+function fillOneSelect(id, jobs, placeholder, keep) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const cur = keep ? el.value : '';
+  el.innerHTML = `<option value="">${placeholder}</option>` +
+    jobs.map(j => `<option value="${j}">${j}</option>`).join('');
+  if (cur && [...el.options].some(o => o.value === cur)) el.value = cur;
+}
+
+async function assignUnassigned() {
+  const job = prompt('把「未分配岗位」的题目全部划归到哪个岗位？\n（填岗位名，如 采石 / 通用）', '');
+  if (!job || !job.trim()) return;
+  const r = await post('/api/questions/assign', { to: job.trim() });
+  if (r.ok) {
+    toast('已划归 ' + r.moved + ' 道题到「' + job.trim() + '」');
+    await fillJobSelects();
+    loadQuestions();
+  } else {
+    alert('划归失败：' + (r.error || '未知错误'));
+  }
+}
+
+async function fillJobSelects() {
+  try {
+    const o = await get('/api/options');
+    // 岗位一律以「基础配置」为准，不从题库反推，避免冒出没登记的岗位
+    const jobs = (o.jobs || []).slice();
+    fillOneSelect('qJob', jobs, '全部岗位', true);
+    fillOneSelect('fJob', jobs, '未分配岗位', true);
+    fillOneSelect('qAssignJob', jobs, '选择目标岗位', true);
+    fillOneSelect('exJob', jobs, '全部岗位', true);
+  } catch (e) {}
+}
+
+function selectedQuestionIds() {
+  return [...document.querySelectorAll('.qsel')].filter(x => x.checked).map(x => x.value);
+}
+
+function selectAllQuestions(force) {
+  const boxes = [...document.querySelectorAll('.qsel')];
+  const on = typeof force === 'boolean' ? force : !boxes.every(b => b.checked);
+  boxes.forEach(b => { b.checked = on; });
+}
+
+async function assignSelected() {
+  const ids = selectedQuestionIds();
+  if (!ids.length) return toast('先勾选题目');
+  const job = resolveJob('qAssignJob');
+  if (!job) return toast('请填写目标岗位（如 通用 / 运输）');
+  const r = await post('/api/questions/setjob', { ids, job });
+  if (r.ok) {
+    toast('已把 ' + r.changed + ' 道题分配到「' + job + '」');
+    await fillJobSelects();
+    loadQuestions();
+  } else toast(r.error || '失败');
+}
+
+async function loadExams() {
+  try {
+    const d = await get('/api/exams/all');
+    let qd = { byJob: {}, total: 0 };
+    try { qd = await get('/api/questions/admin'); } catch (e) {}
+    window.__qByJob = qd.byJob || {};
+    const hint = document.getElementById('exJobHint');
+    if (hint) {
+      let opts = { jobs: [] };
+      try { opts = await get('/api/options'); } catch (e) {}
+      const jobsCfg = opts.jobs || [];
+      const byJob = qd.byJob || {};
+      const parts = jobsCfg.map(j => j + ' ' + (byJob[j] || 0) + ' 道');
+      if (byJob['未分配岗位']) parts.push('未分配岗位 ' + byJob['未分配岗位'] + ' 道');
+      const extra = Object.keys(byJob).filter(j => j !== '未分配岗位' && jobsCfg.indexOf(j) === -1);
+      hint.innerHTML = '<b>题库现状（按基础配置的岗位）：</b>' + (parts.join(' ｜ ') || '还没有题目') +
+        (extra.length ? '<br><span style="color:#E5484D">另有 ' + extra.map(j => j + ' ' + byJob[j] + ' 道').join('、') +
+          ' 的岗位不在「基础配置」里，建议到题库管理改成已登记的岗位</span>' : '') +
+        '<br>题目从所选岗位题库随机抽取；不选岗位＝全部题库。员工端「考试与练习」会立即出现。';
+    }
+    const tb = document.getElementById('exBody');
+    if (tb) tb.innerHTML = (d.items || []).map(e => `
+      <tr>
+        <td class="b">${e.title}${e.note ? '<div class="tiny muted" style="margin-top:4px">' + e.note + '</div>' : ''}</td>
+        <td class="muted">${e.job || '全部'}</td>
+        <td>${e.questions}</td>
+        <td>${e.minutes} 分钟</td>
+        <td>${e.pass}</td>
+        <td><button class="btn ghost" onclick="delExam('${e.id}')">删除</button></td>
+      </tr>`).join('') || '<tr><td colspan="6" class="empty">还没有考试，创建后员工端可见</td></tr>';
+  } catch (e) {}
+}
+
+async function saveExam() {
+  const title = (document.getElementById('exTitle').value || '').trim();
+  if (!title) return toast('请填考试名称');
+  const job = resolveJob('exJob');
+  const need = Number(document.getElementById('exCount').value) || 10;
+  const have = job ? ((window.__qByJob || {})[job] || 0)
+                   : Object.values(window.__qByJob || {}).reduce((a, b) => a + b, 0);
+  if (job && have === 0) return toast('「' + job + '」岗位还没有题目，请先到题库管理录入');
+  if (job && have < need && !confirm('「' + job + '」只有 ' + have + ' 道题，少于设定的 ' + need + ' 道，仍要创建吗？')) return;
+  const r = await post('/api/exams/save', { item: {
+    title, job,
+    questions: need,
+    minutes: document.getElementById('exMin').value,
+    pass: document.getElementById('exPass').value,
+    note: document.getElementById('exNote').value
+  }});
+  const msg = document.getElementById('exMsg');
+  if (r.ok) {
+    if (msg) { msg.style.color = '#12B76A'; msg.textContent = '已创建，员工端立即可见'; }
+    document.getElementById('exTitle').value = '';
+    loadExams();
+  } else if (msg) { msg.style.color = '#E5484D'; msg.textContent = r.error || '失败'; }
+}
+
+async function delExam(id) {
+  if (!confirm('删除这场考试？')) return;
+  try {
+    const r = await post('/api/exams/delete', { id });
+    if (r.ok) { toast('已删除'); loadExams(); }
+    else alert('删除失败：' + (r.error || '未知错误'));
+  } catch (e) {
+    alert('删除失败：' + e.message + '（如果刚重启过后端，请重新登录）');
+  }
+}
+
+function fmtSize(n) {
+  if (!n) return '—';
+  if (n < 1024 * 1024) return Math.round(n / 1024) + ' KB';
+  return (n / 1024 / 1024).toFixed(1) + ' MB';
+}
+
+async function loadMedia() {
+  try {
+    const o = await get('/api/options');
+    const csel = document.getElementById('mdCat');
+    if (csel) {
+      const curCat = csel.value;
+      csel.innerHTML = (o.mediaCats || []).map(c => '<option>' + c + '</option>').join('')
+        || '<option>默认分类</option>';
+      if (curCat) csel.value = curCat;
+    }
+    const sel = document.getElementById('mdJob');
+    if (sel) {
+      const cur = sel.value;
+      sel.innerHTML = '<option value="">全部岗位</option>' +
+        (o.jobs || []).map(j => '<option>' + j + '</option>').join('');
+      if (cur) sel.value = cur;
+    }
+    const d = await get('/api/materials');
+    const tb = document.getElementById('mdBody');
+    if (!tb) return;
+    tb.innerHTML = (d.items || []).map(x => {
+      const icon = x.type === 'video' ? '视频' : x.type === 'image' ? '图片' : '文件';
+      const jobs = (x.jobs && x.jobs.length) ? x.jobs.join('、') : '全部';
+      return `<tr>
+        <td><span class="tag ${x.type === 'video' ? 'y' : 'g'}">${icon}</span></td>
+        <td class="b">${x.title}${x.desc ? '<div class="tiny muted" style="margin-top:4px">' + x.desc + '</div>' : ''}</td>
+        <td>${x.cat || '—'}</td>
+        <td>${jobs}</td>
+        <td class="muted">${fmtSize(x.size)}</td>
+        <td class="muted">${fmtTime(x.at)}</td>
+        <td>
+          <button class="btn ghost" onclick="window.open('${x.url}','_blank')">查看</button>
+          <button class="btn ghost" onclick="delMedia('${x.id}')">删除</button>
+        </td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="7" class="empty">还没有上传任何视频或资料</td></tr>';
+  } catch (e) {}
+}
+
+async function uploadMedia() {
+  const fileEl = document.getElementById('mdFile');
+  const title = (document.getElementById('mdTitle').value || '').trim();
+  const cat = (document.getElementById('mdCat').value || '操作视频').trim();
+  const job = document.getElementById('mdJob').value;
+  const msg = document.getElementById('mdMsg');
+  if (!fileEl.files || !fileEl.files[0]) {
+    msg.style.color = '#E5484D'; msg.textContent = '请先选择文件'; return;
+  }
+  const f = fileEl.files[0];
+  if (f.size > 300 * 1024 * 1024) {
+    msg.style.color = '#E5484D'; msg.textContent = '文件超过 300MB'; return;
+  }
+  msg.style.color = '#93A1B0';
+  msg.textContent = '上传中… ' + fmtSize(f.size);
+  const prog = document.getElementById('mdProg');
+  const bar = document.getElementById('mdBar');
+  prog.style.display = 'block';
+  bar.style.width = '5%';
+
+  try {
+    const res = await fetch('/api/materials/upload?name=' + encodeURIComponent(f.name), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/octet-stream' },
+      body: f
+    });
+    bar.style.width = '90%';
+    const up = await res.json();
+    if (!up.ok) throw new Error(up.error || '上传失败');
+    const saved = await post('/api/materials/save', {
+      item: {
+        title: title || f.name,
+        cat, job,
+        url: up.url,
+        size: up.size,
+        type: up.type
+      }
+    });
+    bar.style.width = '100%';
+    if (!saved.ok) throw new Error(saved.error || '保存失败');
+    msg.style.color = '#12B76A';
+    msg.textContent = '上传成功';
+    document.getElementById('mdTitle').value = '';
+    fileEl.value = '';
+    setTimeout(() => { prog.style.display = 'none'; bar.style.width = '0'; }, 800);
+    loadMedia();
+  } catch (e) {
+    msg.style.color = '#E5484D';
+    msg.textContent = e.message || '上传失败';
+    prog.style.display = 'none';
+  }
+}
+
+async function delMedia(id) {
+  if (!confirm('删除这条资料？文件也会一并删除')) return;
+  const r = await post('/api/materials/delete', { id });
+  if (r.ok) { toast('已删除'); loadMedia(); } else toast(r.error || '失败');
+}
+
+async function loadIssues() {
+  try {
+    const i = await get('/api/issues/stats');
+    const k = document.getElementById('issueKpis');
+    if (k) k.innerHTML = kpi('工单总数', i.total, '条') + kpi('待处理', i.open, '条') +
+      kpi('已闭环', i.closed, '条') + kpi('闭环率', i.rate, '%');
+    const list = await get('/api/issues');
+    const tb = document.getElementById('issueBody');
+    if (tb) tb.innerHTML = (list.items || []).map(x => `
+      <tr><td class="muted">${x.id}</td>
+      <td class="b">${x.title}${x.urgent ? ' <span class="tag r">紧急</span>' : ''}${x.audio ? ' <a href="' + x.audio + '" target="_blank" style="font-size:12px">▶语音</a>' : ''}</td>
+      <td>${x.type || '—'}</td>
+      <td>${x.urgent ? '<span class="tag r">紧急</span>' : '一般'}</td>
+      <td><span class="tag ${x.status === '已闭环' ? 'g' : 'y'}">${x.status}</span></td>
+      <td class="muted">${fmtTime(x.createdAt)}</td>
+      <td>${x.status === '已闭环' ? '<span class="tiny muted">已处置</span>'
+        : `<button class="btn ghost" onclick="closeIssue('${x.id}')">处置</button>`}</td></tr>`).join('')
+      || '<tr><td colspan="7" class="empty">还没有工单：员工在小程序提交后这里会出现</td></tr>';
+  } catch (e) {}
+}
+
+async function closeIssue(id) {
+  const note = prompt('处置意见（留空也可）：', '已现场核实并处理');
+  if (note === null) return;
+  try {
+    const r = await post('/api/issue/handle', { id, action: 'close', note });
+    if (r.ok) { toast('已闭环'); loadIssues(); }
+    else alert('处置失败：' + (r.error || '未知错误'));
+  } catch (e) {
+    alert('处置失败：' + e.message + '（如果刚重启过后端，请重新登录）');
+  }
+}
+
+async function loadExamStats() {
+  try {
+    const e = await get('/api/exam/stats');
+    const k = document.getElementById('examKpis');
+    if (k) k.innerHTML = kpi('考试人次', e.total, '次') + kpi('参考人数', e.users, '人') +
+      kpi('平均分', e.avg, '分') + kpi('及格率', e.passRate, '%');
+    const tb = document.getElementById('examStatsBody');
+    if (tb) tb.innerHTML = (e.items || []).map(x => `
+      <tr><td class="b">${x.title}</td><td>${x.attempts}</td><td>${x.users}</td>
+      <td>${x.avg}</td><td>${x.max}</td><td>${x.min}</td>
+      <td><span class="tag ${x.passRate >= 60 ? 'g' : 'r'}">${x.passRate}%</span></td></tr>`).join('')
+      || '<tr><td colspan="7" class="empty">还没有人参加考试</td></tr>';
+  } catch (e) {}
+}
+
+async function loadQuestions() {
+  const job = document.getElementById('qJob').value;
+  const kw = document.getElementById('qKw').value.trim();
+  try {
+    const d = await get('/api/questions/admin?job=' + encodeURIComponent(job) + '&kw=' + encodeURIComponent(kw));
+    qList = d.items || [];
+    const dist = Object.entries(d.byJob || {}).map(([k, v]) => k + ' ' + v).join(' · ');
+    const qs2 = document.getElementById('qStat');
+    if (qs2) {
+      const parts = Object.entries(d.byJob || {}).map(([k, v]) => k + ' <b>' + v + '</b> 道').join('　｜　');
+      qs2.innerHTML = '题目总数 <b>' + (d.total || 0) + '</b> 道（启用 ' + (d.live || 0) + ' 道）'
+        + (parts ? '　｜　' + parts : '');
+    }
+    document.getElementById('qKpis').innerHTML =
+      kpi('题目总数', d.total, '道') + kpi('启用中', d.live, '道') +
+      kpi('停用', d.total - d.live, '道') + kpi('岗位分布', '', '', dist);
+    document.getElementById('qBody').innerHTML = qList.map(q => `
+      <tr>
+        <td><input type="checkbox" class="qsel" value="${q.id}"></td>
+        <td class="b" style="line-height:1.5">${q.q}</td>
+        <td>${q.job || '未分配'}</td>
+        <td>${'ABCD'[q.a]}</td>
+        <td><span class="tag ${q.on === false ? 'r' : 'g'}">${q.on === false ? '停用' : '启用'}</span></td>
+        <td>
+          <button class="btn ghost" onclick="editQ('${q.id}')">编辑</button>
+          <button class="btn ghost" onclick="toggleQ('${q.id}')">${q.on === false ? '启用' : '停用'}</button>
+          <button class="btn ghost" onclick="delQ('${q.id}')">删除</button>
+        </td>
+      </tr>`).join('') || '<tr><td colspan="6" class="empty">没有题目</td></tr>';
+  } catch (e) {
+    document.getElementById('qBody').innerHTML = '<tr><td colspan="6" class="empty">加载失败，检查是否已登录（刷新页面重新登录）</td></tr>';
+  }
+}
+
+function newQ() {
+  document.getElementById('qTitle').textContent = '新增题目';
+  ['fQ','fO0','fO1','fO2','fO3','fE','fCite','fId'].forEach(id => document.getElementById(id).value = '');
+  const fJob = document.getElementById('fJob');
+  fJob.value = '';
+  document.getElementById('fA').value = '0';
+  document.getElementById('fOn').checked = true;
+  document.getElementById('qEditor').style.display = 'block';
+  document.getElementById('qEditor').scrollIntoView({ behavior: 'smooth' });
+}
+
+function editQ(id) {
+  const q = qList.find(x => x.id === id);
+  if (!q) return;
+  document.getElementById('qTitle').textContent = '编辑题目';
+  document.getElementById('fId').value = q.id;
+  const fJobEl = document.getElementById('fJob');
+  const qJobVal = q.job || '';
+  if (qJobVal && ![...fJobEl.options].some(o => o.value === qJobVal)) {
+    const op = document.createElement('option');
+    op.value = qJobVal; op.textContent = qJobVal;
+    fJobEl.appendChild(op);
+  }
+  fJobEl.value = qJobVal;
+  document.getElementById('fQ').value = q.q;
+  for (let i = 0; i < 4; i++) document.getElementById('fO' + i).value = q.o[i] || '';
+  document.getElementById('fA').value = String(q.a);
+  document.getElementById('fE').value = q.e || '';
+  document.getElementById('fCite').value = q.c || '';
+  document.getElementById('fOn').checked = q.on !== false;
+  document.getElementById('qEditor').style.display = 'block';
+  document.getElementById('qEditor').scrollIntoView({ behavior: 'smooth' });
+}
+
+async function saveQ() {
+  const o = [0,1,2,3].map(i => document.getElementById('fO' + i).value.trim()).filter(Boolean);
+  const item = {
+    id: document.getElementById('fId').value.trim() || undefined,
+    job: resolveJob('fJob'),
+    q: document.getElementById('fQ').value.trim(),
+    o,
+    a: Number(document.getElementById('fA').value),
+    e: document.getElementById('fE').value.trim(),
+    c: document.getElementById('fCite').value.trim(),
+    on: document.getElementById('fOn').checked
+  };
+  if (o.length < 2) return toast('至少填两个选项');
+  if (item.a >= o.length) return toast('正确答案下标超出选项数量');
+  const r = await post('/api/questions/save', { item });
+  if (r.ok) { await fillJobSelects(); }
+  if (r.ok) {
+    toast('已保存，共 ' + r.total + ' 道');
+    document.getElementById('qEditor').style.display = 'none';
+    loadQuestions();
+  } else toast(r.error || '保存失败');
+}
+
+async function delQ(id) {
+  if (!confirm('删除这道题？')) return;
+  const r = await post('/api/questions/delete', { id });
+  if (r.ok) { toast('已删除'); loadQuestions(); } else toast(r.error || '删除失败');
+}
+
+async function toggleQ(id) {
+  const r = await post('/api/questions/toggle', { id });
+  if (r.ok) loadQuestions(); else toast(r.error || '操作失败');
+}
+
+async function importQ() {
+  const raw = document.getElementById('importBox').value.trim();
+  if (!raw) return toast('先粘贴内容');
+  const r = await post('/api/questions/import', { raw });
+  if (r.ok) {
+    toast('导入 ' + r.added + ' 道，失败 ' + r.failed);
+    document.getElementById('importBox').value = '';
+    loadQuestions();
+  } else toast(r.error || '导入失败');
+}
+
+let secSecret = '';
+async function openSec() {
+  const st = await get('/api/2fa/status');
+  secSecret = '';
+  document.getElementById('secCode').value = '';
+  document.getElementById('secErr').textContent = '';
+  document.getElementById('secSetup').style.display = 'none';
+  const box = document.getElementById('secStatus');
+  if (st.enabled) {
+    box.innerHTML = '<span class="tag g">已开启</span> 登录时需要输入手机动态码';
+    document.getElementById('secGen').style.display = 'none';
+    document.getElementById('secSave').textContent = '关闭双因素';
+  } else {
+    box.innerHTML = '<span class="tag y">未开启</span> 建议开启，否则等保三级"身份鉴别"项不满足';
+    document.getElementById('secGen').style.display = '';
+    document.getElementById('secSave').textContent = '启用';
+  }
+  document.getElementById('secMask').style.display = 'flex';
+}
+function closeSec() { document.getElementById('secMask').style.display = 'none'; }
+
+async function genSecret() {
+  const r = await post('/api/2fa/setup', {});
+  if (!r.ok) return;
+  secSecret = r.secret;
+  document.getElementById('secSecret').textContent = r.secret;
+  document.getElementById('secSetup').style.display = 'block';
+  document.getElementById('secErr').textContent = '密钥已生成，填好手机后再输入动态码点「启用」';
+}
+
+async function saveSec() {
+  const code = document.getElementById('secCode').value.trim();
+  const err = document.getElementById('secErr');
+  const enabled = document.getElementById('secSave').textContent === '关闭双因素';
+  if (!code) return err.textContent = '请输入动态码';
+  const r = enabled
+    ? await post('/api/2fa/disable', { code })
+    : await post('/api/2fa/enable', { secret: secSecret, code });
+  if (r.ok) {
+    alert(enabled ? '双因素已关闭' : '双因素已开启，下次登录需要动态码');
+    closeSec();
+  } else {
+    err.textContent = r.error || '操作失败';
+  }
+}
+
+async function verifyLog() {
+  const r = await get('/api/audit/verify');
+  const msg = document.getElementById('verifyMsg');
+  if (r.allOk) {
+    msg.style.color = '#12B76A';
+    msg.textContent = '校验通过：' + r.results.map(x => x.file.replace('.jsonl','') + ' ' + x.lines + ' 条').join('，');
+  } else {
+    const bad = (r.results || []).filter(x => !x.ok);
+    msg.style.color = '#E5484D';
+    msg.textContent = '发现异常：' + bad.map(x => x.file + ' 第 ' + x.brokenAt + ' 行 ' + x.reason).join('；');
+  }
+}
+
+function openPwd() {
+  document.getElementById('pwdOld').value = '';
+  document.getElementById('pwdNew').value = '';
+  document.getElementById('pwdNew2').value = '';
+  document.getElementById('pwdErr').textContent = '';
+  const m = document.getElementById('pwdMask');
+  m.style.display = 'flex';
+  setTimeout(() => document.getElementById('pwdOld').focus(), 50);
+}
+function closePwd() { document.getElementById('pwdMask').style.display = 'none'; }
+
+async function savePwd() {
+  const old = document.getElementById('pwdOld').value;
+  const a = document.getElementById('pwdNew').value;
+  const b = document.getElementById('pwdNew2').value;
+  const err = document.getElementById('pwdErr');
+  err.textContent = '';
+  if (!old) return err.textContent = '请输入原密码';
+  if (a.length < 8 || !/[A-Za-z]/.test(a) || !/[0-9]/.test(a)) return err.textContent = '新密码至少 8 位，且要同时包含字母和数字';
+  if (a !== b) return err.textContent = '两次输入的新密码不一致';
+  const r = await post('/api/password', { old, next: a });
+  if (r.ok) {
+    closePwd();
+    alert('密码已修改，请用新密码重新登录');
+    location.href = '/login';
+  } else {
+    err.textContent = r.error || '修改失败';
+  }
+}
+
+async function uploadKb() {
+  const name = document.getElementById('kbName').value.trim();
+  const content = document.getElementById('kbContent').value;
+  if (!name) return toast('先填文件名');
+  if (!content.trim()) return toast('内容为空');
+  const r = await post('/api/kb/upload', { name, content });
+  if (r.ok) {
+    toast(r.message || ('已提交，待审核'));
+    document.getElementById('kbName').value = '';
+    document.getElementById('kbContent').value = '';
+    loadAll();
+  } else toast(r.error || '上传失败');
+}
+
+async function delKb(name) {
+  if (!confirm('删除 ' + name + ' ？')) return;
+  const r = await post('/api/kb/delete', { name });
+  if (r.ok) { toast('已删除'); loadAll(); } else toast(r.error || '删除失败');
+}
+
+function fmtBytes(n) {
+  if (!n) return '';
+  return n > 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.round(n / 1024) + ' KB';
+}
+
+document.getElementById('kbFile').addEventListener('change', async e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const tip = document.getElementById('kbFileTip');
+  const ext = (f.name.split('.').pop() || '').toLowerCase();
+  const isText = ext === 'txt' || ext === 'md';
+
+  if (isText) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      document.getElementById('kbName').value = f.name;
+      document.getElementById('kbContent').value = reader.result;
+      if (tip) { tip.style.color = '#12B76A'; tip.textContent = '已读入「' + f.name + '」，点「文本入库」'; }
+    };
+    reader.readAsText(f, 'utf-8');
+    return;
+  }
+
+  // 非文本：上传到资料库
+  if (f.size > 300 * 1024 * 1024) {
+    if (tip) { tip.style.color = '#E5484D'; tip.textContent = '文件超过 300MB'; }
+    return;
+  }
+  if (tip) { tip.style.color = '#93A1B0'; tip.textContent = '上传中… ' + fmtBytes(f.size); }
+  try {
+    const res = await fetch('/api/materials/upload?name=' + encodeURIComponent(f.name), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/octet-stream' },
+      body: f
+    });
+    const up = await res.json();
+    if (!up.ok) throw new Error(up.error || '上传失败');
+    const saved = await post('/api/materials/save', {
+      item: {
+        title: f.name.replace(/\.[^.]+$/, ''),
+        cat: up.type === 'video' ? '操作视频' : '规程制度',
+        url: up.url,
+        size: up.size,
+        type: up.type,
+        desc: '从知识库页上传'
+      }
+    });
+    if (!saved.ok) throw new Error(saved.error || '保存失败');
+    if (tip) {
+      tip.style.color = '#12B76A';
+      tip.innerHTML = '已上传到视频资料库，员工小程序可见 · ' +
+        '<a href="javascript:gotoView(\'media\')" style="color:#FF6A2B">去管理/删除</a>';
+    }
+    e.target.value = '';
+  } catch (err) {
+    if (tip) { tip.style.color = '#E5484D'; tip.textContent = err.message || '上传失败'; }
+  }
+});
+
+loadAll();
+</script>
+</body>
+</html>

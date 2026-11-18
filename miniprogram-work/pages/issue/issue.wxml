@@ -1,0 +1,80 @@
+<view class="page">
+  <view class="wrap">
+    <view class="label">问题类型</view>
+    <view class="row types">
+      <text class="chip {{type === index ? 'chip-on' : ''}}" wx:for="{{types}}" wx:key="*this" data-i="{{index}}" bindtap="pickType">{{item}}</text>
+    </view>
+
+    <view class="card desc">
+      <textarea class="ta" placeholder="说说你在哪个位置、看到什么情况，越具体越好…" placeholder-class="ph" maxlength="300" bindinput="onDesc" value="{{desc}}" />
+      <view class="between">
+        <text class="tiny muted">越具体，安全科越好处理</text>
+        <text class="tiny muted">{{desc.length}}/300</text>
+      </view>
+    </view>
+
+    <view class="label">现场照片（选填，最多 3 张）</view>
+    <view class="row photos">
+      <view class="photo ph-add" bindtap="choosePhoto">＋</view>
+      <block wx:for="{{photos}}" wx:key="*this">
+        <view class="photo-wrap">
+          <image class="photo-img" src="{{item}}" mode="aspectFill" data-i="{{index}}" bindtap="previewPhoto" />
+          <view class="photo-del" data-i="{{index}}" catchtap="removePhoto">×</view>
+        </view>
+      </block>
+    </view>
+
+    <view class="label">语音描述（选填，长按说话）</view>
+    <view class="row voice-row">
+      <view class="voice-modes">
+        <text class="vm {{voiceMode === 'audio' ? 'vm-on' : ''}}" data-mode="audio" bindtap="pickVoiceMode">语音</text>
+        <text class="vm {{voiceMode === 'text' ? 'vm-on' : ''}}" data-mode="text" bindtap="pickVoiceMode">转文字</text>
+      </view>
+      <view class="voice-btn {{recording ? 'voice-rec' : ''}}" bindlongpress="startVoice" bindtouchend="stopVoice">
+        {{recording ? '松开结束' : '🎤 长按说话'}}
+      </view>
+    </view>
+    <view class="tiny muted" style="margin: 8rpx 0 4rpx">{{voiceTip}}</view>
+    <view wx:if="{{audio}}" class="audio-chip">
+      <text class="audio-play" bindtap="playAudio">{{audioPlaying ? '❚❚ 暂停' : '▶ 播放 ' + audioSec + '″'}}</text>
+      <text class="audio-del" bindtap="removeAudio">×</text>
+    </view>
+
+    <view class="card loc">
+      <view class="pin">◎</view>
+      <view class="grow">
+        <input class="loc-ipt" placeholder="位置（可手填，也可点右侧定位）"
+               value="{{loc}}" bindinput="onLoc" />
+      </view>
+      <text class="tiny accent bold" bindtap="getLocation">定位</text>
+    </view>
+
+    <view class="label">紧急程度</view>
+    <view class="row">
+      <view class="seg {{urgent === 0 ? 'seg-on' : ''}}" data-i="0" bindtap="pickUrgent">一般</view>
+      <view class="seg {{urgent === 1 ? 'seg-on' : ''}}" data-i="1" bindtap="pickUrgent">紧急</view>
+    </view>
+    <view class="tiny muted" style="margin-top: 14rpx">标为「紧急」的会在后台置顶提示</view>
+
+    <view class="btn-primary" style="margin-top: 40rpx" bindtap="submit">{{submitting ? '提交中…' : '提交给安全科'}}</view>
+    <view class="tiny muted" style="text-align: center; margin-top: 14rpx">提交后安全科在管理后台能看到并处置</view>
+
+    <block wx:if="{{items.length}}">
+      <view class="label" style="margin-top: 40rpx">我的上报</view>
+      <view class="card rec" wx:for="{{items}}" wx:key="id" data-i="{{index}}" bindtap="openDetail">
+        <view class="row between">
+          <text class="rec-id">{{item.id}}</text>
+          <text class="rec-st st-{{item.stCls}}">{{item.status}}</text>
+        </view>
+        <view class="rec-title">{{item.title}}</view>
+        <view class="tiny muted" style="margin-top:8rpx">{{item.type}} · {{item.createdAt}}</view>
+        <view wx:if="{{item.audio}}" class="rec-audio" catchtap="playItemAudio" data-src="{{item.audio}}">
+          ▶ 回放语音 {{item.audioSec}}″
+        </view>
+        <view wx:if="{{item.handleNote}}" class="rec-note">处置：{{item.handleNote}}</view>
+        <view wx:else class="tiny muted" style="margin-top:8rpx">等待安全科处理，点击查看详情</view>
+      </view>
+    </block>
+  </view>
+  <view class="bottom-space"></view>
+</view>

@@ -1,0 +1,7 @@
+<view class="tabbar">
+  <view class="tab" wx:for="{{items}}" wx:key="name" data-i="{{index}}" bindtap="go">
+    <image class="tab-ico" src="/images/{{item.icon}}{{active === index ? '-on' : ''}}.png" />
+    <text class="tab-lb {{active === index ? 'on' : ''}}">{{item.name}}</text>
+  </view>
+  <view class="tabbar-safe"></view>
+</view>

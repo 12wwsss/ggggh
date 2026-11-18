@@ -1,0 +1,88 @@
+<view class="page">
+  <view class="wrap">
+
+    <view class="card blk">
+      <view class="row between">
+        <text class="small bold">登录状态</text>
+        <text class="tiny {{loginState === 'wx' ? 'ok' : 'muted'}}">{{loginState === 'wx' ? '已微信登录' : '本机模式'}}</text>
+      </view>
+      <view class="tiny muted" style="margin-top:10rpx;line-height:36rpx">
+        微信登录后，换手机也能保留学习记录；本机模式下记录只存在这台手机。
+      </view>
+      <view wx:if="{{loginState === 'wx'}}" class="tiny accent bold" style="margin-top:14rpx" bindtap="logoutWx">退出登录 / 切换账号</view>
+    </view>
+
+    <view class="card blk">
+      <view class="tiny muted bold">本机标识</view>
+      <view class="between" style="margin-top:10rpx">
+        <text class="dev">{{deviceId}}</text>
+        <text class="link" bindtap="copyDevice">复制</text>
+      </view>
+      <view class="tiny muted" style="margin-top:12rpx;line-height:36rpx">
+        平台不收集姓名和手机号，只用这串标识区分不同手机的学习记录。
+      </view>
+    </view>
+
+    <view class="card blk">
+      <view class="row between">
+        <view>
+          <view class="small bold">联系安全科</view>
+          <view class="tiny muted" style="margin-top:6rpx">{{contact || '未配置电话'}}</view>
+        </view>
+        <text class="link" bindtap="callContact">拨打</text>
+      </view>
+      <view class="hr"></view>
+      <view class="row between" bindtap="goIssue">
+        <view>
+          <view class="small bold">上报问题</view>
+          <view class="tiny muted" style="margin-top:6rpx">发现隐患或对内容有疑问</view>
+        </view>
+        <text class="arrow">›</text>
+      </view>
+    </view>
+
+    <view class="card blk">
+      <view class="between">
+        <text class="tiny muted bold">大家常问</text>
+        <text class="tiny muted">来自真实问答记录</text>
+      </view>
+      <view wx:for="{{faq}}" wx:key="q">
+        <view class="between faq-q" data-i="{{index}}" bindtap="toggle">
+          <view class="grow">
+            <text class="small">{{item.q}}</text>
+            <text wx:if="{{item.count > 1}}" class="cnt">{{item.count}} 人问过</text>
+          </view>
+          <text class="arrow">{{openIdx === index ? '−' : '+'}}</text>
+        </view>
+        <view wx:if="{{openIdx === index}}" class="faq-a">
+          {{item.a || '这个问题还没有回答，去问答页问一次就会生成。'}}
+          <view wx:if="{{item.grounded === false}}" class="faq-tag">通用知识 · 非本矿规程</view>
+        </view>
+      </view>
+      <view wx:if="{{!faq.length}}" class="faq-empty">
+        还没有人提问。去问答页问一句，这里会自动出现大家常问的问题。
+      </view>
+      <view class="ask-btn" bindtap="goAsk">去问一句 ›</view>
+    </view>
+
+    <view class="card blk">
+      <view class="row between">
+        <text class="small bold">版本</text>
+        <text class="tiny muted">v{{version}}</text>
+      </view>
+      <view class="hr"></view>
+      <view class="row between">
+        <text class="small bold">隐私说明</text>
+        <text class="tiny muted">不收集个人信息</text>
+      </view>
+      <view class="tiny muted" style="margin-top:10rpx;line-height:36rpx">
+        本小程序不获取位置、通讯录、相册和微信昵称头像，仅在本机保存学习数据。
+      </view>
+    </view>
+
+    <view class="btn-danger" bindtap="clearLocal">清除本机数据</view>
+    <view class="tiny muted" style="text-align:center;margin-top:16rpx">
+      清除后学习记录与成绩将重新开始
+    </view>
+  </view>
+</view>
