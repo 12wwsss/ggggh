@@ -3,6 +3,7 @@ const auth = require('./auth.js')
 
 function request(path, data, method = 'POST') {
   return new Promise((resolve, reject) => {
+    const tk = auth.token ? auth.token() : ''
     wx.request({
       url: baseUrl + path,
       method: method,
@@ -11,7 +12,8 @@ function request(path, data, method = 'POST') {
       header: {
         'content-type': 'application/json',
         'X-Device-Id': auth.deviceId ? auth.deviceId() : '',
-        'X-Worker-Token': auth.token ? auth.token() : ''
+        'X-Worker-Token': tk,
+        Authorization: tk ? 'Bearer ' + tk : ''
       },
       success(res) {
         const d = res.data || {}
@@ -182,6 +184,16 @@ function wxLogin(code) {
   return request('/api/wx/login', { code })
 }
 
+/** 工号登录 */
+function login(username, password) {
+  return request('/api/login', { username, password })
+}
+
+/** 当前登录人 */
+function me() {
+  return request('/api/me', {}, 'GET')
+}
+
 function options() {
   return request('/api/options', {}, 'GET')
 }
@@ -196,7 +208,7 @@ function saveProfile(payload) {
 }
 
 module.exports = {
-  wxLogin, media, absUrl, options, questionGroups, practiceGroups, jobQuestions, employeeSummary, learnRead, faq, examList, examStart, examSubmit,
+  wxLogin, login, me, media, absUrl, options, questionGroups, practiceGroups, jobQuestions, employeeSummary, learnRead, faq, examList, examStart, examSubmit,
   culture, profile, saveProfile,
   chat, submitQuiz, health,
   content, article, risks, training,

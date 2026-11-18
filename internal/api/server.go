@@ -90,6 +90,8 @@ func New(cfg *config.Config, st *store.Store, svc *service.Service, mgr *auth.Ma
 	compat := s.Engine.Group("/api", s.cidrMiddleware)
 	compat.GET("/health", s.compatHealth)
 	compat.POST("/chat", s.compatChat)
+	compat.POST("/login", s.compatLogin)
+	compat.GET("/me", s.compatMe)
 	compat.GET("/options", s.compatOptions)
 	compat.GET("/culture", s.compatCulture)
 	compat.GET("/content", s.compatContentList)

@@ -7,14 +7,15 @@
 
   <view class="panel">
     <view class="benefit">
-      <view class="b-item"><text class="dot"></text>登录后学习记录跟着微信走，换手机不丢</view>
+      <view class="b-item"><text class="dot"></text>用工号登录，学习、考试、隐患记录跟人走</view>
       <view class="b-item"><text class="dot"></text>不收集手机号、位置、通讯录</view>
       <view class="b-item"><text class="dot"></text>一次登录，以后打开自动进入</view>
     </view>
 
-    <button class="wx-login" loading="{{loading}}" bindtap="login">
-      微信一键登录
-    </button>
+    <input class="inp" placeholder="工号" value="{{username}}" bindinput="onUser" />
+    <input class="inp" placeholder="口令" password="{{true}}" value="{{password}}" bindinput="onPwd" />
+
+    <button class="wx-login" loading="{{loading}}" bindtap="login">登录</button>
 
     <view wx:if="{{err}}" class="err">{{err}}</view>
     <view wx:if="{{tip}}" class="tip">{{tip}}</view>
@@ -22,5 +23,5 @@
     <view class="local" bindtap="useLocal">先以本机模式进入 ›</view>
   </view>
 
-  <view class="foot">登录代表同意仅将微信标识用于区分学习记录</view>
+  <view class="foot">账号由矿上管理员分配，忘记口令请联系安全科</view>
 </view>
