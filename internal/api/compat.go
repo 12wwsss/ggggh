@@ -21,6 +21,83 @@ func (s *Server) compatHealth(c *gin.Context) {
 	})
 }
 
+// compatOptions 岗位/区队/资料分类选项。
+func (s *Server) compatOptions(c *gin.Context) {
+	jobs, err := s.Store.DistinctPosts(c.Request.Context())
+	if err != nil {
+		jobs = nil
+	}
+	jobs = append([]string{"通用"}, jobs...)
+	teams, err := s.Store.ListDeptNames(c.Request.Context())
+	if err != nil {
+		teams = []string{}
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"ok":        true,
+		"jobs":      jobs,
+		"teams":     teams,
+		"mediaCats": []string{"操作视频", "设备原理", "规程制度", "事故案例"},
+		"contact":   "",
+		"version":   "1.0",
+	})
+}
+
+// compatCulture 安全文化/企业文化的展示条目。
+func (s *Server) compatCulture(c *gin.Context) {
+	items, err := s.Store.ListContentItems(c.Request.Context(), "culture", "")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "message": "内容加载失败"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true, "items": items})
+}
+
+// compatContentList 图文内容列表（安全文化页也走这里）。
+func (s *Server) compatContentList(c *gin.Context) {
+	items, err := s.Store.ListContentItems(c.Request.Context(), "article", c.Query("cat"))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "message": "内容加载失败"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true, "items": items})
+}
+
+// compatContentDetail 图文详情。
+func (s *Server) compatContentDetail(c *gin.Context) {
+	item, err := s.Store.GetContentItem(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"ok": false, "message": "内容不存在"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true, "item": item})
+}
+
+// compatNotices 制度宣贯列表。
+func (s *Server) compatNotices(c *gin.Context) {
+	items, err := s.Store.ListContentItems(c.Request.Context(), "notice", "")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "message": "宣贯加载失败"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true, "items": items})
+}
+
+// compatMaterials 视频/资料列表；当前没有资料返回空列表，页面不报错。
+func (s *Server) compatMaterials(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"ok": true, "items": []any{}})
+}
+
+// compatEmployeeSummary 首页个人统计。
+func (s *Server) compatEmployeeSummary(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"ok":        true,
+		"hours":     0,
+		"readCount": 0,
+		"quiz":      gin.H{"attempts": 0},
+		"issue":     gin.H{"total": 0},
+	})
+}
+
 type compatChatReq struct {
 	Question string `json:"question"`
 	Image    string `json:"image"`
