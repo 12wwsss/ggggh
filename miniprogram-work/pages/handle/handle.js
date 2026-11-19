@@ -1,4 +1,5 @@
 const api = require('../../utils/api.js')
+const auth = require('../../utils/auth.js')
 
 /** 后端存的是 UTC 的 ISO 串，显示成本地时间 */
 function fmtTime(iso) {
@@ -43,13 +44,23 @@ Page({
     api.issues(status).then(res => {
       const cls = { '待分派': 'pending', '处置中': 'doing', '已闭环': 'closed' }
       const act = { reported: '受理', accepted: '提交整改', rectified: '验收通过', verified: '闭环', closed: '已完成' }
-      let items = (res.items || []).map(it => ({
-        ...it,
-        photos: (it.photos || []).map(p => api.absUrl(p)),
-        stCls: cls[it.status] || 'pending',
-        actText: act[it.raw_status] || '提交',
-        canAct: it.raw_status !== 'closed'
-      }))
+      const me = auth.user() || {}
+      const isMgr = ['admin', 'safety', 'dept_leader'].indexOf(me.role) >= 0
+      let items = (res.items || []).map(it => {
+        let canAct = false
+        if (it.raw_status === 'reported') canAct = isMgr
+        else if (it.raw_status === 'accepted') canAct = String(it.assignee_id) === String(me.id) || me.role === 'admin'
+        else if (it.raw_status === 'rectified') canAct = isMgr
+        else if (it.raw_status === 'verified') canAct = isMgr
+        return {
+          ...it,
+          photos: (it.photos || []).map(p => api.absUrl(p)),
+          stCls: cls[it.status] || 'pending',
+          actText: act[it.raw_status] || '提交',
+          canAct,
+          waitText: it.raw_status === 'accepted' && !canAct ? '等待责任人整改' : ''
+        }
+      })
       if (this.data.tab === 1) items = items.filter(i => i.stCls === 'closed')
       this.setData({ items, loading: false })
       done && done()
@@ -102,6 +113,9 @@ Page({
   onNote(e) {
     this.setData({ note: e.detail.value })
   },
+
+  /** 阻止点击输入区冒泡到卡片，避免一点输入框就收起 */
+  noop() {},
 
   submit(e) {
     const id = e.currentTarget.dataset.id
