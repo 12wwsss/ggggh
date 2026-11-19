@@ -2,11 +2,11 @@ const app = getApp()
 const api = require('../../utils/api.js')
 const auth = require('../../utils/auth.js')
 
-function buildMenus(best, wrongCount, quizCount, s, contact) {
+function buildMenus(best, wrongCount, quizCount, s, contact, manager) {
   const sum = s || {}
   const hours = sum.hours || 0
   const pending = (sum.issue && sum.issue.pending) || 0
-  return [
+  const list = [
     { t: '考试与练习', ch: '考', sub: best > 0 ? `最好 ${best} 分 · 已考 ${quizCount} 次` : '在线考试 · 交卷锁定', c: '#E5484D', bg: '#FDECEC', path: '/pages/exam/exam' },
     { t: '错题集', ch: '错', sub: wrongCount ? `${wrongCount} 道待巩固 · 答对自动移出` : '答错自动收录 · 按岗位筛选', c: '#A97900', bg: '#FFF3C4', path: '/pages/wrong/wrong' },
     { t: '学习档案', ch: '学', sub: `学时 ${hours} / 72`, c: '#2E6BE6', bg: '#EAF0FD', path: '/pages/study/study' },
@@ -14,6 +14,10 @@ function buildMenus(best, wrongCount, quizCount, s, contact) {
     { t: '安全科电话', ch: '电', sub: contact || '后台「基础配置」里填写', c: '#A97900', bg: '#FFF3C4', contact: true },
     { t: '帮助与设置', ch: '设', sub: '常见问题 · 清除数据', c: '#7C8B9B', bg: '#EEF1F5', path: '/pages/settings/settings' }
   ]
+  if (manager) {
+    list.unshift({ t: '问题处理', ch: '处', sub: '受理 · 整改 · 验收 · 闭环', c: '#12B76A', bg: '#E8F7EF', path: '/pages/handle/handle' })
+  }
+  return list
 }
 
 Page({
@@ -24,7 +28,7 @@ Page({
       { v: '0', lb: '答题次数' },
       { v: '0', lb: '上报问题' }
     ],
-    menus: buildMenus(0, 0, 0),
+    menus: buildMenus(0, 0, 0, null, '', false),
     score: null,
     teamStat: null,
     passRate: 0,
@@ -49,6 +53,7 @@ Page({
     const base = logged ? ((u && (u.name || u.label)) || '已登录') : '本机账号'
     const name = this.data.customName || base
     const canHandle = logged && !!u && ['admin', 'safety', 'dept_leader'].indexOf(u.role) >= 0
+    this.isManager = canHandle
     this.setData({
       bound: logged,
       canHandle,
@@ -109,7 +114,7 @@ Page({
     const wrong = wx.getStorageSync('wrongBook') || []
     const quizCount = wx.getStorageSync('quizCount') || 0
     this._menu = { best, wrong: wrong.length, quiz: quizCount, s: null }
-    this.setData({ menus: buildMenus(best, wrong.length, quizCount, null, this.data.contact) })
+    this.setData({ menus: buildMenus(best, wrong.length, quizCount, null, this.data.contact, this.isManager) })
   },
 
   toHandle() {
@@ -175,7 +180,7 @@ Page({
       const contact = o.contact || ''
       this.setData({ contact })
       const m = this._menu || { best: 0, wrong: 0, quiz: 0, s: null }
-      this.setData({ menus: buildMenus(m.best, m.wrong, m.quiz, m.s, contact) })
+      this.setData({ menus: buildMenus(m.best, m.wrong, m.quiz, m.s, contact, this.isManager) })
     }).catch(() => {})
   },
 
@@ -198,7 +203,7 @@ Page({
           { v: String((s.quiz && s.quiz.attempts) || 0), lb: '答题次数' },
           { v: String((s.issue && s.issue.total) || 0), lb: '上报问题' }
         ],
-        menus: buildMenus(best, wrong, quiz, s, this.data.contact)
+        menus: buildMenus(best, wrong, quiz, s, this.data.contact, this.isManager)
       })
     }).catch(() => {})
   },
