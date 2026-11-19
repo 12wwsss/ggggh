@@ -59,21 +59,30 @@
     <view class="btn-primary" style="margin-top: 40rpx" bindtap="submit">{{submitting ? '提交中…' : '提交给安全科'}}</view>
     <view class="tiny muted" style="text-align: center; margin-top: 14rpx">提交后安全科在管理后台能看到并处置</view>
 
-    <block wx:if="{{items.length}}">
-      <view class="label" style="margin-top: 40rpx">我的上报</view>
+    <block wx:if="{{allItems.length}}">
+      <view class="label" style="margin-top: 40rpx">问题记录</view>
+      <view class="row tabs">
+        <text wx:for="{{tabs}}" wx:key="*this" class="tab {{tab === index ? 'tab-on' : ''}}"
+              data-i="{{index}}" bindtap="pickTab">{{item}}</text>
+      </view>
       <view class="card rec" wx:for="{{items}}" wx:key="id" data-i="{{index}}" bindtap="openDetail">
         <view class="row between">
-          <text class="rec-id">{{item.id}}</text>
+          <text class="rec-id">{{item.code || item.id}}</text>
           <text class="rec-st st-{{item.stCls}}">{{item.status_text || item.status}}</text>
         </view>
-        <view class="rec-title">{{item.title}}</view>
+        <view class="rec-title">{{item.title}}
+          <text wx:if="{{item.isAssigned && !item.isMine}}" class="tag-assigned">指派给我</text>
+        </view>
         <view class="tiny muted" style="margin-top:8rpx">{{item.type}} · {{item.createdAt}}</view>
         <view wx:if="{{item.audio}}" class="rec-audio" catchtap="playItemAudio" data-src="{{item.audio}}">
           ▶ 回放语音 {{item.audioSec}}″
         </view>
         <view wx:if="{{item.handleNote}}" class="rec-note">处置：{{item.handleNote}}</view>
-        <view wx:else class="tiny muted" style="margin-top:8rpx">等待安全科处理，点击查看详情</view>
+        <view wx:if="{{item.canRectify}}" class="btn-mini" style="margin-top:14rpx"
+              data-id="{{item.id}}" catchtap="rectify">提交整改</view>
+        <view wx:elif="{{!item.handleNote}}" class="tiny muted" style="margin-top:8rpx">点击查看详情</view>
       </view>
+      <view wx:if="{{!items.length}}" class="tip">这个分类下暂时没有工单</view>
     </block>
   </view>
   <view class="bottom-space"></view>

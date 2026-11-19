@@ -104,6 +104,7 @@ func New(cfg *config.Config, st *store.Store, svc *service.Service, mgr *auth.Ma
 	compat.GET("/issues", s.compatListIssues)
 	compat.GET("/issues/stats", s.compatIssueStats)
 	compat.POST("/issue/handle", s.compatHandleIssue)
+	compat.POST("/issue/rectify", s.compatRectify)
 	compat.GET("/issue/flow", s.compatIssueFlow)
 	compat.GET("/users", s.compatUsers)
 	s.Engine.GET("/uploads/:name", s.serveUpload)

@@ -107,6 +107,10 @@ function issueFlow(id) {
   return request('/api/issue/flow?id=' + encodeURIComponent(id), {}, 'GET')
 }
 
+function issueRectify(payload) {
+  return request('/api/issue/rectify', payload)
+}
+
 function users() {
   return request('/api/users', {}, 'GET')
 }
@@ -225,6 +229,6 @@ module.exports = {
   culture, profile, saveProfile,
   chat, submitQuiz, health,
   content, article, risks, training,
-  createIssue, issues, handleIssue, issueFlow, users, issueStats, upload,
+  createIssue, issues, handleIssue, issueFlow, issueRectify, users, issueStats, upload,
   notices, noticeRead, quizStats, questions,
 }

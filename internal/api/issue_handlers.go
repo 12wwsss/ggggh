@@ -88,8 +88,16 @@ func (s *Server) listIssues(c *gin.Context) {
 			dept = &id
 		}
 	}
-	list, total, err := s.Store.ListIssues(c.Request.Context(), c.Query("status"), dept, reporter,
-		strings.TrimSpace(c.Query("keyword")), size, offset)
+	var list []model.Issue
+	var total int
+	var err error
+	if reporter != nil && dept == nil {
+		// 员工：我上报的 + 指派给我的
+		list, total, err = s.Store.ListIssuesByUser(c.Request.Context(), *reporter, size, offset)
+	} else {
+		list, total, err = s.Store.ListIssues(c.Request.Context(), c.Query("status"), dept, reporter,
+			strings.TrimSpace(c.Query("keyword")), size, offset)
+	}
 	if err != nil {
 		fail(c, http.StatusInternalServerError, "查询问题失败")
 		return

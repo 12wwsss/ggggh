@@ -73,6 +73,30 @@ func (s *Store) GetIssue(ctx context.Context, id int64) (*model.Issue, error) {
 	return i, wrapErr("查询问题", err)
 }
 
+// ListIssuesByUser 列出“我上报的 + 指派给我的”问题。
+func (s *Store) ListIssuesByUser(ctx context.Context, userID int64, limit, offset int) ([]model.Issue, int, error) {
+	rows, err := s.pool.Query(ctx, `select `+sqlIssueCols+`, count(*) over() as total`+sqlIssueFrom+`
+		where (i.reporter_id=$1 or i.assignee_id=$1)
+		order by i.id desc limit $2 offset $3`, userID, limit, offset)
+	if err != nil {
+		return nil, 0, wrapErr("查询我的问题", err)
+	}
+	defer rows.Close()
+	out := []model.Issue{}
+	total := 0
+	for rows.Next() {
+		var i model.Issue
+		if err := rows.Scan(&i.ID, &i.Code, &i.Title, &i.Description, &i.CateID, &i.CateName,
+			&i.DeptID, &i.DeptName, &i.ReporterID, &i.Reporter, &i.AssigneeID, &i.Assignee,
+			&i.Severity, &i.Status, &i.Deadline, &i.Result, &i.VerifyComment, &i.Overdue,
+			&i.CreatedAt, &i.UpdatedAt, &i.ClosedAt, &total); err != nil {
+			return nil, 0, err
+		}
+		out = append(out, i)
+	}
+	return out, total, rows.Err()
+}
+
 // ListIssues 查询问题列表。
 func (s *Store) ListIssues(ctx context.Context, status string, deptID, reporterID *int64, keyword string, limit, offset int) ([]model.Issue, int, error) {
 	rows, err := s.pool.Query(ctx, `select `+sqlIssueCols+`, count(*) over() as total`+sqlIssueFrom+`

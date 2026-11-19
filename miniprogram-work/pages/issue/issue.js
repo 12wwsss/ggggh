@@ -1,4 +1,5 @@
 const api = require('../../utils/api.js')
+const auth = require('../../utils/auth.js')
 
 /** 后端存的是 UTC 的 ISO 串，显示成本地时间 */
 function fmtTime(iso) {
@@ -17,7 +18,10 @@ Page({
     desc: '',
     loc: '',
     photos: [],
+    allItems: [],
     items: [],
+    tabs: ['全部', '我上报的', '指派给我'],
+    tab: 0,
     submitting: false,
     recording: false,
     audio: '',
@@ -207,12 +211,50 @@ Page({
 
   fetchMine() {
     api.issues().then(res => {
+      const me = auth.user() || {}
       const cls = { '待分派': 'pending', '处置中': 'doing', '已闭环': 'closed' }
-      const items = (res.items || []).slice(0, 5).map(it => ({
-        ...it, stCls: cls[it.status] || 'pending', createdAt: fmtTime(it.createdAt)
+      const all = (res.items || []).map(it => ({
+        ...it,
+        stCls: cls[it.status] || 'pending',
+        isMine: String(it.reporter_id) === String(me.id),
+        isAssigned: String(it.assignee_id) === String(me.id),
+        canRectify: String(it.assignee_id) === String(me.id) && it.raw_status === 'accepted',
+        createdAt: fmtTime(it.createdAt)
       }))
-      this.setData({ items })
+      this.setData({ allItems: all }, () => this.applyTab())
     }).catch(() => {})
+  },
+
+  applyTab() {
+    const tab = Number(this.data.tab) || 0
+    const all = this.data.allItems || []
+    let items = all
+    if (tab === 1) items = all.filter(x => x.isMine)
+    if (tab === 2) items = all.filter(x => x.isAssigned)
+    this.setData({ items: items.slice(0, 20) })
+  },
+
+  pickTab(e) {
+    this.setData({ tab: Number(e.currentTarget.dataset.i) }, () => this.applyTab())
+  },
+
+  /** 被指派人提交整改 */
+  rectify(e) {
+    const id = e.currentTarget.dataset.id
+    wx.showModal({
+      title: '提交整改',
+      editable: true,
+      placeholderText: '写清整改结果，例如：已补液加固，现场复测合格',
+      success: r => {
+        if (!r.confirm) return
+        const result = String(r.content || '').trim()
+        if (result.length < 2) return wx.showToast({ title: '写一句整改结果', icon: 'none' })
+        api.issueRectify({ id, result }).then(res => {
+          wx.showToast({ title: '状态：' + ((res && res.status) || '已更新'), icon: 'none' })
+          this.fetchMine()
+        }).catch(err => wx.showToast({ title: err.message, icon: 'none' }))
+      }
+    })
   },
 
   pickType(e) {

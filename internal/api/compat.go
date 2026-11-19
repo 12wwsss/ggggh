@@ -287,7 +287,14 @@ func (s *Server) compatListIssues(c *gin.Context) {
 	default:
 		reporter = &u.ID
 	}
-	list, _, err := s.Store.ListIssues(c.Request.Context(), "", dept, reporter, "", 100, 0)
+	var list []model.Issue
+	var err error
+	if reporter != nil {
+		// 员工：我上报的 + 指派给我的
+		list, _, err = s.Store.ListIssuesByUser(c.Request.Context(), u.ID, 100, 0)
+	} else {
+		list, _, err = s.Store.ListIssues(c.Request.Context(), "", dept, nil, "", 100, 0)
+	}
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "message": "查询失败"})
 		return
@@ -560,6 +567,41 @@ func (s *Server) compatUsers(c *gin.Context) {
 		})
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true, "items": items})
+}
+
+// compatRectify 被指派人提交整改（小程序“指派给我的”使用）。
+func (s *Server) compatRectify(c *gin.Context) {
+	u := s.compatCurrentUser(c)
+	if u == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"ok": false, "message": "请先登录"})
+		return
+	}
+	var req struct {
+		ID     int64  `json:"id"`
+		Result string `json:"result"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil || req.ID <= 0 || strings.TrimSpace(req.Result) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "message": "请填写整改结果"})
+		return
+	}
+	issue, err := s.Store.GetIssue(c.Request.Context(), req.ID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"ok": false, "message": "问题不存在"})
+		return
+	}
+	if issue.AssigneeID == nil || *issue.AssigneeID != u.ID {
+		c.JSON(http.StatusForbidden, gin.H{"ok": false, "message": "只有责任人可以提交整改"})
+		return
+	}
+	updated, err := s.Store.TransitionIssue(c.Request.Context(), store.TransitionRequest{
+		IssueID: req.ID, Action: "rectify", From: []string{model.IssueAccepted}, To: model.IssueRectified,
+		ActorID: u.ID, Result: strings.TrimSpace(req.Result), Comment: strings.TrimSpace(req.Result),
+	})
+	if err != nil {
+		c.JSON(http.StatusConflict, gin.H{"ok": false, "message": "当前状态不能提交整改"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true, "status": compatIssueStatus(updated.Status)})
 }
 
 // compatLogin 工号登录：返回小程序约定的 {ok, token, user}。
