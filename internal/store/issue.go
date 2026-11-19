@@ -187,6 +187,21 @@ func (s *Store) ListIssueFlows(ctx context.Context, issueID int64) ([]model.Issu
 	return out, rows.Err()
 }
 
+// LastFlowActor 返回某问题最近一次指定动作的操作人；没有记录返回 nil。
+// actions 可传多个（例如正常与管理员强制两种 action）。
+func (s *Store) LastFlowActor(ctx context.Context, issueID int64, actions ...string) (*int64, error) {
+	var actor *int64
+	err := s.pool.QueryRow(ctx, `select actor_id from issue_flow
+		where issue_id=$1 and action = any($2) order by id desc limit 1`, issueID, actions).Scan(&actor)
+	if isNoRows(err) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, wrapErr("查询流转记录", err)
+	}
+	return actor, nil
+}
+
 // AddIssueAttachment 记录附件。
 func (s *Store) AddIssueAttachment(ctx context.Context, a *model.IssueAttachment) (int64, error) {
 	var id int64

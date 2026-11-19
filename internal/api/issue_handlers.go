@@ -183,6 +183,16 @@ func (s *Server) transition(c *gin.Context, req store.TransitionRequest) {
 	ok(c, issue)
 }
 
+// isIssueManager 区队长或管理员才能受理/驳回/验收/闭环。
+func isIssueManager(role string) bool {
+	return role == model.RoleAdmin || role == model.RoleDeptLeader
+}
+
+// adminForceAllowed 管理员强制推进：必须 force=true 且填写原因。
+func adminForceAllowed(role string, force bool, reason string) bool {
+	return role == model.RoleAdmin && force && strings.TrimSpace(reason) != ""
+}
+
 func (s *Server) acceptIssue(c *gin.Context) {
 	id, okID := idParam(c)
 	if !okID {
@@ -191,16 +201,26 @@ func (s *Server) acceptIssue(c *gin.Context) {
 	if !s.authorizeIssue(c, id) {
 		return
 	}
+	cl := claims(c)
+	if !isIssueManager(cl.Role) {
+		fail(c, http.StatusForbidden, "没有受理权限")
+		return
+	}
 	var req struct {
 		AssigneeID *int64     `json:"assignee_id"`
 		Deadline   *time.Time `json:"deadline"`
 		Comment    string     `json:"comment"`
 	}
 	_ = c.ShouldBindJSON(&req)
-	cl := claims(c)
+	assignee := req.AssigneeID
+	if assignee == nil {
+		if issue, err := s.Store.GetIssue(c.Request.Context(), id); err == nil {
+			assignee = issue.ReporterID
+		}
+	}
 	s.transition(c, store.TransitionRequest{
 		IssueID: id, Action: "accept", From: []string{model.IssueReported}, To: model.IssueAccepted,
-		ActorID: cl.UserID, Comment: req.Comment, AssigneeID: req.AssigneeID,
+		ActorID: cl.UserID, Comment: req.Comment, AssigneeID: assignee,
 	})
 }
 
@@ -220,6 +240,10 @@ func (s *Server) rejectIssue(c *gin.Context) {
 		return
 	}
 	cl := claims(c)
+	if !isIssueManager(cl.Role) {
+		fail(c, http.StatusForbidden, "没有驳回权限")
+		return
+	}
 	s.transition(c, store.TransitionRequest{
 		IssueID: id, Action: "reject", From: []string{model.IssueReported}, To: model.IssueRejected,
 		ActorID: cl.UserID, Comment: req.Comment,
@@ -237,15 +261,32 @@ func (s *Server) rectifyIssue(c *gin.Context) {
 	var req struct {
 		Result  string `json:"result" binding:"required"`
 		Comment string `json:"comment"`
+		Force   bool   `json:"force"`
+		Reason  string `json:"reason"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		fail(c, http.StatusBadRequest, "整改结果必填")
 		return
 	}
 	cl := claims(c)
+	action := "rectify"
+	comment := req.Comment
+	issue, err := s.Store.GetIssue(c.Request.Context(), id)
+	if err != nil {
+		fail(c, http.StatusNotFound, "问题不存在")
+		return
+	}
+	if issue.AssigneeID == nil || *issue.AssigneeID != cl.UserID {
+		if !adminForceAllowed(cl.Role, req.Force, req.Reason) {
+			fail(c, http.StatusForbidden, "整改需由指派人提交（管理员可强制代提交并说明原因）")
+			return
+		}
+		action = "admin_force_rectify"
+		comment = "【管理员代整改】" + strings.TrimSpace(req.Reason) + " " + comment
+	}
 	s.transition(c, store.TransitionRequest{
-		IssueID: id, Action: "rectify", From: []string{model.IssueAccepted}, To: model.IssueRectified,
-		ActorID: cl.UserID, Comment: req.Comment, Result: req.Result,
+		IssueID: id, Action: action, From: []string{model.IssueAccepted}, To: model.IssueRectified,
+		ActorID: cl.UserID, Comment: comment, Result: req.Result,
 	})
 }
 
@@ -260,26 +301,45 @@ func (s *Server) verifyIssue(c *gin.Context) {
 	var req struct {
 		Pass    *bool  `json:"pass"`
 		Comment string `json:"comment" binding:"required"`
+		Force   bool   `json:"force"`
+		Reason  string `json:"reason"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		fail(c, http.StatusBadRequest, "验收意见必填")
+		return
+	}
+	cl := claims(c)
+	if !isIssueManager(cl.Role) {
+		fail(c, http.StatusForbidden, "没有验收权限")
 		return
 	}
 	pass := true
 	if req.Pass != nil {
 		pass = *req.Pass
 	}
-	cl := claims(c)
+	action := "verify"
+	comment := req.Comment
+	if !pass {
+		action = "verify_reject"
+	}
+	if last, err := s.Store.LastFlowActor(c.Request.Context(), id, "rectify", "admin_force_rectify"); err == nil && last != nil && *last == cl.UserID {
+		if !adminForceAllowed(cl.Role, req.Force, req.Reason) {
+			fail(c, http.StatusForbidden, "验收人不能是整改人（管理员可强制验收并说明原因）")
+			return
+		}
+		action = "admin_force_" + action
+		comment = "【管理员强制验收】" + strings.TrimSpace(req.Reason) + " " + comment
+	}
 	if !pass {
 		s.transition(c, store.TransitionRequest{
-			IssueID: id, Action: "verify_reject", From: []string{model.IssueRectified}, To: model.IssueAccepted,
-			ActorID: cl.UserID, Comment: req.Comment, VerifyComment: req.Comment,
+			IssueID: id, Action: action, From: []string{model.IssueRectified}, To: model.IssueAccepted,
+			ActorID: cl.UserID, Comment: comment, VerifyComment: req.Comment,
 		})
 		return
 	}
 	s.transition(c, store.TransitionRequest{
-		IssueID: id, Action: "verify", From: []string{model.IssueRectified}, To: model.IssueVerified,
-		ActorID: cl.UserID, Comment: req.Comment, VerifyComment: req.Comment,
+		IssueID: id, Action: action, From: []string{model.IssueRectified}, To: model.IssueVerified,
+		ActorID: cl.UserID, Comment: comment, VerifyComment: req.Comment,
 	})
 }
 
@@ -293,12 +353,28 @@ func (s *Server) closeIssue(c *gin.Context) {
 	}
 	var req struct {
 		Comment string `json:"comment"`
+		Force   bool   `json:"force"`
+		Reason  string `json:"reason"`
 	}
 	_ = c.ShouldBindJSON(&req)
 	cl := claims(c)
+	if !isIssueManager(cl.Role) {
+		fail(c, http.StatusForbidden, "没有闭环权限")
+		return
+	}
+	action := "close"
+	comment := req.Comment
+	if last, err := s.Store.LastFlowActor(c.Request.Context(), id, "verify", "admin_force_verify"); err == nil && (last == nil || *last != cl.UserID) {
+		if !adminForceAllowed(cl.Role, req.Force, req.Reason) {
+			fail(c, http.StatusForbidden, "只有验收人可以闭环（管理员可强制闭环并说明原因）")
+			return
+		}
+		action = "admin_force_close"
+		comment = "【管理员强制闭环】" + strings.TrimSpace(req.Reason) + " " + comment
+	}
 	s.transition(c, store.TransitionRequest{
-		IssueID: id, Action: "close", From: []string{model.IssueVerified}, To: model.IssueClosed,
-		ActorID: cl.UserID, Comment: req.Comment, Close: true,
+		IssueID: id, Action: action, From: []string{model.IssueVerified}, To: model.IssueClosed,
+		ActorID: cl.UserID, Comment: comment, Close: true,
 	})
 }
 

@@ -324,8 +324,9 @@ func (s *Server) compatHandleIssue(c *gin.Context) {
 		return
 	}
 	var req struct {
-		ID   int64  `json:"id"`
-		Note string `json:"note"`
+		ID     int64  `json:"id"`
+		Note   string `json:"note"`
+		Reason string `json:"reason"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil || req.ID <= 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "message": "参数不正确"})
@@ -341,20 +342,58 @@ func (s *Server) compatHandleIssue(c *gin.Context) {
 	switch issue.Status {
 	case model.IssueReported:
 		treq.Action, treq.From, treq.To = "accept", []string{model.IssueReported}, model.IssueAccepted
+		treq.AssigneeID = issue.ReporterID
 	case model.IssueAccepted:
-		treq.Action, treq.From, treq.To = "rectify", []string{model.IssueAccepted}, model.IssueRectified
+		if issue.AssigneeID != nil && *issue.AssigneeID == u.ID {
+			treq.Action, treq.From, treq.To = "rectify", []string{model.IssueAccepted}, model.IssueRectified
+			treq.Result = note
+			if treq.Result == "" {
+				treq.Result = "已整改"
+			}
+			break
+		}
+		if !adminForceAllowed(u.Role, true, note) {
+			c.JSON(http.StatusForbidden, gin.H{"ok": false, "message": "整改需由指派人提交"})
+			return
+		}
+		treq.Action, treq.From, treq.To = "admin_force_rectify", []string{model.IssueAccepted}, model.IssueRectified
 		treq.Result = note
 		if treq.Result == "" {
-			treq.Result = "已整改"
+			treq.Result = "管理员代整改"
 		}
+		treq.Comment = "【管理员代整改】" + note
 	case model.IssueRectified:
-		treq.Action, treq.From, treq.To = "verify", []string{model.IssueRectified}, model.IssueVerified
+		last, _ := s.Store.LastFlowActor(c.Request.Context(), req.ID, "rectify", "admin_force_rectify")
+		if last != nil && *last == u.ID {
+			if !adminForceAllowed(u.Role, true, note) {
+				c.JSON(http.StatusForbidden, gin.H{"ok": false, "message": "验收人不能是整改人"})
+				return
+			}
+			treq.Action = "admin_force_verify"
+			treq.Comment = "【管理员强制验收】" + note
+		} else {
+			treq.Action = "verify"
+			treq.Comment = note
+		}
+		treq.From, treq.To = []string{model.IssueRectified}, model.IssueVerified
 		treq.VerifyComment = note
 		if treq.VerifyComment == "" {
 			treq.VerifyComment = "验收通过"
 		}
 	case model.IssueVerified:
-		treq.Action, treq.From, treq.To = "close", []string{model.IssueVerified}, model.IssueClosed
+		last, _ := s.Store.LastFlowActor(c.Request.Context(), req.ID, "verify", "admin_force_verify")
+		if last == nil || *last != u.ID {
+			if !adminForceAllowed(u.Role, true, note) {
+				c.JSON(http.StatusForbidden, gin.H{"ok": false, "message": "只有验收人可以闭环"})
+				return
+			}
+			treq.Action = "admin_force_close"
+			treq.Comment = "【管理员强制闭环】" + note
+		} else {
+			treq.Action = "close"
+			treq.Comment = note
+		}
+		treq.From, treq.To = []string{model.IssueVerified}, model.IssueClosed
 		treq.Close = true
 	default:
 		c.JSON(http.StatusConflict, gin.H{"ok": false, "message": "当前状态不能处置"})
