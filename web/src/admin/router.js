@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router'
+﻿import { createRouter, createWebHistory } from 'vue-router'
 import { clearSession, getToken, getUser } from '../shared/http'
 
 const routes = [
@@ -15,7 +15,7 @@ const routes = [
       { path: 'learn', name: 'learn', component: () => import('./views/Learn.vue'), meta: { title: '学习与题库' } },
       { path: 'exams', name: 'exams', component: () => import('./views/Exams.vue'), meta: { title: '考试管理' } },
       { path: 'broadcasts', name: 'broadcasts', component: () => import('./views/Broadcasts.vue'), meta: { title: '宣贯管理' } },
-      { path: 'issues', name: 'issues', component: () => import('./views/Issues.vue'), meta: { title: '问题闭环' } },
+      { path: 'issues', name: 'issues', component: () => import('./views/Issues.vue'), meta: { title: '问题受理与闭环' } },
       { path: 'org', name: 'org', component: () => import('./views/Org.vue'), meta: { title: '组织与权限' } },
       { path: 'system', name: 'system', component: () => import('./views/System.vue'), meta: { title: '任务与审计' } },
     ],

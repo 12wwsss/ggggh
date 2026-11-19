@@ -25,19 +25,61 @@ const openCount = computed(() => {
 
 // 与后端状态机保持一致：只有还能往下走的单据才叫“处理”，
 // 已闭环 / 已驳回的只能看，按钮文案改成“查看”。
+// 与后端状态机保持一致：区队长、安全科、管理员可以受理/验收/闭环；
+// 整改只能由指派人提交，界面不给无关角色显示按钮。
+const me = getUser()
+const isManager = (role) => role === 'admin' || role === 'dept_leader' || role === 'safety'
+
 function canAct(row) {
-  const role = getUser()?.role
+  const role = me?.role
   switch (row.status) {
     case 'reported':
-      return role === 'admin' || role === 'dept_leader'
+      return isManager(role)
     case 'accepted':
-      return true
+      return role === 'admin' || (row.assignee_id && me?.id === row.assignee_id)
     case 'rectified':
-      return role === 'admin' || role === 'dept_leader'
+      return isManager(role)
     case 'verified':
-      return role === 'admin'
+      return isManager(role)
     default:
       return false
+  }
+}
+
+function canRectify() {
+  if (!current.value || current.value.status !== 'accepted') return false
+  return me?.role === 'admin' || me?.id === current.value.assignee_id
+}
+
+const acceptDialog = ref(false)
+const acceptForm = reactive({ assignee_id: null, comment: '' })
+const staff = ref([])
+
+async function startAccept() {
+  acceptForm.assignee_id = current.value?.reporter_id || null
+  acceptForm.comment = ''
+  acceptDialog.value = true
+  try {
+    const data = await api.get('/api/v1/users', { page_size: 200 })
+    staff.value = data.list || []
+  } catch {
+    staff.value = []
+  }
+}
+
+async function confirmAccept() {
+  try {
+    await api.post(`/api/v1/issues/${current.value.id}/accept`, {
+      assignee_id: acceptForm.assignee_id,
+      comment: acceptForm.comment,
+    })
+    ElMessage.success('已受理')
+    acceptDialog.value = false
+    await load()
+    current.value = await api.get(`/api/v1/issues/${current.value.id}`)
+    flow.value = await api.get(`/api/v1/issues/${current.value.id}/flow`)
+  } catch (e) {
+    ElMessage.error(e.message)
   }
 }
 
@@ -80,8 +122,7 @@ async function act(kind) {
   const id = current.value.id
   try {
     if (kind === 'accept') {
-      const { value } = await ElMessageBox.prompt('受理意见（可留空）', '受理')
-      await api.post(`/api/v1/issues/${id}/accept`, { comment: value || '' })
+      return startAccept()
     } else if (kind === 'reject') {
       const { value } = await ElMessageBox.prompt('驳回原因', '驳回', { inputValidator: (v) => Boolean(v) || '必填' })
       await api.post(`/api/v1/issues/${id}/reject`, { comment: value })
@@ -177,9 +218,9 @@ async function act(kind) {
         <div class="muted">验收意见：{{ current.verify_comment || '—' }}</div>
 
         <div style="margin: 16px 0; display: flex; gap: 8px; flex-wrap: wrap">
-          <el-button v-if="current.status === 'reported'" type="primary" size="small" @click="act('accept')">受理</el-button>
+          <el-button v-if="current.status === 'reported'" type="primary" size="small" @click="startAccept">受理</el-button>
           <el-button v-if="current.status === 'reported'" type="warning" size="small" @click="act('reject')">驳回</el-button>
-          <el-button v-if="current.status === 'accepted'" type="primary" size="small" @click="act('rectify')">提交整改</el-button>
+          <el-button v-if="current.status === 'accepted' && canRectify()" type="primary" size="small" @click="act('rectify')">提交整改</el-button>
           <el-button v-if="current.status === 'rectified'" type="success" size="small" @click="act('verify')">验收通过</el-button>
           <el-button v-if="current.status === 'rectified'" type="warning" size="small" @click="act('verify_reject')">验收不合格</el-button>
           <el-button v-if="current.status === 'verified'" size="small" @click="act('close')">闭环</el-button>
@@ -202,5 +243,22 @@ async function act(kind) {
         </div>
       </template>
     </el-drawer>
+
+    <el-dialog v-model="acceptDialog" title="受理并指派整改人" width="460px">
+      <el-form label-width="80px">
+        <el-form-item label="整改人">
+          <el-select v-model="acceptForm.assignee_id" filterable style="width: 100%" placeholder="选择责任人">
+            <el-option v-for="u in staff" :key="u.id" :label="`${u.name}（${u.username}）`" :value="u.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="受理意见">
+          <el-input v-model="acceptForm.comment" type="textarea" :rows="2" placeholder="可留空" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="acceptDialog = false">取消</el-button>
+        <el-button type="primary" @click="confirmAccept">确认受理</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>

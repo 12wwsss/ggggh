@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
@@ -27,7 +27,7 @@ const groups = [
   },
   {
     title: '隐患处置',
-    items: [{ path: '/issues', label: '问题闭环' }],
+    items: [{ path: '/issues', label: '问题受理与闭环' }],
   },
   {
     title: '系统',
