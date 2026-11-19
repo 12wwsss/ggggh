@@ -18,6 +18,11 @@ function request(path, data, method = 'POST') {
       success(res) {
         const d = res.data || {}
         if (res.statusCode >= 200 && res.statusCode < 300 && d.ok) return resolve(d)
+        // 登录失效：清掉本地令牌并回登录页（登录接口本身除外）
+        if (res.statusCode === 401 && path !== '/api/login') {
+          auth.clearLogin()
+          wx.reLaunch({ url: '/pages/login/login' })
+        }
         // 把后端的业务错误转成一句人话
         let msg = d.message || d.error || '服务异常'
         if (res.statusCode === 404) {
