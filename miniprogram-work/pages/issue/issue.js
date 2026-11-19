@@ -340,7 +340,7 @@ Page({
     if (!it) return
     wx.showModal({
       title: it.title,
-      content: '类型：' + (it.type || '—') + '\n状态：' + it.status +
+      content: '类型：' + (it.type || '—') + '\n状态：' + (it.status_text || it.status) +
         '\n上报：' + (it.createdAt || '') +
         (it.handleNote ? '\n处置：' + it.handleNote : '\n处置：等待安全科处理'),
       showCancel: false

@@ -1,10 +1,20 @@
 const api = require('../../utils/api.js')
 
+/** 后端存的是 UTC 的 ISO 串，显示成本地时间 */
+function fmtTime(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return String(iso).slice(0, 16).replace('T', ' ')
+  const p = n => (n < 10 ? '0' : '') + n
+  return (d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes())
+}
+
 Page({
   data: {
     tabs: ['待处置', '已闭环', '全部'],
     tab: 0,
     items: [],
+    flows: {},
     open: '',
     note: '',
     loading: true,
@@ -47,7 +57,17 @@ Page({
 
   toggle(e) {
     const id = e.currentTarget.dataset.id
-    this.setData({ open: this.data.open === id ? '' : id, note: '' })
+    const opening = this.data.open !== id
+    this.setData({ open: opening ? id : '', note: '' })
+    if (opening && !(this.data.flows || {})[id]) this.loadFlow(id)
+  },
+
+  loadFlow(id) {
+    api.issueFlow(id).then(res => {
+      const flows = Object.assign({}, this.data.flows)
+      flows[id] = (res.items || []).map(f => Object.assign({}, f, { atText: fmtTime(f.at) }))
+      this.setData({ flows })
+    }).catch(() => {})
   },
 
   onNote(e) {
@@ -60,7 +80,9 @@ Page({
     if (note.length < 4) return wx.showToast({ title: '写一句处置说明', icon: 'none' })
     api.handleIssue({ id, note, handler: '安全科' }).then(res => {
       wx.showToast({ title: '状态：' + ((res && res.status) || '已更新'), icon: 'none' })
-      this.setData({ open: '', note: '' })
+      const flows = Object.assign({}, this.data.flows)
+      delete flows[id]
+      this.setData({ open: '', note: '', flows })
       this.fetch()
     }).catch(err => {
       wx.showToast({ title: err.message, icon: 'none' })

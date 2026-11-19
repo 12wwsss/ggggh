@@ -64,7 +64,7 @@
       <view class="card rec" wx:for="{{items}}" wx:key="id" data-i="{{index}}" bindtap="openDetail">
         <view class="row between">
           <text class="rec-id">{{item.id}}</text>
-          <text class="rec-st st-{{item.stCls}}">{{item.status}}</text>
+          <text class="rec-st st-{{item.stCls}}">{{item.status_text || item.status}}</text>
         </view>
         <view class="rec-title">{{item.title}}</view>
         <view class="tiny muted" style="margin-top:8rpx">{{item.type}} · {{item.createdAt}}</view>

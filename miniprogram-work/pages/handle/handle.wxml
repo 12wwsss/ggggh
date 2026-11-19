@@ -20,14 +20,22 @@
             <text class="type">{{item.type}}</text>
             <text wx:if="{{item.urgent}}" class="urgent">紧急</text>
           </view>
-          <text class="st st-{{item.stCls}}">{{item.status}}</text>
+          <text class="st st-{{item.stCls}}">{{item.status_text || item.status}}</text>
         </view>
 
         <view class="title">{{item.title}}</view>
-        <view class="meta">{{item.id}} · {{item.loc}} · {{item.reporter}}</view>
+        <view class="meta">{{item.code || item.id}} · {{item.loc}} · {{item.reporter}}</view>
 
         <view wx:if="{{item.handleNote}}" class="done">
           处置：{{item.handleNote}}（{{item.handler}}）
+        </view>
+
+        <view wx:if="{{open === item.id && flows[item.id].length}}" class="done">
+          <view wx:for="{{flows[item.id]}}" wx:for-item="f" wx:key="id" style="margin-bottom:8rpx">
+            <text class="tiny bold">{{f.text}}</text>
+            <text class="tiny muted"> · {{f.actor || '—'}} · {{f.atText}}</text>
+            <view wx:if="{{f.comment}}" class="tiny muted">{{f.comment}}</view>
+          </view>
         </view>
 
         <view wx:if="{{open === item.id && item.canAct}}" class="form">

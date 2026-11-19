@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -84,6 +85,53 @@ func compatIssueStatus(st string) string {
 		return "已驳回"
 	default:
 		return "处置中"
+	}
+}
+
+// compatIssueStatusText 五态明细，给小程序展示；status 仍保留三态给标签页筛选。
+func compatIssueStatusText(st string) string {
+	switch st {
+	case model.IssueReported:
+		return "已上报"
+	case model.IssueAccepted:
+		return "已受理"
+	case model.IssueRectified:
+		return "已整改"
+	case model.IssueVerified:
+		return "已验收"
+	case model.IssueClosed:
+		return "已闭环"
+	case model.IssueRejected:
+		return "已驳回"
+	default:
+		return st
+	}
+}
+
+func compatFlowAction(a string) string {
+	switch a {
+	case "report":
+		return "上报"
+	case "accept":
+		return "受理"
+	case "reject":
+		return "驳回"
+	case "rectify":
+		return "提交整改"
+	case "verify":
+		return "验收通过"
+	case "verify_reject":
+		return "验收不合格"
+	case "close":
+		return "闭环"
+	case "admin_force_rectify":
+		return "管理员代整改"
+	case "admin_force_verify":
+		return "管理员强制验收"
+	case "admin_force_close":
+		return "管理员强制闭环"
+	default:
+		return a
 	}
 }
 
@@ -270,18 +318,19 @@ func (s *Server) compatListIssues(c *gin.Context) {
 			note = it.VerifyComment
 		}
 		items = append(items, gin.H{
-			"id":         it.ID,
-			"code":       it.Code,
-			"title":      it.Title,
-			"desc":       it.Description,
-			"type":       it.CateName,
-			"level":      it.Severity,
-			"status":     label,
-			"raw_status": it.Status,
-			"createdAt":  it.CreatedAt.Format(time.RFC3339),
-			"handleNote": note,
-			"photos":     photos,
-			"reporter":   it.Reporter,
+			"id":          it.ID,
+			"code":        it.Code,
+			"title":       it.Title,
+			"desc":        it.Description,
+			"type":        it.CateName,
+			"level":       it.Severity,
+			"status":      label,
+			"status_text": compatIssueStatusText(it.Status),
+			"raw_status":  it.Status,
+			"createdAt":   it.CreatedAt.Format(time.RFC3339),
+			"handleNote":  note,
+			"photos":      photos,
+			"reporter":    it.Reporter,
 		})
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true, "items": items, "total": len(items)})
@@ -422,6 +471,56 @@ func (s *Server) compatHandleIssue(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true, "status": compatIssueStatus(updated.Status)})
+}
+
+// compatIssueFlow 隐患流转记录（小程序详情展示）。
+func (s *Server) compatIssueFlow(c *gin.Context) {
+	u := s.compatCurrentUser(c)
+	if u == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"ok": false, "message": "请先登录"})
+		return
+	}
+	id, err := strconv.ParseInt(c.Query("id"), 10, 64)
+	if err != nil || id <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "message": "参数不正确"})
+		return
+	}
+	issue, err := s.Store.GetIssue(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"ok": false, "message": "问题不存在"})
+		return
+	}
+	switch {
+	case u.Role == model.RoleAdmin || u.Role == model.RoleSafety:
+	case u.Role == model.RoleDeptLeader:
+		if issue.DeptID == nil || u.DeptID == nil || *issue.DeptID != *u.DeptID {
+			c.JSON(http.StatusForbidden, gin.H{"ok": false, "message": "无权查看"})
+			return
+		}
+	default:
+		if (issue.ReporterID == nil || *issue.ReporterID != u.ID) &&
+			(issue.AssigneeID == nil || *issue.AssigneeID != u.ID) {
+			c.JSON(http.StatusForbidden, gin.H{"ok": false, "message": "无权查看"})
+			return
+		}
+	}
+	flows, err := s.Store.ListIssueFlows(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "message": "查询失败"})
+		return
+	}
+	items := make([]gin.H, 0, len(flows))
+	for _, f := range flows {
+		items = append(items, gin.H{
+			"id":      f.ID,
+			"action":  f.Action,
+			"text":    compatFlowAction(f.Action),
+			"actor":   f.Actor,
+			"comment": f.Comment,
+			"at":      f.CreatedAt.Format(time.RFC3339),
+		})
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true, "items": items})
 }
 
 // compatLogin 工号登录：返回小程序约定的 {ok, token, user}。
