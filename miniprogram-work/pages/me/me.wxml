@@ -8,8 +8,8 @@
       </button>
       <view class="idbox">
         <view class="name-row">
-          <text class="name" bindtap="editName">{{meName}}</text>
-          <text class="edit-link" bindtap="editName">改名</text>
+          <text class="name">{{meName}}</text>
+          <text wx:if="{{!bound}}" class="edit-link" bindtap="editName">改名</text>
         </view>
         <view class="id">{{meInfo}}</view>
         <view wx:if="{{!bound}}" class="bind-wx" bindtap="bindWx">绑定微信 ›</view>

@@ -251,9 +251,11 @@ func (s *Store) SweepOverdueIssues(ctx context.Context) ([]int64, error) {
 }
 
 // IssueStats 返回各状态计数与超时数。
-func (s *Store) IssueStats(ctx context.Context, deptID *int64) (map[string]int, error) {
+func (s *Store) IssueStats(ctx context.Context, deptID, reporterID *int64) (map[string]int, error) {
 	rows, err := s.pool.Query(ctx, `select status, count(*) from issue
-		where ($1::bigint is null or dept_id=$1) group by status`, deptID)
+		where ($1::bigint is null or dept_id=$1)
+		  and ($2::bigint is null or reporter_id=$2)
+		group by status`, deptID, reporterID)
 	if err != nil {
 		return nil, wrapErr("统计问题", err)
 	}
@@ -269,7 +271,8 @@ func (s *Store) IssueStats(ctx context.Context, deptID *int64) (map[string]int, 
 	}
 	var overdue int
 	if err := s.pool.QueryRow(ctx, `select count(*) from issue
-		where overdue and ($1::bigint is null or dept_id=$1)`, deptID).Scan(&overdue); err != nil {
+		where overdue and ($1::bigint is null or dept_id=$1)
+		  and ($2::bigint is null or reporter_id=$2)`, deptID, reporterID).Scan(&overdue); err != nil {
 		return nil, wrapErr("统计超时问题", err)
 	}
 	out["overdue"] = overdue

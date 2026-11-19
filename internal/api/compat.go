@@ -229,10 +229,15 @@ func (s *Server) compatListIssues(c *gin.Context) {
 		return
 	}
 	var dept, reporter *int64
-	if u.Role == model.RoleEmployee {
+	switch {
+	case u.Role == model.RoleAdmin || u.Role == model.RoleSafety:
+		// 管理员与安全科看全矿
+	case u.Role == model.RoleDeptLeader:
+		if u.DeptID != nil {
+			dept = u.DeptID
+		}
+	default:
 		reporter = &u.ID
-	} else if u.DeptID != nil {
-		dept = u.DeptID
 	}
 	list, _, err := s.Store.ListIssues(c.Request.Context(), "", dept, reporter, "", 100, 0)
 	if err != nil {
@@ -287,11 +292,17 @@ func (s *Server) compatIssueStats(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"ok": false, "message": "请先登录"})
 		return
 	}
-	var dept *int64
-	if u.Role != model.RoleEmployee && u.DeptID != nil {
-		dept = u.DeptID
+	var dept, reporter *int64
+	switch {
+	case u.Role == model.RoleAdmin || u.Role == model.RoleSafety:
+	case u.Role == model.RoleDeptLeader:
+		if u.DeptID != nil {
+			dept = u.DeptID
+		}
+	default:
+		reporter = &u.ID
 	}
-	stats, err := s.Store.IssueStats(c.Request.Context(), dept)
+	stats, err := s.Store.IssueStats(c.Request.Context(), dept, reporter)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "message": "统计失败"})
 		return
@@ -335,6 +346,11 @@ func (s *Server) compatHandleIssue(c *gin.Context) {
 	issue, err := s.Store.GetIssue(c.Request.Context(), req.ID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"ok": false, "message": "问题不存在"})
+		return
+	}
+	// 区队长只能处置本队问题；管理员与安全科不限
+	if u.Role == model.RoleDeptLeader && (issue.DeptID == nil || u.DeptID == nil || *issue.DeptID != *u.DeptID) {
+		c.JSON(http.StatusForbidden, gin.H{"ok": false, "message": "无权处置其他区队的问题"})
 		return
 	}
 	note := strings.TrimSpace(req.Note)

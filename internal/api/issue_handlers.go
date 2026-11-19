@@ -380,12 +380,19 @@ func (s *Server) closeIssue(c *gin.Context) {
 
 func (s *Server) issueStats(c *gin.Context) {
 	cl := claims(c)
-	var dept *int64
-	if scopeOf(c) != "all" && cl.DeptID > 0 {
-		d := cl.DeptID
-		dept = &d
+	var dept, reporter *int64
+	switch scopeOf(c) {
+	case "all":
+	case "dept":
+		if cl.DeptID > 0 {
+			d := cl.DeptID
+			dept = &d
+		}
+	default:
+		u := cl.UserID
+		reporter = &u
 	}
-	stats, err := s.Store.IssueStats(c.Request.Context(), dept)
+	stats, err := s.Store.IssueStats(c.Request.Context(), dept, reporter)
 	if err != nil {
 		fail(c, http.StatusInternalServerError, "统计失败")
 		return
