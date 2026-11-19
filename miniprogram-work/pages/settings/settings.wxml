@@ -4,12 +4,12 @@
     <view class="card blk">
       <view class="row between">
         <text class="small bold">登录状态</text>
-        <text class="tiny {{loginState === 'wx' ? 'ok' : 'muted'}}">{{loginState === 'wx' ? '已微信登录' : '本机模式'}}</text>
+        <text class="tiny {{logged ? 'ok' : 'muted'}}">{{logged ? '已登录（工号）' : '本机模式'}}</text>
       </view>
       <view class="tiny muted" style="margin-top:10rpx;line-height:36rpx">
-        微信登录后，换手机也能保留学习记录；本机模式下记录只存在这台手机。
+        登录后学习、考试、隐患记录跟人走，换手机也不丢；本机模式下记录只存在这台手机。
       </view>
-      <view wx:if="{{loginState === 'wx'}}" class="tiny accent bold" style="margin-top:14rpx" bindtap="logoutWx">退出登录 / 切换账号</view>
+      <view wx:if="{{logged}}" class="btn-danger" style="margin-top:20rpx" bindtap="logoutWx">退出登录 / 切换账号</view>
     </view>
 
     <view class="card blk">

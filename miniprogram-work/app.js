@@ -5,11 +5,12 @@ App({
   globalData: {
     statusBarHeight: 44,
     brand: '煤矿安全智能体',
-    loginState: 'unknown'   // wx | device
+    loginState: 'device'   // account | device
   },
   onLaunch() {
     const info = wx.getWindowInfo ? wx.getWindowInfo() : wx.getSystemInfoSync()
     this.globalData.statusBarHeight = info.statusBarHeight || 44
+    this.globalData.loginState = auth.token() ? 'account' : 'device'
   },
   /** 微信静默登录：拿 openid，换服务端令牌；失败则用本机模式 */
   silentLogin() {

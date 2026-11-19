@@ -37,6 +37,8 @@ Page({
     api.login(username, password).then(res => {
       auth.setToken(res.token)
       auth.setUser(Object.assign({}, res.user, { label: res.user && res.user.name }))
+      const app = getApp()
+      if (app && app.globalData) app.globalData.loginState = 'account'
       this.setData({ loading: false })
       wx.showToast({ title: '登录成功', icon: 'success' })
       setTimeout(() => wx.reLaunch({ url: '/pages/home/home' }), 400)

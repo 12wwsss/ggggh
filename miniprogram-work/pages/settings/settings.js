@@ -14,7 +14,8 @@ Page({
     const app = getApp()
     this.setData({
       deviceId: auth.deviceId(),
-      loginState: (app && app.globalData.loginState) || (auth.token() ? 'wx' : 'device')
+      logged: !!auth.token(),
+      loginState: (app && app.globalData.loginState) || (auth.token() ? 'account' : 'device')
     })
     api.faq(8).then(res => {
       this.setData({ faq: res.items || [] })
@@ -66,10 +67,12 @@ Page({
   logoutWx() {
     wx.showModal({
       title: '退出登录',
-      content: '退出后学习记录仍保留在微信账号上，重新登录即可恢复。',
+      content: '退出后可以换工号重新登录，学习、考试记录不会丢。',
       success: r => {
         if (!r.confirm) return
         auth.clearLogin()
+        const app = getApp()
+        if (app && app.globalData) app.globalData.loginState = 'device'
         wx.reLaunch({ url: '/pages/login/login' })
       }
     })
