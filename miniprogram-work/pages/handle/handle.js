@@ -29,7 +29,13 @@ Page({
     this.setData({ loading: true, err: '' })
     api.issues(status).then(res => {
       const cls = { '待分派': 'pending', '处置中': 'doing', '已闭环': 'closed' }
-      let items = (res.items || []).map(it => ({ ...it, stCls: cls[it.status] || 'pending' }))
+      const act = { reported: '受理', accepted: '提交整改', rectified: '验收通过', verified: '闭环', closed: '已完成' }
+      let items = (res.items || []).map(it => ({
+        ...it,
+        stCls: cls[it.status] || 'pending',
+        actText: act[it.raw_status] || '提交',
+        canAct: it.raw_status !== 'closed'
+      }))
       if (this.data.tab === 1) items = items.filter(i => i.stCls === 'closed')
       this.setData({ items, loading: false })
       done && done()

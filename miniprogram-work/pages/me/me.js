@@ -48,8 +48,10 @@ Page({
     const u = auth.user()
     const base = logged ? ((u && (u.name || u.label)) || '已登录') : '本机账号'
     const name = this.data.customName || base
+    const canHandle = logged && !!u && ['admin', 'safety', 'dept_leader'].indexOf(u.role) >= 0
     this.setData({
       bound: logged,
+      canHandle,
       meName: name,
       meInitial: name.slice(0, 1),
       meInfo: logged ? '工号已登录 · 学习记录跟人走' : '未登录 · 记录只在这台手机上'
@@ -108,6 +110,10 @@ Page({
     const quizCount = wx.getStorageSync('quizCount') || 0
     this._menu = { best, wrong: wrong.length, quiz: quizCount, s: null }
     this.setData({ menus: buildMenus(best, wrong.length, quizCount, null, this.data.contact) })
+  },
+
+  toHandle() {
+    wx.navigateTo({ url: '/pages/handle/handle' })
   },
 
   /** 头像 / 昵称（跟着微信或设备走） */

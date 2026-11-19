@@ -30,10 +30,10 @@
           处置：{{item.handleNote}}（{{item.handler}}）
         </view>
 
-        <view wx:if="{{open === item.id}}" class="form">
-          <textarea class="ta" placeholder="写清处置措施，例如：已更换立柱密封，现场试压无渗漏"
+        <view wx:if="{{open === item.id && item.canAct}}" class="form">
+          <textarea class="ta" placeholder="写清处置说明；验收请写验收意见"
                     placeholder-class="ph" maxlength="300" bindinput="onNote" value="{{note}}" />
-          <view class="btn-mini" data-id="{{item.id}}" catchtap="submit">提交并闭环</view>
+          <view class="btn-mini" data-id="{{item.id}}" catchtap="submit">{{item.actText}}</view>
         </view>
       </view>
 

@@ -277,6 +277,7 @@ func (s *Server) compatListIssues(c *gin.Context) {
 			"type":       it.CateName,
 			"level":      it.Severity,
 			"status":     label,
+			"raw_status": it.Status,
 			"createdAt":  it.CreatedAt.Format(time.RFC3339),
 			"handleNote": note,
 			"photos":     photos,

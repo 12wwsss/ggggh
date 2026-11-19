@@ -24,6 +24,16 @@
   </view>
 
   <view class="wrap">
+    <view wx:if="{{canHandle}}" class="card" bindtap="toHandle">
+      <view class="between">
+        <view>
+          <view class="small bold">问题处理</view>
+          <view class="tiny muted" style="margin-top:6rpx">受理 · 整改 · 验收 · 闭环</view>
+        </view>
+        <text class="arrow">›</text>
+      </view>
+    </view>
+
     <view wx:if="{{score && score.attempts}}" class="card score">
       <view class="between">
         <text class="tiny muted bold">我的答题成绩</text>
