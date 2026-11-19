@@ -107,6 +107,10 @@ function issueFlow(id) {
   return request('/api/issue/flow?id=' + encodeURIComponent(id), {}, 'GET')
 }
 
+function users() {
+  return request('/api/users', {}, 'GET')
+}
+
 function issueStats() {
   return request('/api/issues/stats', {}, 'GET')
 }
@@ -221,6 +225,6 @@ module.exports = {
   culture, profile, saveProfile,
   chat, submitQuiz, health,
   content, article, risks, training,
-  createIssue, issues, handleIssue, issueFlow, issueStats, upload,
+  createIssue, issues, handleIssue, issueFlow, users, issueStats, upload,
   notices, noticeRead, quizStats, questions,
 }

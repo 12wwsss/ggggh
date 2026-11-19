@@ -38,6 +38,18 @@
           </view>
         </view>
 
+        <view wx:if="{{open === item.id && item.photos.length}}" class="photos-row">
+          <image wx:for="{{item.photos}}" wx:for-item="p" wx:key="*this" src="{{p}}" mode="aspectFill"
+                 class="ph-img" data-src="{{p}}" bindtap="previewPhoto" />
+        </view>
+
+        <view wx:if="{{open === item.id && item.raw_status === 'reported'}}" class="picker-row">
+          <text class="tiny muted">整改人</text>
+          <picker range="{{staffNames}}" value="{{staffIdx}}" bindchange="onAssignee">
+            <view class="picker-val">{{staffNames[staffIdx] || '选择整改人'}} ›</view>
+          </picker>
+        </view>
+
         <view wx:if="{{open === item.id && item.canAct}}" class="form">
           <textarea class="ta" placeholder="写清处置说明；验收请写验收意见"
                     placeholder-class="ph" maxlength="300" bindinput="onNote" value="{{note}}" />

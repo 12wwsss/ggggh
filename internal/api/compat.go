@@ -331,6 +331,8 @@ func (s *Server) compatListIssues(c *gin.Context) {
 			"handleNote":  note,
 			"photos":      photos,
 			"reporter":    it.Reporter,
+			"reporter_id": it.ReporterID,
+			"assignee_id": it.AssigneeID,
 		})
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true, "items": items, "total": len(items)})
@@ -385,9 +387,10 @@ func (s *Server) compatHandleIssue(c *gin.Context) {
 		return
 	}
 	var req struct {
-		ID     int64  `json:"id"`
-		Note   string `json:"note"`
-		Reason string `json:"reason"`
+		ID         int64  `json:"id"`
+		Note       string `json:"note"`
+		Reason     string `json:"reason"`
+		AssigneeID *int64 `json:"assignee_id"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil || req.ID <= 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "message": "参数不正确"})
@@ -408,7 +411,11 @@ func (s *Server) compatHandleIssue(c *gin.Context) {
 	switch issue.Status {
 	case model.IssueReported:
 		treq.Action, treq.From, treq.To = "accept", []string{model.IssueReported}, model.IssueAccepted
-		treq.AssigneeID = issue.ReporterID
+		if req.AssigneeID != nil {
+			treq.AssigneeID = req.AssigneeID
+		} else {
+			treq.AssigneeID = issue.ReporterID
+		}
 	case model.IssueAccepted:
 		if issue.AssigneeID != nil && *issue.AssigneeID == u.ID {
 			treq.Action, treq.From, treq.To = "rectify", []string{model.IssueAccepted}, model.IssueRectified
@@ -518,6 +525,38 @@ func (s *Server) compatIssueFlow(c *gin.Context) {
 			"actor":   f.Actor,
 			"comment": f.Comment,
 			"at":      f.CreatedAt.Format(time.RFC3339),
+		})
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true, "items": items})
+}
+
+// compatUsers 处置人候选：安全科/管理员看全部，区队长看本队，员工只看自己。
+func (s *Server) compatUsers(c *gin.Context) {
+	u := s.compatCurrentUser(c)
+	if u == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"ok": false, "message": "请先登录"})
+		return
+	}
+	var deptID *int64
+	switch u.Role {
+	case model.RoleAdmin, model.RoleSafety:
+	case model.RoleDeptLeader:
+		deptID = u.DeptID
+	default:
+		deptID = u.DeptID
+	}
+	list, _, err := s.Store.ListUsers(c.Request.Context(), deptID, "", 500, 0)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "message": "查询失败"})
+		return
+	}
+	items := make([]gin.H, 0, len(list))
+	for _, x := range list {
+		if x.Status != "active" {
+			continue
+		}
+		items = append(items, gin.H{
+			"id": x.ID, "username": x.Username, "name": x.Name, "post": x.Post, "role": x.Role,
 		})
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true, "items": items})
