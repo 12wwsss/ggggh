@@ -96,7 +96,7 @@ type userReq struct {
 }
 
 func validRole(r string) bool {
-	return r == model.RoleAdmin || r == model.RoleDeptLeader || r == model.RoleEmployee
+	return r == model.RoleAdmin || r == model.RoleDeptLeader || r == model.RoleSafety || r == model.RoleEmployee
 }
 
 func (s *Server) createUser(c *gin.Context) {
@@ -110,7 +110,7 @@ func (s *Server) createUser(c *gin.Context) {
 		return
 	}
 	if !validRole(req.Role) {
-		fail(c, http.StatusBadRequest, "角色只能是 admin、dept_leader、employee")
+		fail(c, http.StatusBadRequest, "角色只能是 admin、dept_leader、safety、employee")
 		return
 	}
 	if len([]rune(req.Password)) < 8 {
@@ -214,7 +214,7 @@ func (s *Server) listRoles(c *gin.Context) {
 		matrix[p.Role] = append(matrix[p.Role], p)
 	}
 	ok(c, gin.H{
-		"roles":  []string{model.RoleAdmin, model.RoleDeptLeader, model.RoleEmployee},
+		"roles":  []string{model.RoleAdmin, model.RoleDeptLeader, model.RoleSafety, model.RoleEmployee},
 		"matrix": matrix,
 	})
 }

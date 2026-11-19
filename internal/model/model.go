@@ -10,6 +10,7 @@ import (
 const (
 	RoleAdmin      = "admin"
 	RoleDeptLeader = "dept_leader"
+	RoleSafety     = "safety"
 	RoleEmployee   = "employee"
 )
 

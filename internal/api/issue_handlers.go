@@ -183,9 +183,9 @@ func (s *Server) transition(c *gin.Context, req store.TransitionRequest) {
 	ok(c, issue)
 }
 
-// isIssueManager 区队长或管理员才能受理/驳回/验收/闭环。
+// isIssueManager 区队长、安全科或管理员才能受理/驳回/验收/闭环。
 func isIssueManager(role string) bool {
-	return role == model.RoleAdmin || role == model.RoleDeptLeader
+	return role == model.RoleAdmin || role == model.RoleDeptLeader || role == model.RoleSafety
 }
 
 // adminForceAllowed 管理员强制推进：必须 force=true 且填写原因。

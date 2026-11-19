@@ -286,6 +286,7 @@ async function saveRole() {
           <el-select v-model="userForm.role" style="width: 100%">
             <el-option label="平台管理员" value="admin" />
             <el-option label="区队长" value="dept_leader" />
+            <el-option label="安全科" value="safety" />
             <el-option label="员工" value="employee" />
           </el-select>
         </el-form-item>

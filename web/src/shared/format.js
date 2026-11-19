@@ -45,7 +45,7 @@ export const issueStatus = {
 
 export const severityText = { low: '一般', normal: '较重', high: '重大' }
 
-export const roleText = { admin: '平台管理员', dept_leader: '区队长', employee: '员工' }
+export const roleText = { admin: '平台管理员', dept_leader: '区队长', safety: '安全科', employee: '员工' }
 
 export const examStatus = { draft: '草稿', published: '已发布', closed: '已结束' }
 
