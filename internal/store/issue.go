@@ -256,6 +256,33 @@ func (s *Store) ListIssueAttachments(ctx context.Context, issueID int64) ([]mode
 	return out, rows.Err()
 }
 
+// ResubmitIssue 被驳回后由上报人修改并重新提交，状态回到 reported。
+func (s *Store) ResubmitIssue(ctx context.Context, issueID, userID int64, title, desc string) (*model.Issue, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+
+	tag, err := tx.Exec(ctx, `update issue set status='reported', title=$3, description=$4,
+		updated_at=now(), overdue=false
+		where id=$1 and reporter_id=$2 and status='rejected'`, issueID, userID, title, desc)
+	if err != nil {
+		return nil, wrapErr("重新提交问题", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return nil, ErrConflict
+	}
+	if _, err := tx.Exec(ctx, `insert into issue_flow(issue_id, action, from_status, to_status, actor_id, comment)
+		values ($1,'resubmit','rejected','reported',$2,$3)`, issueID, userID, "修改后重新上报"); err != nil {
+		return nil, wrapErr("写入流转记录", err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+	return s.GetIssue(ctx, issueID)
+}
+
 // SweepOverdueIssues 标记超时问题。
 func (s *Store) SweepOverdueIssues(ctx context.Context) ([]int64, error) {
 	rows, err := s.pool.Query(ctx, `update issue set overdue=true, updated_at=now()

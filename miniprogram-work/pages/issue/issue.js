@@ -27,6 +27,11 @@ Page({
     rectifyResult: '',
     rectifyPhotos: [],
     rectifying: false,
+    resubmitOpen: false,
+    resubmitId: 0,
+    resubmitDesc: '',
+    resubmitPhotos: [],
+    resubmitting: false,
     submitting: false,
     recording: false,
     audio: '',
@@ -224,6 +229,7 @@ Page({
         isMine: String(it.reporter_id) === String(me.id),
         isAssigned: String(it.assignee_id) === String(me.id),
         canRectify: String(it.assignee_id) === String(me.id) && it.raw_status === 'accepted',
+        canResubmit: String(it.reporter_id) === String(me.id) && it.raw_status === 'rejected',
         createdAt: fmtTime(it.createdAt)
       }))
       this.setData({ allItems: all }, () => this.applyTab())
@@ -327,6 +333,91 @@ Page({
       this.fetchMine()
     }).catch(err => {
       this.setData({ rectifying: false })
+      wx.showToast({ title: err.message, icon: 'none' })
+    })
+  },
+
+  /** 被驳回后修改并重新提交 */
+  startResubmit(e) {
+    const it = (this.data.items || [])[Number(e.currentTarget.dataset.i)] || {}
+    this.setData({
+      resubmitOpen: true,
+      resubmitId: it.id,
+      resubmitDesc: it.desc || '',
+      resubmitPhotos: []
+    })
+  },
+
+  cancelResubmit() {
+    this.setData({ resubmitOpen: false, resubmitId: 0, resubmitPhotos: [] })
+  },
+
+  onResubmitInput(e) {
+    this.setData({ resubmitDesc: e.detail.value })
+  },
+
+  addResubmitPhoto() {
+    const left = 3 - this.data.resubmitPhotos.length
+    if (left <= 0) return wx.showToast({ title: '最多 3 张', icon: 'none' })
+    wx.chooseMedia({
+      count: left,
+      mediaType: ['image'],
+      sizeType: ['compressed'],
+      success: res => (res.tempFiles || []).forEach(f => this.uploadResubmitPhoto(f.tempFilePath))
+    })
+  },
+
+  uploadResubmitPhoto(path) {
+    const send = p => {
+      wx.getFileSystemManager().readFile({
+        filePath: p,
+        encoding: 'base64',
+        success: r => {
+          const ext = (p.split('.').pop() || 'jpg').toLowerCase()
+          const mime = ext === 'png' ? 'png' : ext === 'webp' ? 'webp' : 'jpeg'
+          api.upload('data:image/' + mime + ';base64,' + r.data).then(up => {
+            this.setData({ resubmitPhotos: this.data.resubmitPhotos.concat([api.absUrl(up.url)]) })
+          }).catch(e => wx.showToast({ title: e.message || '上传失败', icon: 'none' }))
+        },
+        fail: () => wx.showToast({ title: '读图失败', icon: 'none' })
+      })
+    }
+    wx.showLoading({ title: '上传中', mask: true })
+    wx.compressImage({
+      src: path,
+      quality: 60,
+      success: r => { wx.hideLoading(); send(r.tempFilePath || path) },
+      fail: () => { wx.hideLoading(); send(path) }
+    })
+  },
+
+  removeResubmitPhoto(e) {
+    const i = Number(e.currentTarget.dataset.i)
+    const list = this.data.resubmitPhotos.slice()
+    list.splice(i, 1)
+    this.setData({ resubmitPhotos: list })
+  },
+
+  previewResubmitPhoto(e) {
+    const src = e.currentTarget.dataset.src
+    if (src) wx.previewImage({ urls: [src], current: src })
+  },
+
+  submitResubmit() {
+    if (this.data.resubmitting) return
+    const desc = String(this.data.resubmitDesc || '').trim()
+    if (desc.length < 4) return wx.showToast({ title: '问题描述至少 4 个字', icon: 'none' })
+    this.setData({ resubmitting: true })
+    api.issueResubmit({
+      id: this.data.resubmitId,
+      desc,
+      photos: this.data.resubmitPhotos
+    }).then(res => {
+      this.setData({ resubmitting: false, resubmitOpen: false, resubmitPhotos: [] })
+      wx.showToast({ title: '已重新提交，状态：' + ((res && res.status_text) || '已上报'), icon: 'none' })
+      this.fetchMine()
+    }).catch(err => {
+      this.setData({ resubmitting: false })
       wx.showToast({ title: err.message, icon: 'none' })
     })
   },

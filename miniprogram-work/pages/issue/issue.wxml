@@ -80,6 +80,8 @@
         <view wx:if="{{item.handleNote}}" class="rec-note">处置：{{item.handleNote}}</view>
         <view wx:if="{{item.canRectify}}" class="btn-mini" style="margin-top:14rpx"
               data-id="{{item.id}}" catchtap="startRectify">提交整改</view>
+        <view wx:if="{{item.canResubmit}}" class="btn-mini ghost" style="margin-top:14rpx"
+              data-i="{{index}}" catchtap="startResubmit">修改并重新提交</view>
         <view wx:elif="{{!item.handleNote}}" class="tiny muted" style="margin-top:8rpx">点击查看详情</view>
       </view>
       <view wx:if="{{!items.length}}" class="tip">这个分类下暂时没有工单</view>
@@ -102,6 +104,24 @@
       <view class="tiny muted" style="margin-top:10rpx">最多 3 张，拍了整改后的现场照片验收人能看到</view>
       <view class="btn-primary" style="margin-top:20rpx" bindtap="submitRectify">{{rectifying ? '提交中…' : '提交整改'}}</view>
       <view class="sheet-cancel" bindtap="cancelRectify">取消</view>
+    </view>
+  </view>
+
+  <view wx:if="{{resubmitOpen}}" class="mask" catchtap="cancelResubmit">
+    <view class="sheet" catchtap="noop">
+      <view class="sheet-h">修改并重新提交</view>
+      <textarea class="ta" placeholder="把问题描述改清楚，例如位置、现象、需要怎么处理"
+                placeholder-class="ph" maxlength="300" bindinput="onResubmitInput" value="{{resubmitDesc}}" />
+      <view class="row photos" style="margin-top:16rpx">
+        <view wx:for="{{resubmitPhotos}}" wx:key="*this" class="ph-wrap">
+          <image src="{{item}}" mode="aspectFill" class="ph" data-src="{{item}}" bindtap="previewResubmitPhoto" />
+          <view class="ph-del" data-i="{{index}}" catchtap="removeResubmitPhoto">×</view>
+        </view>
+        <view wx:if="{{resubmitPhotos.length < 3}}" class="ph-add" bindtap="addResubmitPhoto">＋</view>
+      </view>
+      <view class="tiny muted" style="margin-top:10rpx">可补拍照片，重新提交后安全科会重新受理</view>
+      <view class="btn-primary" style="margin-top:20rpx" bindtap="submitResubmit">{{resubmitting ? '提交中…' : '重新提交'}}</view>
+      <view class="sheet-cancel" bindtap="cancelResubmit">取消</view>
     </view>
   </view>
 </view>

@@ -24,11 +24,13 @@
   </view>
 
   <view class="wrap">
-    <view wx:if="{{assignedCount}}" class="card todo" bindtap="goMyIssues">
+    <view wx:if="{{todoTotal}}" class="card todo" bindtap="goTodos">
       <view class="between">
         <view>
-          <view class="small bold">有 {{assignedCount}} 条工单等你整改</view>
-          <view class="tiny muted" style="margin-top:6rpx">安全科已指派，点这里处理</view>
+          <view class="small bold">有 {{todoTotal}} 件待办</view>
+          <view class="tiny muted" style="margin-top:6rpx">
+            <text wx:for="{{todos}}" wx:key="key" style="margin-right:16rpx">{{item.label}} {{item.count}}</text>
+          </view>
         </view>
         <text class="arrow">›</text>
       </view>

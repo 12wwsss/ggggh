@@ -111,6 +111,14 @@ function issueRectify(payload) {
   return request('/api/issue/rectify', payload)
 }
 
+function issueResubmit(payload) {
+  return request('/api/issue/resubmit', payload)
+}
+
+function notifications() {
+  return request('/api/notifications', {}, 'GET')
+}
+
 function users(deptId) {
   const q = deptId ? '?dept_id=' + encodeURIComponent(deptId) : ''
   return request('/api/users' + q, {}, 'GET')
@@ -230,6 +238,6 @@ module.exports = {
   culture, profile, saveProfile,
   chat, submitQuiz, health,
   content, article, risks, training,
-  createIssue, issues, handleIssue, issueFlow, issueRectify, users, issueStats, upload,
+  createIssue, issues, handleIssue, issueFlow, issueRectify, issueResubmit, notifications, users, issueStats, upload,
   notices, noticeRead, quizStats, questions,
 }

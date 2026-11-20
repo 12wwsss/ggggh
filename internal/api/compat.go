@@ -641,6 +641,121 @@ func (s *Server) compatRectify(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"ok": true, "status": compatIssueStatus(updated.Status)})
 }
 
+// compatResubmit 被驳回后重新提交（仅上报人）。
+func (s *Server) compatResubmit(c *gin.Context) {
+	u := s.compatCurrentUser(c)
+	if u == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"ok": false, "message": "请先登录"})
+		return
+	}
+	var req struct {
+		ID     int64    `json:"id"`
+		Desc   string   `json:"desc"`
+		Photos []string `json:"photos"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil || req.ID <= 0 || strings.TrimSpace(req.Desc) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "message": "请填写问题描述"})
+		return
+	}
+	desc := strings.TrimSpace(req.Desc)
+	title := desc
+	if r := []rune(title); len(r) > 40 {
+		title = string(r[:40])
+	}
+	issue, err := s.Store.GetIssue(c.Request.Context(), req.ID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"ok": false, "message": "问题不存在"})
+		return
+	}
+	if issue.ReporterID == nil || *issue.ReporterID != u.ID {
+		c.JSON(http.StatusForbidden, gin.H{"ok": false, "message": "只有上报人可以重新提交"})
+		return
+	}
+	updated, err := s.Store.ResubmitIssue(c.Request.Context(), req.ID, u.ID, title, desc)
+	if err != nil {
+		c.JSON(http.StatusConflict, gin.H{"ok": false, "message": "只有被驳回的问题可以重新提交"})
+		return
+	}
+	for _, raw := range req.Photos {
+		name := compatUploadName(raw)
+		if name == "" {
+			continue
+		}
+		_, _ = s.Store.AddIssueAttachment(c.Request.Context(), &model.IssueAttachment{
+			IssueID: req.ID, FileName: name, UploaderID: &u.ID, Kind: "report",
+		})
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true, "status": compatIssueStatus(updated.Status), "status_text": compatIssueStatusText(updated.Status)})
+}
+
+// compatNotifications 待办提醒：按角色统计当前需要处理的工单。
+func (s *Server) compatNotifications(c *gin.Context) {
+	u := s.compatCurrentUser(c)
+	if u == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"ok": false, "message": "请先登录"})
+		return
+	}
+	var list []model.Issue
+	var err error
+	if u.Role == model.RoleEmployee {
+		list, _, err = s.Store.ListIssuesByUser(c.Request.Context(), u.ID, 200, 0)
+	} else if u.Role == model.RoleDeptLeader {
+		list, _, err = s.Store.ListIssues(c.Request.Context(), "", u.DeptID, nil, "", 200, 0)
+	} else {
+		list, _, err = s.Store.ListIssues(c.Request.Context(), "", nil, nil, "", 200, 0)
+	}
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "message": "查询失败"})
+		return
+	}
+	items := []gin.H{}
+	total := 0
+	if u.Role == model.RoleEmployee {
+		rectify, rejected := 0, 0
+		for _, it := range list {
+			if it.AssigneeID != nil && *it.AssigneeID == u.ID && it.Status == model.IssueAccepted {
+				rectify++
+			}
+			if it.ReporterID != nil && *it.ReporterID == u.ID && it.Status == model.IssueRejected {
+				rejected++
+			}
+		}
+		if rectify > 0 {
+			items = append(items, gin.H{"key": "rectify", "label": "待整改", "count": rectify})
+			total += rectify
+		}
+		if rejected > 0 {
+			items = append(items, gin.H{"key": "rejected", "label": "被驳回可重提", "count": rejected})
+			total += rejected
+		}
+	} else {
+		accept, verify, close := 0, 0, 0
+		for _, it := range list {
+			switch it.Status {
+			case model.IssueReported:
+				accept++
+			case model.IssueRectified:
+				verify++
+			case model.IssueVerified:
+				close++
+			}
+		}
+		if accept > 0 {
+			items = append(items, gin.H{"key": "accept", "label": "待受理", "count": accept})
+			total += accept
+		}
+		if verify > 0 {
+			items = append(items, gin.H{"key": "verify", "label": "待验收", "count": verify})
+			total += verify
+		}
+		if close > 0 {
+			items = append(items, gin.H{"key": "close", "label": "待闭环", "count": close})
+			total += close
+		}
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true, "total": total, "items": items})
+}
+
 // compatLogin 工号登录：返回小程序约定的 {ok, token, user}。
 func (s *Server) compatLogin(c *gin.Context) {
 	var req struct {

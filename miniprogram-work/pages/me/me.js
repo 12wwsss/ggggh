@@ -35,7 +35,8 @@ Page({
     total: 0,
     contact: '',
     avatar: '',
-    assignedCount: 0
+    todos: [],
+    todoTotal: 0
   },
 
   onLoad() {
@@ -111,7 +112,7 @@ Page({
     this.loadScore()
     this.loadContact()
     this.loadProfile()
-    this.loadAssignedCount()
+    this.loadTodos()
     const best = wx.getStorageSync('quizBest') || 0
     const wrong = wx.getStorageSync('wrongBook') || []
     const quizCount = wx.getStorageSync('quizCount') || 0
@@ -127,14 +128,20 @@ Page({
     wx.navigateTo({ url: '/pages/issue/issue' })
   },
 
-  /** 指派给我、还没整改的工单数（红点） */
-  loadAssignedCount() {
-    if (!auth.token()) return this.setData({ assignedCount: 0 })
-    api.issues().then(res => {
-      const me = auth.user() || {}
-      const n = (res.items || []).filter(x =>
-        String(x.assignee_id) === String(me.id) && x.raw_status === 'accepted').length
-      this.setData({ assignedCount: n })
+  goTodos() {
+    const u = auth.user() || {}
+    if (['admin', 'safety', 'dept_leader'].indexOf(u.role) >= 0) {
+      wx.navigateTo({ url: '/pages/handle/handle' })
+    } else {
+      wx.navigateTo({ url: '/pages/issue/issue' })
+    }
+  },
+
+  /** 待办提醒：员工看待整改/被驳回，管理层看待受理/待验收/待闭环 */
+  loadTodos() {
+    if (!auth.token()) return this.setData({ todos: [], todoTotal: 0 })
+    api.notifications().then(res => {
+      this.setData({ todos: res.items || [], todoTotal: res.total || 0 })
     }).catch(() => {})
   },
 

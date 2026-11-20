@@ -93,3 +93,4 @@
 .ph { width: 150rpx; height: 150rpx; border-radius: 12rpx; background: #EEE; }
 .ph-del { position: absolute; right: -8rpx; top: -8rpx; width: 36rpx; height: 36rpx; line-height: 32rpx; text-align: center; border-radius: 50%; background: rgba(0,0,0,.6); color: #fff; font-size: 26rpx; }
 .ph-add { width: 150rpx; height: 150rpx; border-radius: 12rpx; border: 2rpx dashed #D4DAE1; color: #B7C2CE; display: flex; align-items: center; justify-content: center; font-size: 52rpx; }
+.btn-mini.ghost { background: #FFF; border: 2rpx solid #D4DAE1; color: #59636E; }
