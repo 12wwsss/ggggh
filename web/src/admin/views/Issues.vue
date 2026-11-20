@@ -23,6 +23,19 @@ const openCount = computed(() => {
   return (s.reported || 0) + (s.accepted || 0) + (s.rectified || 0)
 })
 
+const actionText = {
+  report: '上报',
+  accept: '受理',
+  reject: '驳回',
+  rectify: '提交整改',
+  verify: '验收通过',
+  verify_reject: '验收不合格',
+  close: '闭环',
+  admin_force_rectify: '管理员代整改',
+  admin_force_verify: '管理员强制验收',
+  admin_force_close: '管理员强制闭环',
+}
+
 // 与后端状态机保持一致：只有还能往下走的单据才叫“处理”，
 // 已闭环 / 已驳回的只能看，按钮文案改成“查看”。
 // 与后端状态机保持一致：区队长、安全科、管理员可以受理/验收/闭环；
@@ -214,6 +227,7 @@ async function act(kind) {
         </div>
         <p style="white-space: pre-wrap; line-height: 1.8">{{ current.description }}</p>
         <div class="muted">上报人：{{ current.reporter }} · {{ fmtTime(current.created_at) }}</div>
+        <div class="muted">整改时限：{{ current.deadline ? fmtTime(current.deadline) : '未设置（受理时默认 24 小时）' }}</div>
         <div class="muted">整改结果：{{ current.result || '—' }}</div>
         <div class="muted">验收意见：{{ current.verify_comment || '—' }}</div>
 
@@ -229,7 +243,7 @@ async function act(kind) {
         <el-divider content-position="left">流转记录</el-divider>
         <el-timeline>
           <el-timeline-item v-for="f in flow" :key="f.id" :timestamp="fmtTime(f.created_at)" placement="top">
-            <strong>{{ f.action }}</strong>
+            <strong>{{ actionText[f.action] || f.action }}</strong>
             <span class="muted"> · {{ f.actor || '—' }}</span>
             <div v-if="f.comment" class="muted">{{ f.comment }}</div>
           </el-timeline-item>

@@ -135,6 +135,7 @@ type TransitionRequest struct {
 	Result        string
 	VerifyComment string
 	AssigneeID    *int64
+	Deadline      *time.Time
 	Close         bool
 }
 
@@ -169,10 +170,11 @@ func (s *Store) TransitionIssue(ctx context.Context, req TransitionRequest) (*mo
 		result = coalesce(nullif($3,''), result),
 		verify_comment = coalesce(nullif($4,''), verify_comment),
 		assignee_id = coalesce($5, assignee_id),
+		deadline = coalesce($8, deadline),
 		overdue = case when $6 then false else overdue end,
 		closed_at = case when $6 then now() else closed_at end
 		where id=$1 and status=$7`,
-		req.IssueID, req.To, req.Result, req.VerifyComment, req.AssigneeID, req.Close, current)
+		req.IssueID, req.To, req.Result, req.VerifyComment, req.AssigneeID, req.Close, current, req.Deadline)
 	if err != nil {
 		return nil, wrapErr("更新问题状态", err)
 	}

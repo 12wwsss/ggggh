@@ -330,6 +330,7 @@ func (s *Server) compatListIssues(c *gin.Context) {
 			"title":       it.Title,
 			"desc":        it.Description,
 			"type":        it.CateName,
+			"dept_id":     it.DeptID,
 			"level":       it.Severity,
 			"status":      label,
 			"status_text": compatIssueStatusText(it.Status),
@@ -418,10 +419,25 @@ func (s *Server) compatHandleIssue(c *gin.Context) {
 	switch issue.Status {
 	case model.IssueReported:
 		treq.Action, treq.From, treq.To = "accept", []string{model.IssueReported}, model.IssueAccepted
+		assignee := issue.ReporterID
 		if req.AssigneeID != nil {
-			treq.AssigneeID = req.AssigneeID
-		} else {
-			treq.AssigneeID = issue.ReporterID
+			assignee = req.AssigneeID
+		}
+		if assignee != nil {
+			au, err := s.Store.GetUserByID(c.Request.Context(), *assignee)
+			if err != nil || au.Status != "active" {
+				c.JSON(http.StatusBadRequest, gin.H{"ok": false, "message": "整改人不存在或已停用"})
+				return
+			}
+			if issue.DeptID != nil && (au.DeptID == nil || *au.DeptID != *issue.DeptID) {
+				c.JSON(http.StatusBadRequest, gin.H{"ok": false, "message": "只能指派本队人员"})
+				return
+			}
+			treq.AssigneeID = assignee
+		}
+		if issue.Deadline == nil {
+			d := time.Now().Add(24 * time.Hour)
+			treq.Deadline = &d
 		}
 	case model.IssueAccepted:
 		if issue.AssigneeID != nil && *issue.AssigneeID == u.ID {
@@ -547,6 +563,11 @@ func (s *Server) compatUsers(c *gin.Context) {
 	var deptID *int64
 	switch u.Role {
 	case model.RoleAdmin, model.RoleSafety:
+		if v := c.Query("dept_id"); v != "" {
+			if id, err := strconv.ParseInt(v, 10, 64); err == nil && id > 0 {
+				deptID = &id
+			}
+		}
 	case model.RoleDeptLeader:
 		deptID = u.DeptID
 	default:

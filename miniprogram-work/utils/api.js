@@ -111,8 +111,9 @@ function issueRectify(payload) {
   return request('/api/issue/rectify', payload)
 }
 
-function users() {
-  return request('/api/users', {}, 'GET')
+function users(deptId) {
+  const q = deptId ? '?dept_id=' + encodeURIComponent(deptId) : ''
+  return request('/api/users' + q, {}, 'GET')
 }
 
 function issueStats() {

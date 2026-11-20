@@ -81,8 +81,8 @@ Page({
   },
 
   loadStaff(issue) {
-    api.users().then(res => {
-      const staff = res.items || []
+    api.users(issue.dept_id).then(res => {
+      const staff = (res.items || []).filter(u => u.username !== 'smokeprobe' && u.role !== 'safety')
       let idx = staff.findIndex(u => String(u.id) === String(issue.reporter_id))
       if (idx < 0) idx = 0
       this.setData({

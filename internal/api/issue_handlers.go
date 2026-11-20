@@ -220,15 +220,34 @@ func (s *Server) acceptIssue(c *gin.Context) {
 		Comment    string     `json:"comment"`
 	}
 	_ = c.ShouldBindJSON(&req)
+	issue, err := s.Store.GetIssue(c.Request.Context(), id)
+	if err != nil {
+		fail(c, http.StatusNotFound, "问题不存在")
+		return
+	}
 	assignee := req.AssigneeID
 	if assignee == nil {
-		if issue, err := s.Store.GetIssue(c.Request.Context(), id); err == nil {
-			assignee = issue.ReporterID
+		assignee = issue.ReporterID
+	}
+	if assignee != nil {
+		u, err := s.Store.GetUserByID(c.Request.Context(), *assignee)
+		if err != nil || u.Status != "active" {
+			fail(c, http.StatusBadRequest, "整改人不存在或已停用")
+			return
 		}
+		if issue.DeptID != nil && (u.DeptID == nil || *u.DeptID != *issue.DeptID) {
+			fail(c, http.StatusBadRequest, "只能指派本队人员")
+			return
+		}
+	}
+	deadline := req.Deadline
+	if deadline == nil && issue.Deadline == nil {
+		d := time.Now().Add(24 * time.Hour)
+		deadline = &d
 	}
 	s.transition(c, store.TransitionRequest{
 		IssueID: id, Action: "accept", From: []string{model.IssueReported}, To: model.IssueAccepted,
-		ActorID: cl.UserID, Comment: req.Comment, AssigneeID: assignee,
+		ActorID: cl.UserID, Comment: req.Comment, AssigneeID: assignee, Deadline: deadline,
 	})
 }
 
