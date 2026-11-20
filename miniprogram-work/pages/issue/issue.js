@@ -22,6 +22,11 @@ Page({
     items: [],
     tabs: ['全部', '我上报的', '指派给我'],
     tab: 0,
+    rectifyOpen: false,
+    rectifyId: 0,
+    rectifyResult: '',
+    rectifyPhotos: [],
+    rectifying: false,
     submitting: false,
     recording: false,
     audio: '',
@@ -238,22 +243,91 @@ Page({
     this.setData({ tab: Number(e.currentTarget.dataset.i) }, () => this.applyTab())
   },
 
-  /** 被指派人提交整改 */
-  rectify(e) {
-    const id = e.currentTarget.dataset.id
-    wx.showModal({
-      title: '提交整改',
-      editable: true,
-      placeholderText: '写清整改结果，例如：已补液加固，现场复测合格',
-      success: r => {
-        if (!r.confirm) return
-        const result = String(r.content || '').trim()
-        if (result.length < 2) return wx.showToast({ title: '写一句整改结果', icon: 'none' })
-        api.issueRectify({ id, result }).then(res => {
-          wx.showToast({ title: '状态：' + ((res && res.status) || '已更新'), icon: 'none' })
-          this.fetchMine()
-        }).catch(err => wx.showToast({ title: err.message, icon: 'none' }))
+  /** 责任人提交整改：文字 + 最多 3 张照片 */
+  startRectify(e) {
+    this.setData({
+      rectifyOpen: true,
+      rectifyId: e.currentTarget.dataset.id,
+      rectifyResult: '',
+      rectifyPhotos: []
+    })
+  },
+
+  cancelRectify() {
+    this.setData({ rectifyOpen: false, rectifyId: 0, rectifyPhotos: [] })
+  },
+
+  noop() {},
+
+  onRectifyInput(e) {
+    this.setData({ rectifyResult: e.detail.value })
+  },
+
+  addRectifyPhoto() {
+    const left = 3 - this.data.rectifyPhotos.length
+    if (left <= 0) return wx.showToast({ title: '最多 3 张', icon: 'none' })
+    wx.chooseMedia({
+      count: left,
+      mediaType: ['image'],
+      sizeType: ['compressed'],
+      success: res => {
+        (res.tempFiles || []).forEach(f => this.uploadRectifyPhoto(f.tempFilePath))
       }
+    })
+  },
+
+  uploadRectifyPhoto(path) {
+    const send = p => {
+      wx.getFileSystemManager().readFile({
+        filePath: p,
+        encoding: 'base64',
+        success: r => {
+          const ext = (p.split('.').pop() || 'jpg').toLowerCase()
+          const mime = ext === 'png' ? 'png' : ext === 'webp' ? 'webp' : 'jpeg'
+          api.upload('data:image/' + mime + ';base64,' + r.data).then(up => {
+            this.setData({ rectifyPhotos: this.data.rectifyPhotos.concat([api.absUrl(up.url)]) })
+          }).catch(e => wx.showToast({ title: e.message || '上传失败', icon: 'none' }))
+        },
+        fail: () => wx.showToast({ title: '读图失败', icon: 'none' })
+      })
+    }
+    wx.showLoading({ title: '上传中', mask: true })
+    wx.compressImage({
+      src: path,
+      quality: 60,
+      success: r => { wx.hideLoading(); send(r.tempFilePath || path) },
+      fail: () => { wx.hideLoading(); send(path) }
+    })
+  },
+
+  removeRectifyPhoto(e) {
+    const i = Number(e.currentTarget.dataset.i)
+    const list = this.data.rectifyPhotos.slice()
+    list.splice(i, 1)
+    this.setData({ rectifyPhotos: list })
+  },
+
+  previewRectifyPhoto(e) {
+    const src = e.currentTarget.dataset.src
+    if (src) wx.previewImage({ urls: [src], current: src })
+  },
+
+  submitRectify() {
+    if (this.data.rectifying) return
+    const result = String(this.data.rectifyResult || '').trim()
+    if (result.length < 2) return wx.showToast({ title: '写一句整改结果', icon: 'none' })
+    this.setData({ rectifying: true })
+    api.issueRectify({
+      id: this.data.rectifyId,
+      result,
+      photos: this.data.rectifyPhotos
+    }).then(res => {
+      this.setData({ rectifying: false, rectifyOpen: false, rectifyPhotos: [] })
+      wx.showToast({ title: '状态：' + ((res && res.status) || '已整改'), icon: 'none' })
+      this.fetchMine()
+    }).catch(err => {
+      this.setData({ rectifying: false })
+      wx.showToast({ title: err.message, icon: 'none' })
     })
   },
 

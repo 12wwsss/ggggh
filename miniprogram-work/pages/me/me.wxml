@@ -24,6 +24,16 @@
   </view>
 
   <view class="wrap">
+    <view wx:if="{{assignedCount}}" class="card todo" bindtap="goMyIssues">
+      <view class="between">
+        <view>
+          <view class="small bold">有 {{assignedCount}} 条工单等你整改</view>
+          <view class="tiny muted" style="margin-top:6rpx">安全科已指派，点这里处理</view>
+        </view>
+        <text class="arrow">›</text>
+      </view>
+    </view>
+
     <view wx:if="{{score && score.attempts}}" class="card score">
       <view class="between">
         <text class="tiny muted bold">我的答题成绩</text>

@@ -98,3 +98,4 @@
 .idbox { flex: 1; min-width: 0; margin-left: 16rpx; }
 .avatar-btn { flex: 0 0 112rpx; width: 112rpx; height: 112rpx; }
 .avatar-img, .avatar { width: 112rpx; height: 112rpx; }
+.todo { margin-top: 20rpx; border-color: #FFD34D; background: #FFFBE8; }

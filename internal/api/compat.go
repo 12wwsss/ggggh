@@ -264,7 +264,7 @@ func (s *Server) compatCreateIssue(c *gin.Context) {
 			continue
 		}
 		_, _ = s.Store.AddIssueAttachment(c.Request.Context(), &model.IssueAttachment{
-			IssueID: created.ID, FileName: name, UploaderID: &u.ID,
+			IssueID: created.ID, FileName: name, UploaderID: &u.ID, Kind: "report",
 		})
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true, "item": gin.H{"id": created.ID, "code": created.Code}})
@@ -307,6 +307,7 @@ func (s *Server) compatListIssues(c *gin.Context) {
 			continue
 		}
 		photos := []string{}
+		rectifyPhotos := []string{}
 		if atts, err := s.Store.ListIssueAttachments(c.Request.Context(), it.ID); err == nil {
 			for _, a := range atts {
 				name := a.FileName
@@ -317,7 +318,11 @@ func (s *Server) compatListIssues(c *gin.Context) {
 				if _, err := os.Stat(filepath.Join(s.Cfg.StorageDir, "uploads", name)); err != nil {
 					continue
 				}
-				photos = append(photos, "/uploads/"+name)
+				if a.Kind == "rectify" {
+					rectifyPhotos = append(rectifyPhotos, "/uploads/"+name)
+				} else {
+					photos = append(photos, "/uploads/"+name)
+				}
 			}
 		}
 		note := it.Result
@@ -325,22 +330,23 @@ func (s *Server) compatListIssues(c *gin.Context) {
 			note = it.VerifyComment
 		}
 		items = append(items, gin.H{
-			"id":          it.ID,
-			"code":        it.Code,
-			"title":       it.Title,
-			"desc":        it.Description,
-			"type":        it.CateName,
-			"dept_id":     it.DeptID,
-			"level":       it.Severity,
-			"status":      label,
-			"status_text": compatIssueStatusText(it.Status),
-			"raw_status":  it.Status,
-			"createdAt":   it.CreatedAt.Format(time.RFC3339),
-			"handleNote":  note,
-			"photos":      photos,
-			"reporter":    it.Reporter,
-			"reporter_id": it.ReporterID,
-			"assignee_id": it.AssigneeID,
+			"id":             it.ID,
+			"code":           it.Code,
+			"title":          it.Title,
+			"desc":           it.Description,
+			"type":           it.CateName,
+			"dept_id":        it.DeptID,
+			"level":          it.Severity,
+			"status":         label,
+			"status_text":    compatIssueStatusText(it.Status),
+			"raw_status":     it.Status,
+			"createdAt":      it.CreatedAt.Format(time.RFC3339),
+			"handleNote":     note,
+			"photos":         photos,
+			"rectify_photos": rectifyPhotos,
+			"reporter":       it.Reporter,
+			"reporter_id":    it.ReporterID,
+			"assignee_id":    it.AssigneeID,
 		})
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true, "items": items, "total": len(items)})
@@ -598,8 +604,9 @@ func (s *Server) compatRectify(c *gin.Context) {
 		return
 	}
 	var req struct {
-		ID     int64  `json:"id"`
-		Result string `json:"result"`
+		ID     int64    `json:"id"`
+		Result string   `json:"result"`
+		Photos []string `json:"photos"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil || req.ID <= 0 || strings.TrimSpace(req.Result) == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "message": "请填写整改结果"})
@@ -621,6 +628,15 @@ func (s *Server) compatRectify(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusConflict, gin.H{"ok": false, "message": "当前状态不能提交整改"})
 		return
+	}
+	for _, raw := range req.Photos {
+		name := compatUploadName(raw)
+		if name == "" {
+			continue
+		}
+		_, _ = s.Store.AddIssueAttachment(c.Request.Context(), &model.IssueAttachment{
+			IssueID: req.ID, FileName: name, UploaderID: &u.ID, Kind: "rectify",
+		})
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true, "status": compatIssueStatus(updated.Status)})
 }

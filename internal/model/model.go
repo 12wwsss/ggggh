@@ -305,6 +305,7 @@ type IssueAttachment struct {
 	FileSize   int64     `json:"file_size"`
 	SHA256     string    `json:"sha256"`
 	UploaderID *int64    `json:"uploader_id"`
+	Kind       string    `json:"kind"`
 	CreatedAt  time.Time `json:"created_at"`
 }
 

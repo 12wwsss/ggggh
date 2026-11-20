@@ -55,6 +55,7 @@ Page({
         return {
           ...it,
           photos: (it.photos || []).map(p => api.absUrl(p)),
+          rectifyPhotos: (it.rectify_photos || []).map(p => api.absUrl(p)),
           stCls: cls[it.status] || 'pending',
           actText: act[it.raw_status] || '提交',
           canAct,

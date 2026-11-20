@@ -232,15 +232,15 @@ func (s *Store) LastFlowActor(ctx context.Context, issueID int64, actions ...str
 func (s *Store) AddIssueAttachment(ctx context.Context, a *model.IssueAttachment) (int64, error) {
 	var id int64
 	err := s.pool.QueryRow(ctx, `insert into issue_attachment(issue_id, file_name, stored_path,
-		file_size, sha256, uploader_id) values ($1,$2,$3,$4,nullif($5,''),$6) returning id`,
-		a.IssueID, a.FileName, a.FileName, a.FileSize, a.SHA256, a.UploaderID).Scan(&id)
+		file_size, sha256, uploader_id, kind) values ($1,$2,$3,$4,nullif($5,''),$6,coalesce(nullif($7,''),'report')) returning id`,
+		a.IssueID, a.FileName, a.FileName, a.FileSize, a.SHA256, a.UploaderID, a.Kind).Scan(&id)
 	return id, wrapErr("写入附件", err)
 }
 
 // ListIssueAttachments 查询附件。
 func (s *Store) ListIssueAttachments(ctx context.Context, issueID int64) ([]model.IssueAttachment, error) {
 	rows, err := s.pool.Query(ctx, `select id, issue_id, file_name, file_size, coalesce(sha256,''),
-		uploader_id, created_at from issue_attachment where issue_id=$1 order by id`, issueID)
+		uploader_id, coalesce(kind,'report'), created_at from issue_attachment where issue_id=$1 order by id`, issueID)
 	if err != nil {
 		return nil, wrapErr("查询附件", err)
 	}
@@ -248,7 +248,7 @@ func (s *Store) ListIssueAttachments(ctx context.Context, issueID int64) ([]mode
 	var out []model.IssueAttachment
 	for rows.Next() {
 		var a model.IssueAttachment
-		if err := rows.Scan(&a.ID, &a.IssueID, &a.FileName, &a.FileSize, &a.SHA256, &a.UploaderID, &a.CreatedAt); err != nil {
+		if err := rows.Scan(&a.ID, &a.IssueID, &a.FileName, &a.FileSize, &a.SHA256, &a.UploaderID, &a.Kind, &a.CreatedAt); err != nil {
 			return nil, err
 		}
 		out = append(out, a)

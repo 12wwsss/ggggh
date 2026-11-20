@@ -34,7 +34,8 @@ Page({
     passRate: 0,
     total: 0,
     contact: '',
-    avatar: ''
+    avatar: '',
+    assignedCount: 0
   },
 
   onLoad() {
@@ -110,6 +111,7 @@ Page({
     this.loadScore()
     this.loadContact()
     this.loadProfile()
+    this.loadAssignedCount()
     const best = wx.getStorageSync('quizBest') || 0
     const wrong = wx.getStorageSync('wrongBook') || []
     const quizCount = wx.getStorageSync('quizCount') || 0
@@ -119,6 +121,21 @@ Page({
 
   toHandle() {
     wx.navigateTo({ url: '/pages/handle/handle' })
+  },
+
+  goMyIssues() {
+    wx.navigateTo({ url: '/pages/issue/issue' })
+  },
+
+  /** 指派给我、还没整改的工单数（红点） */
+  loadAssignedCount() {
+    if (!auth.token()) return this.setData({ assignedCount: 0 })
+    api.issues().then(res => {
+      const me = auth.user() || {}
+      const n = (res.items || []).filter(x =>
+        String(x.assignee_id) === String(me.id) && x.raw_status === 'accepted').length
+      this.setData({ assignedCount: n })
+    }).catch(() => {})
   },
 
   /** 头像 / 昵称（跟着微信或设备走） */

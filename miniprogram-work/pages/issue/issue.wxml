@@ -79,11 +79,29 @@
         </view>
         <view wx:if="{{item.handleNote}}" class="rec-note">处置：{{item.handleNote}}</view>
         <view wx:if="{{item.canRectify}}" class="btn-mini" style="margin-top:14rpx"
-              data-id="{{item.id}}" catchtap="rectify">提交整改</view>
+              data-id="{{item.id}}" catchtap="startRectify">提交整改</view>
         <view wx:elif="{{!item.handleNote}}" class="tiny muted" style="margin-top:8rpx">点击查看详情</view>
       </view>
       <view wx:if="{{!items.length}}" class="tip">这个分类下暂时没有工单</view>
     </block>
   </view>
   <view class="bottom-space"></view>
+
+  <view wx:if="{{rectifyOpen}}" class="mask" catchtap="cancelRectify">
+    <view class="sheet" catchtap="noop">
+      <view class="sheet-h">提交整改</view>
+      <textarea class="ta" placeholder="写清整改结果，例如：已更换立柱密封，现场试压无渗漏"
+                placeholder-class="ph" maxlength="300" bindinput="onRectifyInput" value="{{rectifyResult}}" />
+      <view class="row photos" style="margin-top:16rpx">
+        <view wx:for="{{rectifyPhotos}}" wx:key="*this" class="ph-wrap">
+          <image src="{{item}}" mode="aspectFill" class="ph" data-src="{{item}}" bindtap="previewRectifyPhoto" />
+          <view class="ph-del" data-i="{{index}}" catchtap="removeRectifyPhoto">×</view>
+        </view>
+        <view wx:if="{{rectifyPhotos.length < 3}}" class="ph-add" bindtap="addRectifyPhoto">＋</view>
+      </view>
+      <view class="tiny muted" style="margin-top:10rpx">最多 3 张，拍了整改后的现场照片验收人能看到</view>
+      <view class="btn-primary" style="margin-top:20rpx" bindtap="submitRectify">{{rectifying ? '提交中…' : '提交整改'}}</view>
+      <view class="sheet-cancel" bindtap="cancelRectify">取消</view>
+    </view>
+  </view>
 </view>

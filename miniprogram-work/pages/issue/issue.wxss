@@ -84,3 +84,12 @@
 .tab-on { background: #FFC400; color: #141A21; font-weight: 700; }
 .tag-assigned { font-size: 20rpx; color: #2E6BE6; background: #EAF0FD; border-radius: 8rpx; padding: 2rpx 10rpx; margin-left: 10rpx; font-weight: 400; }
 .btn-mini { display: inline-block; background: #FFC400; color: #141A21; font-size: 26rpx; font-weight: 700; padding: 12rpx 32rpx; border-radius: 999rpx; }
+.mask { position: fixed; inset: 0; background: rgba(10,15,20,.45); z-index: 90; display: flex; align-items: flex-end; }
+.sheet { width: 100%; background: #fff; border-radius: 28rpx 28rpx 0 0; padding: 32rpx 32rpx 48rpx; box-sizing: border-box; }
+.sheet-h { font-size: 32rpx; font-weight: 700; margin-bottom: 20rpx; }
+.sheet-cancel { text-align: center; color: #8A94A0; font-size: 26rpx; margin-top: 20rpx; }
+.photos { display: flex; gap: 14rpx; flex-wrap: wrap; }
+.ph-wrap { position: relative; width: 150rpx; height: 150rpx; }
+.ph { width: 150rpx; height: 150rpx; border-radius: 12rpx; background: #EEE; }
+.ph-del { position: absolute; right: -8rpx; top: -8rpx; width: 36rpx; height: 36rpx; line-height: 32rpx; text-align: center; border-radius: 50%; background: rgba(0,0,0,.6); color: #fff; font-size: 26rpx; }
+.ph-add { width: 150rpx; height: 150rpx; border-radius: 12rpx; border: 2rpx dashed #D4DAE1; color: #B7C2CE; display: flex; align-items: center; justify-content: center; font-size: 52rpx; }

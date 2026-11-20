@@ -38,6 +38,12 @@
           </view>
         </view>
 
+        <view wx:if="{{open === item.id && item.rectifyPhotos.length}}" class="photos-row" catchtap="noop">
+          <text class="tiny muted" style="width:100%">整改照片</text>
+          <image wx:for="{{item.rectifyPhotos}}" wx:for-item="p" wx:key="*this" src="{{p}}" mode="aspectFill"
+                 class="ph-img" data-src="{{p}}" catchtap="previewPhoto" />
+        </view>
+
         <view wx:if="{{open === item.id && item.photos.length}}" class="photos-row" catchtap="noop">
           <image wx:for="{{item.photos}}" wx:for-item="p" wx:key="*this" src="{{p}}" mode="aspectFill"
                  class="ph-img" data-src="{{p}}" catchtap="previewPhoto" />
