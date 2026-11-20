@@ -284,6 +284,10 @@ func (s *Server) rectifyIssue(c *gin.Context) {
 		fail(c, http.StatusNotFound, "问题不存在")
 		return
 	}
+	if issue.Status != model.IssueAccepted {
+		fail(c, http.StatusConflict, "当前状态不允许提交整改")
+		return
+	}
 	if issue.AssigneeID == nil || *issue.AssigneeID != cl.UserID {
 		if !adminForceAllowed(cl.Role, req.Force, req.Reason) {
 			fail(c, http.StatusForbidden, "整改需由指派人提交（管理员可强制代提交并说明原因）")
@@ -319,6 +323,15 @@ func (s *Server) verifyIssue(c *gin.Context) {
 	cl := claims(c)
 	if !isIssueManager(cl.Role) {
 		fail(c, http.StatusForbidden, "没有验收权限")
+		return
+	}
+	issue, err := s.Store.GetIssue(c.Request.Context(), id)
+	if err != nil {
+		fail(c, http.StatusNotFound, "问题不存在")
+		return
+	}
+	if issue.Status != model.IssueRectified {
+		fail(c, http.StatusConflict, "当前状态不允许验收")
 		return
 	}
 	pass := true
@@ -368,6 +381,15 @@ func (s *Server) closeIssue(c *gin.Context) {
 	cl := claims(c)
 	if !isIssueManager(cl.Role) {
 		fail(c, http.StatusForbidden, "没有闭环权限")
+		return
+	}
+	issue, err := s.Store.GetIssue(c.Request.Context(), id)
+	if err != nil {
+		fail(c, http.StatusNotFound, "问题不存在")
+		return
+	}
+	if issue.Status != model.IssueVerified {
+		fail(c, http.StatusConflict, "当前状态不允许闭环")
 		return
 	}
 	action := "close"

@@ -401,7 +401,7 @@ func main() {
 		map[string]any{"pass": true, "comment": "现场验收通过"})
 	check(code == http.StatusOK, "验收通过")
 
-	code, _ = admin.call("POST", fmt.Sprintf("/api/v1/issues/%d/close", issueID),
+	code, _ = leader.call("POST", fmt.Sprintf("/api/v1/issues/%d/close", issueID),
 		map[string]any{"comment": "闭环"})
 	check(code == http.StatusOK, "问题闭环")
 
