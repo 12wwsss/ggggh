@@ -248,6 +248,11 @@ func (s *Server) compatCreateIssue(c *gin.Context) {
 	if u.DeptID != nil {
 		issue.DeptID = u.DeptID
 	}
+	if req.Type != "" {
+		if cateID, err := s.Store.IssueCateIDByName(c.Request.Context(), req.Type); err == nil && cateID > 0 {
+			issue.CateID = &cateID
+		}
+	}
 	created, err := s.Store.CreateIssue(c.Request.Context(), issue)
 	if err != nil {
 		s.Log.Error("兼容上报失败", "err", err)
@@ -268,6 +273,49 @@ func (s *Server) compatCreateIssue(c *gin.Context) {
 		})
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true, "item": gin.H{"id": created.ID, "code": created.Code}})
+}
+
+// compatIssueLoc 从描述前缀里取上报位置（兼容旧数据没有独立字段）。
+func compatIssueLoc(desc string) string {
+	const key = "位置："
+	i := strings.Index(desc, key)
+	if i < 0 {
+		return ""
+	}
+	rest := desc[i+len(key):]
+	if j := strings.IndexByte(rest, '\n'); j >= 0 {
+		return strings.TrimSpace(rest[:j])
+	}
+	return strings.TrimSpace(rest)
+}
+
+// compatIssueType 分类优先用表里的分类名，旧数据没有分类时从【类型】前缀取。
+func compatIssueType(cateName, desc string) string {
+	if cateName != "" {
+		return cateName
+	}
+	if strings.HasPrefix(desc, "【") {
+		if j := strings.Index(desc, "】"); j > len("【") {
+			return desc[len("【"):j]
+		}
+	}
+	return ""
+}
+
+// compatIssueDesc 去掉描述里的【类型】和“位置：”前缀，避免页面重复显示。
+func compatIssueDesc(desc string) string {
+	if strings.HasPrefix(desc, "【") {
+		if j := strings.Index(desc, "】"); j > 0 {
+			desc = strings.TrimSpace(desc[j+len("】"):])
+		}
+	}
+	const key = "位置："
+	if strings.HasPrefix(desc, key) {
+		if j := strings.IndexByte(desc, '\n'); j >= 0 {
+			desc = strings.TrimSpace(desc[j+1:])
+		}
+	}
+	return desc
 }
 
 func (s *Server) compatListIssues(c *gin.Context) {
@@ -333,8 +381,9 @@ func (s *Server) compatListIssues(c *gin.Context) {
 			"id":             it.ID,
 			"code":           it.Code,
 			"title":          it.Title,
-			"desc":           it.Description,
-			"type":           it.CateName,
+			"desc":           compatIssueDesc(it.Description),
+			"loc":            compatIssueLoc(it.Description),
+			"type":           compatIssueType(it.CateName, it.Description),
 			"dept_id":        it.DeptID,
 			"level":          it.Severity,
 			"status":         label,

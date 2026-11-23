@@ -545,12 +545,26 @@ Page({
   openDetail(e) {
     const it = this.data.items[Number(e.currentTarget.dataset.i)]
     if (!it) return
+    const photos = it.photos || []
+    const lines = [
+      '编号：' + (it.code || it.id),
+      '类型：' + (it.type || '—'),
+      '位置：' + (it.loc || '—'),
+      '状态：' + (it.status_text || it.status),
+      '上报：' + (it.createdAt || ''),
+      it.handleNote ? '处置：' + it.handleNote : '处置：等待安全科处理'
+    ]
+    if (photos.length) lines.push('照片：' + photos.length + ' 张')
     wx.showModal({
       title: it.title,
-      content: '类型：' + (it.type || '—') + '\n状态：' + (it.status_text || it.status) +
-        '\n上报：' + (it.createdAt || '') +
-        (it.handleNote ? '\n处置：' + it.handleNote : '\n处置：等待安全科处理'),
-      showCancel: false
+      content: lines.join('\n'),
+      showCancel: false,
+      confirmText: photos.length ? '看照片' : '知道了',
+      success: r => {
+        if (r.confirm && photos.length) {
+          wx.previewImage({ urls: photos, current: photos[0] })
+        }
+      }
     })
   }
 })
