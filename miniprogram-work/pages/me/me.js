@@ -2,7 +2,7 @@ const app = getApp()
 const api = require('../../utils/api.js')
 const auth = require('../../utils/auth.js')
 
-function buildMenus(best, wrongCount, quizCount, s, contact, manager) {
+function buildMenus(best, wrongCount, quizCount, s, contact, manager, hasTraining) {
   const sum = s || {}
   const hours = sum.hours || 0
   const pending = (sum.issue && sum.issue.pending) || 0
@@ -17,6 +17,9 @@ function buildMenus(best, wrongCount, quizCount, s, contact, manager) {
   if (manager) {
     list.unshift({ t: '问题处理', ch: '处', sub: '受理 · 整改 · 验收 · 闭环', c: '#12B76A', bg: '#E8F7EF', path: '/pages/handle/handle' })
   }
+  if (hasTraining) {
+    list.splice(1, 0, { t: '新员工带培', ch: '带', sub: '4 周带培计划 · 阶段进度', c: '#0E9F6E', bg: '#E8F7EF', path: '/pages/training/training' })
+  }
   return list
 }
 
@@ -28,7 +31,7 @@ Page({
       { v: '0', lb: '答题次数' },
       { v: '0', lb: '上报问题' }
     ],
-    menus: buildMenus(0, 0, 0, null, '', false),
+    menus: buildMenus(0, 0, 0, null, '', false, false),
     score: null,
     teamStat: null,
     passRate: 0,
@@ -113,11 +116,12 @@ Page({
     this.loadContact()
     this.loadProfile()
     this.loadTodos()
+    this.loadTraining()
     const best = wx.getStorageSync('quizBest') || 0
     const wrong = wx.getStorageSync('wrongBook') || []
     const quizCount = wx.getStorageSync('quizCount') || 0
     this._menu = { best, wrong: wrong.length, quiz: quizCount, s: null }
-    this.setData({ menus: buildMenus(best, wrong.length, quizCount, null, this.data.contact, this.isManager) })
+    this.setData({ menus: buildMenus(best, wrong.length, quizCount, null, this.data.contact, this.isManager, this.hasTraining) })
   },
 
   toHandle() {
@@ -142,6 +146,18 @@ Page({
     if (!auth.token()) return this.setData({ todos: [], todoTotal: 0 })
     api.notifications().then(res => {
       this.setData({ todos: res.items || [], todoTotal: res.total || 0 })
+    }).catch(() => {})
+  },
+
+  /** 有带培计划才显示「新员工带培」入口 */
+  loadTraining() {
+    if (!auth.token()) return
+    api.training().then(res => {
+      const has = (res.plans || []).length > 0
+      if (has !== this.hasTraining) {
+        this.hasTraining = has
+        this.loadSummary()
+      }
     }).catch(() => {})
   },
 
@@ -204,7 +220,7 @@ Page({
       const contact = o.contact || ''
       this.setData({ contact })
       const m = this._menu || { best: 0, wrong: 0, quiz: 0, s: null }
-      this.setData({ menus: buildMenus(m.best, m.wrong, m.quiz, m.s, contact, this.isManager) })
+      this.setData({ menus: buildMenus(m.best, m.wrong, m.quiz, m.s, contact, this.isManager, this.hasTraining) })
     }).catch(() => {})
   },
 
@@ -227,7 +243,7 @@ Page({
           { v: String((s.quiz && s.quiz.attempts) || 0), lb: '答题次数' },
           { v: String((s.issue && s.issue.total) || 0), lb: '上报问题' }
         ],
-        menus: buildMenus(best, wrong, quiz, s, this.data.contact, this.isManager)
+        menus: buildMenus(best, wrong, quiz, s, this.data.contact, this.isManager, this.hasTraining)
       })
     }).catch(() => {})
   },
