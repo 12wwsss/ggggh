@@ -103,6 +103,7 @@ func New(cfg *config.Config, st *store.Store, svc *service.Service, mgr *auth.Ma
 	compat.POST("/exam/submit", s.compatExamSubmit)
 	compat.POST("/learn/read", s.compatLearnRead)
 	compat.GET("/wrongbook", s.compatWrongList)
+	compat.GET("/training", s.compatTraining)
 	compat.POST("/wrongbook", s.compatWrongSet)
 	compat.GET("/exam/records", s.compatExamRecords)
 	compat.GET("/exam/records/:id", s.compatExamReview)
@@ -139,6 +140,11 @@ func New(cfg *config.Config, st *store.Store, svc *service.Service, mgr *auth.Ma
 	authed := v1.Group("", s.authMiddleware(), s.auditMiddleware)
 	authed.GET("/auth/me", s.me)
 	authed.POST("/auth/password", s.changePassword)
+
+	// 新员工带培
+	authed.GET("/training/plans", s.require("user", "read"), s.listTrainingPlans)
+	authed.GET("/training/plans/:id", s.require("user", "read"), s.getTrainingPlan)
+	authed.POST("/training/stages/:id", s.require("user", "write"), s.setTrainingStage)
 
 	// 组织与权限
 	authed.GET("/depts", s.require("dept", "read"), s.listDepts)

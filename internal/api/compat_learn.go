@@ -130,6 +130,35 @@ func (s *Server) compatQuizStatsReal(c *gin.Context) {
 	})
 }
 
+// compatTraining 新员工带培计划。
+func (s *Server) compatTraining(c *gin.Context) {
+	u := s.compatCurrentUser(c)
+	if u == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"ok": false, "message": "请先登录"})
+		return
+	}
+	plan, err := s.Store.GetTrainingPlan(c.Request.Context(), u.ID)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"ok": true, "plans": []any{}})
+		return
+	}
+	stages := make([]gin.H, 0, len(plan.Stages))
+	for _, st := range plan.Stages {
+		stages = append(stages, gin.H{
+			"name": st.Week, "goal": st.Goal, "tasks": st.Tasks, "done": st.Done,
+		})
+	}
+	weak := []any{}
+	if n, err := s.Store.WrongCount(c.Request.Context(), u.ID); err == nil && n > 0 {
+		weak = append(weak, gin.H{"title": "错题待巩固", "from": "错题本 " + strconv.Itoa(n) + " 道"})
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true, "plans": []gin.H{{
+		"id": plan.ID, "title": plan.Title, "mentor": plan.Mentor,
+		"totalWeeks": plan.TotalWeeks, "target": plan.Target,
+		"stages": stages, "weakPoints": weak,
+	}}})
+}
+
 // compatWrongList 错题本列表。
 func (s *Server) compatWrongList(c *gin.Context) {
 	u := s.compatCurrentUser(c)

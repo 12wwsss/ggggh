@@ -32,11 +32,11 @@ Page({
   },
 
   toQuiz() {
-    wx.navigateTo({ url: '/pages/quiz/quiz?job=采煤' })
+    wx.navigateTo({ url: '/pages/quiz/quiz?count=5' })
   },
 
   toRisk() {
-    wx.switchTab ? wx.navigateTo({ url: '/pages/study/study' }) : wx.navigateTo({ url: '/pages/study/study' })
+    wx.navigateTo({ url: '/pages/study/study' })
   },
 
   retry() {
