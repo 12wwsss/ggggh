@@ -70,8 +70,7 @@ Page({
     this.startById(e.currentTarget.dataset.id)
   },
 
-  startById(id) {
-    const ex = this.data.exams.find(x => x.id === id)
+  startById(id) {    const ex = this.data.exams.find(x => x.id === id)
     if (!ex) return
     if (ex.status === 'done') {
       return wx.showToast({ title: '这份卷已交过', icon: 'none' })
@@ -180,6 +179,7 @@ Page({
     const wrongs = []
     detail.forEach(d => {
       if (!d.id) return
+      api.wrongSet(d.id, !!d.ok)
       if (d.ok) rightIds[d.id] = 1
       else wrongs.push(d)
     })
@@ -199,6 +199,45 @@ Page({
       }
     })
     wx.setStorageSync('wrongBook', book.slice(-200))
+  },
+
+  /** 历次成绩：选一次回看答卷 */
+  history(e) {
+    const paperId = e.currentTarget.dataset.id
+    wx.showLoading({ title: '加载记录', mask: true })
+    api.examRecords(paperId).then(res => {
+      wx.hideLoading()
+      const items = res.items || []
+      if (!items.length) return wx.showToast({ title: '还没有考试记录', icon: 'none' })
+      wx.showActionSheet({
+        itemList: items.map(x => '第 ' + x.attempt_no + ' 次 · ' + x.score + ' 分 · ' + (x.passed ? '通过' : '未通过')),
+        success: r => {
+          const rec = items[r.tapIndex]
+          if (rec) this.review(rec.id)
+        }
+      })
+    }).catch(err => {
+      wx.hideLoading()
+      wx.showToast({ title: err.message, icon: 'none' })
+    })
+  },
+
+  review(id) {
+    wx.showLoading({ title: '加载答卷', mask: true })
+    api.examReview(id).then(res => {
+      wx.hideLoading()
+      const lines = (res.detail || []).map((d, i) =>
+        (d.ok ? '✓' : '✗') + ' ' + (i + 1) + '. ' + d.q +
+        '\n   你：' + (d.your || '未答') + '　正确：' + ('ABCD'[d.a] || ''))
+      wx.showModal({
+        title: '得分 ' + (res.result ? res.result.score : '—') + ' 分',
+        content: lines.join('\n'),
+        showCancel: false
+      })
+    }).catch(err => {
+      wx.hideLoading()
+      wx.showToast({ title: err.message, icon: 'none' })
+    })
   },
 
   tick() {

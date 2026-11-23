@@ -75,6 +75,7 @@ Page({
     const id = e.currentTarget.dataset.id
     const it = (this.data.learnItems || []).find(x => String(x.id) === String(id))
     if (!it) return
+    this.learnAt = Date.now()
     this.setData({ learnOpen: true, learnCur: it })
   },
 
@@ -91,7 +92,8 @@ Page({
       return wx.showToast({ title: '已标记完成', icon: 'none' })
     }
     this.setData({ learnBusy: true })
-    api.learnProgress(it.id, 100, 60).then(() => {
+    const secs = Math.min(3600, Math.max(30, Math.round((Date.now() - (this.learnAt || Date.now())) / 1000)))
+    api.learnProgress(it.id, 100, secs).then(() => {
       this.setData({ learnBusy: false, learnOpen: false })
       wx.showToast({ title: '已标记完成', icon: 'success' })
       this.fetch(true)

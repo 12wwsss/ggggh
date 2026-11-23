@@ -547,26 +547,41 @@ Page({
   openDetail(e) {
     const it = this.data.items[Number(e.currentTarget.dataset.i)]
     if (!it) return
-    const photos = it.photos || []
-    const lines = [
-      '编号：' + (it.code || it.id),
-      '类型：' + (it.type || '—'),
-      '位置：' + (it.loc || '—'),
-      '状态：' + (it.status_text || it.status),
-      '上报：' + (it.createdAt || ''),
-      it.rejectReason ? '驳回原因：' + it.rejectReason : (it.handleNote ? '处置：' + it.handleNote : '处置：等待安全科处理')
-    ]
-    if (photos.length) lines.push('照片：' + photos.length + ' 张')
-    wx.showModal({
-      title: it.title,
-      content: lines.join('\n'),
-      showCancel: false,
-      confirmText: photos.length ? '看照片' : '知道了',
-      success: r => {
-        if (r.confirm && photos.length) {
-          wx.previewImage({ urls: photos, current: photos[0] })
-        }
+    const show = flows => {
+      const photos = it.photos || []
+      const lines = [
+        '编号：' + (it.code || it.id),
+        '类型：' + (it.type || '—'),
+        '位置：' + (it.loc || '—'),
+        '状态：' + (it.status_text || it.status),
+        '上报：' + (it.createdAt || ''),
+        it.rejectReason ? '驳回原因：' + it.rejectReason : (it.handleNote ? '处置：' + it.handleNote : '处置：等待安全科处理')
+      ]
+      if (flows && flows.length) {
+        lines.push('处理进度：')
+        flows.slice(0, 6).forEach(f => {
+          lines.push('· ' + (f.text || f.action) + ' ' + (f.actor || '') + ' ' + (f.atText || ''))
+        })
+        if (flows.length > 6) lines.push('…共 ' + flows.length + ' 条')
       }
-    })
+      if (photos.length) lines.push('照片：' + photos.length + ' 张')
+      wx.showModal({
+        title: it.title,
+        content: lines.join('\n'),
+        showCancel: false,
+        confirmText: photos.length ? '看照片' : '知道了',
+        success: r => {
+          if (r.confirm && photos.length) {
+            wx.previewImage({ urls: photos, current: photos[0] })
+          }
+        }
+      })
+    }
+    this._flows = this._flows || {}
+    if (this._flows[it.id]) return show(this._flows[it.id])
+    api.issueFlow(it.id).then(res => {
+      this._flows[it.id] = res.items || []
+      show(this._flows[it.id])
+    }).catch(() => show([]))
   }
 })

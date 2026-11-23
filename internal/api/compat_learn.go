@@ -130,6 +130,129 @@ func (s *Server) compatQuizStatsReal(c *gin.Context) {
 	})
 }
 
+// compatWrongList 错题本列表。
+func (s *Server) compatWrongList(c *gin.Context) {
+	u := s.compatCurrentUser(c)
+	if u == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"ok": false, "message": "请先登录"})
+		return
+	}
+	list, err := s.Store.ListWrongQuestions(c.Request.Context(), u.ID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "message": "错题本加载失败"})
+		return
+	}
+	items := make([]gin.H, 0, len(list))
+	for _, w := range list {
+		items = append(items, gin.H{
+			"id": w.ID, "q": w.Stem, "o": w.Options, "a": letterIndex(w.Answer),
+			"e": w.Analysis, "c": w.Category, "job": w.Job, "times": w.Times,
+		})
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true, "items": items})
+}
+
+// compatWrongSet 答错收录 / 答对移出。
+func (s *Server) compatWrongSet(c *gin.Context) {
+	u := s.compatCurrentUser(c)
+	if u == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"ok": false, "message": "请先登录"})
+		return
+	}
+	var req struct {
+		ID int64 `json:"id"`
+		OK bool  `json:"ok"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil || req.ID <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "message": "参数不正确"})
+		return
+	}
+	if err := s.Store.SetWrongQuestion(c.Request.Context(), u.ID, req.ID, req.OK); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "message": "保存失败"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+// compatExamRecords 我的历次考试（按试卷）。
+func (s *Server) compatExamRecords(c *gin.Context) {
+	u := s.compatCurrentUser(c)
+	if u == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"ok": false, "message": "请先登录"})
+		return
+	}
+	var paperID *int64
+	if v := c.Query("paperId"); v != "" {
+		if id, err := strconv.ParseInt(v, 10, 64); err == nil && id > 0 {
+			paperID = &id
+		}
+	}
+	recs, _, err := s.Store.ListExamRecords(c.Request.Context(), paperID, nil, &u.ID, 50, 0)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "message": "查询失败"})
+		return
+	}
+	items := make([]gin.H, 0, len(recs))
+	for _, r := range recs {
+		if r.Status == "in_progress" {
+			continue
+		}
+		at := ""
+		if r.SubmittedAt != nil {
+			at = r.SubmittedAt.Format("01-02 15:04")
+		}
+		items = append(items, gin.H{
+			"id": r.ID, "paper_id": r.PaperID, "score": r.Score, "passed": r.Passed,
+			"attempt_no": r.AttemptNo, "submittedAt": at,
+		})
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true, "items": items})
+}
+
+// compatExamReview 回看某次答卷。
+func (s *Server) compatExamReview(c *gin.Context) {
+	u := s.compatCurrentUser(c)
+	if u == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"ok": false, "message": "请先登录"})
+		return
+	}
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil || id <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "message": "参数不正确"})
+		return
+	}
+	rec, err := s.Store.GetExamRecordByID(c.Request.Context(), id)
+	if err != nil || rec.UserID != u.ID {
+		c.JSON(http.StatusNotFound, gin.H{"ok": false, "message": "记录不存在"})
+		return
+	}
+	paper, err := s.Store.GetPaper(c.Request.Context(), rec.PaperID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "message": "试卷不存在"})
+		return
+	}
+	qs, err := s.Store.ListQuizQuestions(c.Request.Context(), nil, paper.QuestionIDs)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "message": "题目缺失"})
+		return
+	}
+	detail := make([]gin.H, 0, len(qs))
+	for _, q := range qs {
+		letter := rec.Answers[strconv.FormatInt(q.ID, 10)]
+		d := questionJSON(q, true)
+		d["your"] = letter
+		d["ok"] = letter != "" && strings.EqualFold(letter, q.Answer)
+		detail = append(detail, d)
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"ok": true, "result": gin.H{
+			"score": rec.Score, "passed": rec.Passed, "attempt_no": rec.AttemptNo,
+			"total_score": paper.TotalScore, "pass_score": paper.PassScore,
+		},
+		"detail": detail,
+	})
+}
+
 // compatLearnItems 学习清单（含本人完成状态）。
 func (s *Server) compatLearnItems(c *gin.Context) {
 	u := s.compatCurrentUser(c)

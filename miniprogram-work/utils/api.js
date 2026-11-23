@@ -193,6 +193,22 @@ function noticeAck(id) {
   return request('/api/notice/read', { id })
 }
 
+function wrongList() {
+  return request('/api/wrongbook', {}, 'GET')
+}
+
+function wrongSet(id, ok) {
+  return request('/api/wrongbook', { id, ok }).catch(() => null)
+}
+
+function examRecords(paperId) {
+  return request('/api/exam/records?paperId=' + encodeURIComponent(paperId), {}, 'GET')
+}
+
+function examReview(id) {
+  return request('/api/exam/records/' + encodeURIComponent(id), {}, 'GET')
+}
+
 function questionGroups(job) {
   return request('/api/qgroups' + (job ? '?job=' + encodeURIComponent(job) : ''), {}, 'GET')
 }
@@ -253,7 +269,7 @@ function saveProfile(payload) {
 }
 
 module.exports = {
-  wxLogin, login, me, media, absUrl, options, questionGroups, practiceGroups, jobQuestions, employeeSummary, learnRead, learnItems, learnItemDetail, learnProgress, faq, examList, examStart, examSubmit,
+  wxLogin, login, me, media, absUrl, options, questionGroups, practiceGroups, jobQuestions, employeeSummary, learnRead, learnItems, learnItemDetail, learnProgress, wrongList, wrongSet, examRecords, examReview, faq, examList, examStart, examSubmit,
   culture, profile, saveProfile,
   chat, submitQuiz, health,
   content, article, risks, training,

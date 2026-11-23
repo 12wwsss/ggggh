@@ -167,6 +167,7 @@ Page({
    */
   updateWrongBook(q, ok) {
     if (!q || !q.id) return
+    api.wrongSet(q.id, ok)
     const book = wx.getStorageSync('wrongBook') || []
     const i = book.findIndex(x => x.id === q.id)
     if (ok) {

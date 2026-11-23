@@ -55,6 +55,14 @@ Page({
     if (book.length !== raw.length) wx.setStorageSync('wrongBook', book)
     this.setData({ book })
     this.build()
+    // 服务端错题本（换设备不丢）；没登录/离线时退回本地
+    api.wrongList().then(res => {
+      const remote = (res.items || []).filter(x => x && x.id)
+      if (!remote.length) return
+      this.setData({ book: remote })
+      wx.setStorageSync('wrongBook', remote)
+      this.build()
+    }).catch(() => {})
   },
 
   /** 按岗位筛：通用题在所有岗位下都出现，岗位题只在本岗位出现 */
@@ -140,6 +148,7 @@ Page({
   removeFromBook(id) {
     const book = (wx.getStorageSync('wrongBook') || []).filter(x => x.id !== id)
     wx.setStorageSync('wrongBook', book)
+    api.wrongSet(id, true)
     this.setData({ book })
     wx.showToast({ title: '答对了，已移出错题集', icon: 'none' })
   }
