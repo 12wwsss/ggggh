@@ -21,6 +21,7 @@ type TrainingStage struct {
 type TrainingPlan struct {
 	ID         int64           `json:"id"`
 	UserID     int64           `json:"user_id"`
+	UserDeptID *int64          `json:"user_dept_id"`
 	UserName   string          `json:"user_name"`
 	DeptName   string          `json:"dept_name"`
 	Title      string          `json:"title"`
@@ -79,10 +80,10 @@ func (s *Store) SetTrainingStageDone(ctx context.Context, planID, stageID int64,
 func (s *Store) GetTrainingPlanByID(ctx context.Context, id int64) (*TrainingPlan, error) {
 	var p TrainingPlan
 	err := s.pool.QueryRow(ctx, `select p.id, p.user_id, p.title, coalesce(p.mentor,''), p.total_weeks,
-		coalesce(p.target,''), p.status, coalesce(u.name,''), coalesce(d.name,'')
+		coalesce(p.target,''), p.status, coalesce(u.name,''), coalesce(d.name,''), u.dept_id
 		from training_plan p left join org_user u on u.id=p.user_id
 		left join org_dept d on d.id=u.dept_id where p.id=$1`, id).
-		Scan(&p.ID, &p.UserID, &p.Title, &p.Mentor, &p.TotalWeeks, &p.Target, &p.Status, &p.UserName, &p.DeptName)
+		Scan(&p.ID, &p.UserID, &p.Title, &p.Mentor, &p.TotalWeeks, &p.Target, &p.Status, &p.UserName, &p.DeptName, &p.UserDeptID)
 	if isNoRows(err) {
 		return nil, ErrNotFound
 	}
@@ -127,6 +128,45 @@ func (s *Store) SetStageDoneByID(ctx context.Context, stageID int64, done bool) 
 		return ErrNotFound
 	}
 	return nil
+}
+
+// GetPlanIDByStage 通过阶段找计划。
+func (s *Store) GetPlanIDByStage(ctx context.Context, stageID int64) (int64, error) {
+	var planID int64
+	err := s.pool.QueryRow(ctx, `select plan_id from training_stage where id=$1`, stageID).Scan(&planID)
+	if isNoRows(err) {
+		return 0, ErrNotFound
+	}
+	return planID, wrapErr("查询带培计划", err)
+}
+
+// ListTrainingPlansScoped 按部门/师傅过滤（管理端与师傅端共用）。
+func (s *Store) ListTrainingPlansScoped(ctx context.Context, deptID *int64, mentor string, limit, offset int) ([]TrainingPlan, int, error) {
+	where := ` where (($1::bigint is not null and u.dept_id=$1) or ($2<>'' and p.mentor=$2))`
+	rows, err := s.pool.Query(ctx, `select p.id, p.user_id, p.title, coalesce(p.mentor,''), p.total_weeks,
+		coalesce(p.target,''), p.status, coalesce(u.name,''), coalesce(d.name,''), u.dept_id,
+		(select count(*) from training_stage st where st.plan_id=p.id),
+		(select count(*) from training_stage st where st.plan_id=p.id and st.done)
+		from training_plan p left join org_user u on u.id=p.user_id
+		left join org_dept d on d.id=u.dept_id`+where+`
+		order by p.id desc limit $3 offset $4`, deptID, mentor, limit, offset)
+	if err != nil {
+		return nil, 0, wrapErr("查询带培计划", err)
+	}
+	defer rows.Close()
+	var out []TrainingPlan
+	for rows.Next() {
+		var p TrainingPlan
+		if err := rows.Scan(&p.ID, &p.UserID, &p.Title, &p.Mentor, &p.TotalWeeks, &p.Target,
+			&p.Status, &p.UserName, &p.DeptName, &p.UserDeptID, &p.StageTotal, &p.StageDone); err != nil {
+			return nil, 0, err
+		}
+		out = append(out, p)
+	}
+	var total int
+	err = s.pool.QueryRow(ctx, `select count(*) from training_plan p
+		left join org_user u on u.id=p.user_id`+where, deptID, mentor).Scan(&total)
+	return out, total, wrapErr("统计带培计划", err)
 }
 
 // ListTrainingPlans 管理端：带培计划列表。

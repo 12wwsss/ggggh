@@ -141,10 +141,10 @@ func New(cfg *config.Config, st *store.Store, svc *service.Service, mgr *auth.Ma
 	authed.GET("/auth/me", s.me)
 	authed.POST("/auth/password", s.changePassword)
 
-	// 新员工带培
-	authed.GET("/training/plans", s.require("user", "read"), s.listTrainingPlans)
-	authed.GET("/training/plans/:id", s.require("user", "read"), s.getTrainingPlan)
-	authed.POST("/training/stages/:id", s.require("user", "write"), s.setTrainingStage)
+	// 新员工带培（权限在 handler 内按角色/师傅判断）
+	authed.GET("/training/plans", s.listTrainingPlans)
+	authed.GET("/training/plans/:id", s.getTrainingPlan)
+	authed.POST("/training/stages/:id", s.setTrainingStage)
 
 	// 组织与权限
 	authed.GET("/depts", s.require("dept", "read"), s.listDepts)

@@ -5,23 +5,58 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+
+	"coalrag/internal/auth"
+	"coalrag/internal/store"
 )
 
-// 带培管理：只允许管理员维护。
-func (s *Server) trainingAdmin(c *gin.Context) bool {
-	if claims(c).Role != "admin" {
-		fail(c, http.StatusForbidden, "只有管理员可以维护带培计划")
+// canManagePlan 管理员/安全科、本队队长、带培师傅可以确认阶段。
+func canManagePlan(cl *auth.Claims, plan *store.TrainingPlan) bool {
+	if cl == nil || plan == nil {
 		return false
 	}
-	return true
+	switch cl.Role {
+	case "admin", "safety":
+		return true
+	case "dept_leader":
+		return cl.DeptID > 0 && plan.UserDeptID != nil && *plan.UserDeptID == cl.DeptID
+	}
+	return cl.Name != "" && plan.Mentor != "" && plan.Mentor == cl.Name
 }
 
 func (s *Server) listTrainingPlans(c *gin.Context) {
-	if !s.trainingAdmin(c) {
-		return
-	}
+	cl := claims(c)
 	p, size, offset := pageParams(c)
-	list, total, err := s.Store.ListTrainingPlans(c.Request.Context(), size, offset)
+	var dept *int64
+	mentor := ""
+	switch cl.Role {
+	case "admin", "safety":
+		list, total, err := s.Store.ListTrainingPlans(c.Request.Context(), size, offset)
+		if err != nil {
+			fail(c, http.StatusInternalServerError, "查询失败")
+			return
+		}
+		paged(c, list, total, p, size)
+		return
+	case "dept_leader":
+		if cl.DeptID <= 0 && cl.Name == "" {
+			fail(c, http.StatusForbidden, "没有可管理的带培计划")
+			return
+		}
+		if cl.DeptID > 0 {
+			d := cl.DeptID
+			dept = &d
+		}
+		mentor = cl.Name
+	default:
+		// 师傅：按名字匹配计划里的 mentor
+		mentor = cl.Name
+		if mentor == "" {
+			fail(c, http.StatusForbidden, "没有可管理的带培计划")
+			return
+		}
+	}
+	list, total, err := s.Store.ListTrainingPlansScoped(c.Request.Context(), dept, mentor, size, offset)
 	if err != nil {
 		fail(c, http.StatusInternalServerError, "查询失败")
 		return
@@ -30,9 +65,6 @@ func (s *Server) listTrainingPlans(c *gin.Context) {
 }
 
 func (s *Server) getTrainingPlan(c *gin.Context) {
-	if !s.trainingAdmin(c) {
-		return
-	}
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil || id <= 0 {
 		fail(c, http.StatusBadRequest, "参数不正确")
@@ -43,16 +75,31 @@ func (s *Server) getTrainingPlan(c *gin.Context) {
 		fail(c, http.StatusNotFound, "计划不存在")
 		return
 	}
+	if !canManagePlan(claims(c), plan) {
+		fail(c, http.StatusForbidden, "没有权限")
+		return
+	}
 	ok(c, plan)
 }
 
 func (s *Server) setTrainingStage(c *gin.Context) {
-	if !s.trainingAdmin(c) {
-		return
-	}
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil || id <= 0 {
 		fail(c, http.StatusBadRequest, "参数不正确")
+		return
+	}
+	planID, err := s.Store.GetPlanIDByStage(c.Request.Context(), id)
+	if err != nil {
+		fail(c, http.StatusNotFound, "阶段不存在")
+		return
+	}
+	plan, err := s.Store.GetTrainingPlanByID(c.Request.Context(), planID)
+	if err != nil {
+		fail(c, http.StatusNotFound, "计划不存在")
+		return
+	}
+	if !canManagePlan(claims(c), plan) {
+		fail(c, http.StatusForbidden, "没有权限确认这个阶段")
 		return
 	}
 	var req struct {

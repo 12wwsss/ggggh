@@ -23,7 +23,7 @@ const groups = [
       { path: '/learn', label: '学习与题库' },
       { path: '/exams', label: '考试管理' },
       { path: '/broadcasts', label: '宣贯管理' },
-      { path: '/training', label: '新员工带培' },
+      { path: '/training', label: '新员工带培', roles: ['admin', 'safety', 'dept_leader'] },
     ],
   },
   {
@@ -43,7 +43,7 @@ const groups = [
 let counter = 0
 const numbered = groups.map((g) => ({
   ...g,
-  items: g.items.map((it) => ({ ...it, idx: String(++counter).padStart(2, '0') })),
+  items: g.items.filter((it) => !it.roles || it.roles.includes(user.value.role)).map((it) => ({ ...it, idx: String(++counter).padStart(2, '0') })),
 }))
 
 function isActive(path) {
