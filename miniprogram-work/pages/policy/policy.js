@@ -42,6 +42,17 @@ Page({
     wx.navigateTo({ url: '/pages/quiz/quiz?notice=' + id })
   },
 
+  /** 宣贯签收 */
+  ackNotice(e) {
+    const id = e.currentTarget.dataset.id
+    const it = (this.data.items || []).find(x => String(x.id) === String(id))
+    if (it && it.my_status === 'ack') return
+    api.noticeAck(id).then(() => {
+      wx.showToast({ title: '已签收', icon: 'success' })
+      this.fetch()
+    }).catch(err => wx.showToast({ title: err.message, icon: 'none' }))
+  },
+
   retry() {
     this.fetch()
   }

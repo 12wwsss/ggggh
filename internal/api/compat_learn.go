@@ -130,7 +130,143 @@ func (s *Server) compatQuizStatsReal(c *gin.Context) {
 	})
 }
 
-// compatExamList 考试列表（含本人状态）。
+// compatLearnItems 学习清单（含本人完成状态）。
+func (s *Server) compatLearnItems(c *gin.Context) {
+	u := s.compatCurrentUser(c)
+	if u == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"ok": false, "message": "请先登录"})
+		return
+	}
+	var dept *int64
+	if u.DeptID != nil {
+		dept = u.DeptID
+	}
+	list, _, err := s.Store.ListLearnItems(c.Request.Context(), "published", dept, 100, 0)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "message": "学习清单加载失败"})
+		return
+	}
+	recs, _, _ := s.Store.ListLearnRecords(c.Request.Context(), nil, &u.ID, nil, 500, 0)
+	byItem := map[int64]model.LearnRecord{}
+	for _, r := range recs {
+		byItem[r.ItemID] = r
+	}
+	items := make([]gin.H, 0, len(list))
+	for _, it := range list {
+		r := byItem[it.ID]
+		items = append(items, gin.H{
+			"id": it.ID, "title": it.Title, "category": it.Category, "post": it.Post,
+			"content": it.Content, "clause_refs": it.ClauseRefs,
+			"status": r.Status, "progress": r.Progress,
+		})
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true, "items": items})
+}
+
+// compatLearnItemDetail 学习详情 + 本人进度。
+func (s *Server) compatLearnItemDetail(c *gin.Context) {
+	u := s.compatCurrentUser(c)
+	if u == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"ok": false, "message": "请先登录"})
+		return
+	}
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil || id <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "message": "参数不正确"})
+		return
+	}
+	it, err := s.Store.GetLearnItem(c.Request.Context(), id)
+	if err != nil || it.Status != "published" {
+		c.JSON(http.StatusNotFound, gin.H{"ok": false, "message": "学习条目不存在"})
+		return
+	}
+	rec, _ := s.Store.GetLearnRecord(c.Request.Context(), id, u.ID)
+	c.JSON(http.StatusOK, gin.H{"ok": true, "item": it, "record": rec})
+}
+
+// compatLearnProgress 保存学习进度（100 即完成）。
+func (s *Server) compatLearnProgress(c *gin.Context) {
+	u := s.compatCurrentUser(c)
+	if u == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"ok": false, "message": "请先登录"})
+		return
+	}
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil || id <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "message": "参数不正确"})
+		return
+	}
+	var req struct {
+		Progress    int `json:"progress"`
+		DurationSec int `json:"duration_sec"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "message": "参数不正确"})
+		return
+	}
+	rec, err := s.Store.SaveLearnProgress(c.Request.Context(), id, u.ID, req.Progress, req.DurationSec)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "message": "保存失败"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true, "record": rec})
+}
+
+// compatNoticeList 制度宣贯：以 broadcast_task 为准，带本人签收状态。
+func (s *Server) compatNoticeList(c *gin.Context) {
+	u := s.compatCurrentUser(c)
+	if u == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"ok": false, "message": "请先登录"})
+		return
+	}
+	list, err := s.Store.ListMyBroadcasts(c.Request.Context(), u.ID, false)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "message": "宣贯加载失败"})
+		return
+	}
+	items := make([]gin.H, 0, len(list))
+	for _, t := range list {
+		deadline := ""
+		if t.Deadline != nil {
+			deadline = t.Deadline.Format("01-02")
+		}
+		acked := t.MyStatus == "ack"
+		rate := 0
+		if acked {
+			rate = 100
+		}
+		items = append(items, gin.H{
+			"id": t.ID, "tag": "宣贯", "title": t.Title, "deadline": deadline,
+			"body": []string{t.Content}, "points": []string{},
+			"done":  map[bool]int{true: 1, false: 0}[acked],
+			"total": 1, "rate": rate, "teams": []any{}, "questions": 0,
+			"require_ack": t.RequireAck, "my_status": t.MyStatus,
+		})
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true, "items": items})
+}
+
+// compatNoticeAck 宣贯签收。
+func (s *Server) compatNoticeAck(c *gin.Context) {
+	u := s.compatCurrentUser(c)
+	if u == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"ok": false, "message": "请先登录"})
+		return
+	}
+	var req struct {
+		ID int64 `json:"id"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil || req.ID <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "message": "参数不正确"})
+		return
+	}
+	if err := s.Store.AckBroadcast(c.Request.Context(), req.ID, u.ID, true); err != nil {
+		c.JSON(http.StatusConflict, gin.H{"ok": false, "message": "签收失败，可能不是这条宣贯的接收人"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true, "status": "ack"})
+}
+
 func (s *Server) compatExamList(c *gin.Context) {
 	u := s.compatCurrentUser(c)
 	if u == nil {
@@ -158,9 +294,13 @@ func (s *Server) compatExamList(c *gin.Context) {
 		status := "todo"
 		lastScore := 0
 		passed := false
+		submittedAt := ""
 		for _, r := range recs {
 			if r.Status != "in_progress" {
 				lastScore = r.Score
+				if r.SubmittedAt != nil {
+					submittedAt = r.SubmittedAt.Format("01-02 15:04")
+				}
 				if r.Passed {
 					passed = true
 				}
@@ -177,7 +317,9 @@ func (s *Server) compatExamList(c *gin.Context) {
 			"id": p.ID, "title": p.Title, "job": "", "questions": len(p.QuestionIDs),
 			"minutes": p.DurationMin, "pass": p.PassScore, "total_score": p.TotalScore,
 			"status": status, "attempts": attempts, "max_attempts": maxAttempts,
-			"score": lastScore, "passed": passed,
+			"score": lastScore, "passed": passed, "mine": true,
+			"submittedAt": submittedAt,
+			"note":        "已考 " + strconv.Itoa(attempts) + "/" + strconv.Itoa(maxAttempts) + " 次",
 		})
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true, "items": items})

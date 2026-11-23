@@ -125,3 +125,11 @@
 }
 .e-tag.done { color: #98A2AC; background: #EFEEE7; }
 .empty-exam { padding: 30rpx; margin-top: 20rpx; }
+
+.learn-item { margin-top: 14rpx; }
+.mask { position: fixed; inset: 0; background: rgba(10,15,20,.45); z-index: 90; display: flex; align-items: flex-end; }
+.sheet { width: 100%; background: #fff; border-radius: 28rpx 28rpx 0 0; padding: 32rpx 32rpx 48rpx; box-sizing: border-box; }
+.sheet-h { font-size: 32rpx; font-weight: 700; margin-bottom: 20rpx; }
+.sheet-cancel { text-align: center; color: #8A94A0; font-size: 26rpx; margin-top: 20rpx; }
+.btn-mini { display: inline-block; background: #FFC400; color: #141A21; font-size: 26rpx; font-weight: 700; padding: 12rpx 32rpx; border-radius: 999rpx; margin-top: 14rpx; }
+.ok { color: #12B76A; }

@@ -118,7 +118,11 @@ func New(cfg *config.Config, st *store.Store, svc *service.Service, mgr *auth.Ma
 	compat.GET("/culture", s.compatCulture)
 	compat.GET("/content", s.compatContentList)
 	compat.GET("/content/:id", s.compatContentDetail)
-	compat.GET("/notices", s.compatNotices)
+	compat.GET("/notices", s.compatNoticeList)
+	compat.POST("/notice/read", s.compatNoticeAck)
+	compat.GET("/learn/items", s.compatLearnItems)
+	compat.GET("/learn/items/:id", s.compatLearnItemDetail)
+	compat.POST("/learn/items/:id/progress", s.compatLearnProgress)
 	compat.GET("/materials", s.compatMaterials)
 	compat.GET("/employee/summary", s.compatEmployeeSummary)
 

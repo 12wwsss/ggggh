@@ -4,6 +4,10 @@ Page({
   data: {
     qGroups: [],
     exams: [],
+    learnItems: [],
+    learnOpen: false,
+    learnCur: null,
+    learnBusy: false,
     total: 0,
     wrongCount: 0,
     best: 0,
@@ -24,14 +28,16 @@ Page({
     if (!silent) this.setData({ loading: true, err: '' })
     Promise.all([
       api.practiceGroups().catch(() => ({ groups: [] })),
-      api.examList().catch(() => ({ items: [] }))
-    ]).then(([g, e]) => {
+      api.examList().catch(() => ({ items: [] })),
+      api.learnItems().catch(() => ({ items: [] }))
+    ]).then(([g, e, l]) => {
       const qGroups = g.groups || []
       const total = qGroups.reduce((n, x) => n + (x.count || 0), 0)
       this.loaded = true
       this.setData({
         qGroups,
         exams: e.items || [],
+        learnItems: l.items || [],
         total,
         wrongCount: (wx.getStorageSync('wrongBook') || []).length,
         best: wx.getStorageSync('quizBest') || 0,
@@ -63,6 +69,40 @@ Page({
 
   startTest() {
     wx.navigateTo({ url: '/pages/quiz/quiz?count=5' })
+  },
+
+  openLearn(e) {
+    const id = e.currentTarget.dataset.id
+    const it = (this.data.learnItems || []).find(x => String(x.id) === String(id))
+    if (!it) return
+    this.setData({ learnOpen: true, learnCur: it })
+  },
+
+  closeLearn() {
+    this.setData({ learnOpen: false, learnCur: null })
+  },
+
+  noop() {},
+
+  completeLearn() {
+    const it = this.data.learnCur
+    if (!it || this.data.learnBusy) return
+    this.setData({ learnBusy: true })
+    api.learnProgress(it.id, 100, 60).then(() => {
+      this.setData({ learnBusy: false, learnOpen: false })
+      wx.showToast({ title: '已标记完成', icon: 'success' })
+      this.fetch(true)
+    }).catch(err => {
+      this.setData({ learnBusy: false })
+      wx.showToast({ title: err.message, icon: 'none' })
+    })
+  },
+
+  quizItem() {
+    const it = this.data.learnCur
+    if (!it) return
+    this.setData({ learnOpen: false })
+    wx.navigateTo({ url: '/pages/quiz/quiz?c=' + encodeURIComponent(it.category || '') })
   },
 
   retry() { this.fetch() }

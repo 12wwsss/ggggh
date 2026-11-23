@@ -174,6 +174,25 @@ function learnRead(id, minutes) {
   return request('/api/learn/read', { id, minutes }).catch(() => null)
 }
 
+function learnItems() {
+  return request('/api/learn/items', {}, 'GET')
+}
+
+function learnItemDetail(id) {
+  return request('/api/learn/items/' + encodeURIComponent(id), {}, 'GET')
+}
+
+function learnProgress(id, progress, durationSec) {
+  return request('/api/learn/items/' + encodeURIComponent(id) + '/progress', {
+    progress,
+    duration_sec: durationSec
+  })
+}
+
+function noticeAck(id) {
+  return request('/api/notice/read', { id })
+}
+
 function questionGroups(job) {
   return request('/api/qgroups' + (job ? '?job=' + encodeURIComponent(job) : ''), {}, 'GET')
 }
@@ -234,10 +253,10 @@ function saveProfile(payload) {
 }
 
 module.exports = {
-  wxLogin, login, me, media, absUrl, options, questionGroups, practiceGroups, jobQuestions, employeeSummary, learnRead, faq, examList, examStart, examSubmit,
+  wxLogin, login, me, media, absUrl, options, questionGroups, practiceGroups, jobQuestions, employeeSummary, learnRead, learnItems, learnItemDetail, learnProgress, faq, examList, examStart, examSubmit,
   culture, profile, saveProfile,
   chat, submitQuiz, health,
   content, article, risks, training,
   createIssue, issues, handleIssue, issueFlow, issueRectify, issueResubmit, notifications, users, issueStats, upload,
-  notices, noticeRead, quizStats, questions,
+  notices, noticeRead, noticeAck, quizStats, questions,
 }

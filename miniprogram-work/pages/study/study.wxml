@@ -27,6 +27,19 @@
       <text class="retry" bindtap="retry">重试</text>
     </view>
 
+    <block wx:if="{{learnItems.length}}">
+      <view class="sec-title">学规程</view>
+      <view class="card learn-item" wx:for="{{learnItems}}" wx:key="id" data-id="{{item.id}}" bindtap="openLearn">
+        <view class="between">
+          <text class="small bold">{{item.title}}</text>
+          <text class="tiny {{item.status === 'completed' ? 'ok' : 'muted'}}">
+            {{item.status === 'completed' ? '已完成' : (item.progress ? '已学 ' + item.progress + '%' : '未开始')}}
+          </text>
+        </view>
+        <view class="tiny muted" style="margin-top:8rpx">{{item.category}} · {{item.post || '通用'}}</view>
+      </view>
+    </block>
+
     <block wx:if="{{qGroups.length}}">
       <view class="sec-title">按岗位练题</view>
       <view class="qgrid">
@@ -87,4 +100,20 @@
 
   <view class="tabbar-space"></view>
   <tabbar active="2" />
+
+  <view wx:if="{{learnOpen}}" class="mask" catchtap="closeLearn">
+    <view class="sheet" catchtap="noop">
+      <view class="sheet-h">{{learnCur.title}}</view>
+      <scroll-view scroll-y style="max-height: 60vh">
+        <view class="tiny muted">{{learnCur.category}} · {{learnCur.post || '通用'}}</view>
+        <view style="margin-top:14rpx;line-height:1.9;white-space:pre-wrap">{{learnCur.content}}</view>
+        <view wx:if="{{learnCur.clause_refs.length}}" class="tiny muted" style="margin-top:12rpx">关联条款：{{learnCur.clause_refs}}</view>
+      </scroll-view>
+      <view class="btn-primary" style="margin-top:20rpx" bindtap="completeLearn">
+        {{learnCur.status === 'completed' ? '已完成' : '标记完成'}}
+      </view>
+      <view class="btn-mini" style="margin-top:14rpx" bindtap="quizItem">去小测（按分类抽题）</view>
+      <view class="sheet-cancel" bindtap="closeLearn">关闭</view>
+    </view>
+  </view>
 </view>

@@ -42,3 +42,5 @@
   background: #FFC400; color: #141A21; font-size: 24rpx;
   padding: 12rpx 32rpx; border-radius: 28rpx;
 }
+
+.btn-acked { background: #E8F7EF; color: #12B76A; }

@@ -42,6 +42,11 @@
             </view>
           </view>
 
+          <view wx:if="{{item.require_ack}}" class="btn-mini {{item.my_status === 'ack' ? 'btn-acked' : ''}}"
+                style="margin-bottom:14rpx" data-id="{{item.id}}" catchtap="ackNotice">
+            {{item.my_status === 'ack' ? '已签收' : '确认签收'}}
+          </view>
+
           <view class="btn-mini" data-id="{{item.id}}" catchtap="startQuiz">开始答题 · {{item.questions}} 题</view>
         </view>
       </view>
