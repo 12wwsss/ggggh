@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -112,21 +113,18 @@ func (s *Server) compatQuizStatsReal(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"ok": false, "message": "请先登录"})
 		return
 	}
-	attempts, best, err := s.Store.QuizAttemptStats(c.Request.Context(), u.ID)
+	attempts, best, bestPct, avgPct, passRate, err := s.Store.QuizAttemptStatsFull(c.Request.Context(), u.ID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "message": "统计失败"})
 		return
 	}
-	rate := 0.0
-	if attempts > 0 {
-		rate = float64(best) / 5.0
-		if rate > 1 {
-			rate = 1
-		}
+	mine := gin.H{
+		"attempts": attempts, "best": best, "bestPct": bestPct,
+		"avg": int(math.Round(avgPct)), "passRate": int(math.Round(passRate)),
 	}
 	c.JSON(http.StatusOK, gin.H{
-		"ok": true, "mine": gin.H{"attempts": attempts, "best": best},
-		"byTeam": []any{}, "passRate": rate, "total": attempts,
+		"ok": true, "mine": mine,
+		"byTeam": []any{}, "passRate": passRate / 100, "total": attempts,
 	})
 }
 

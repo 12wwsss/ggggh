@@ -47,11 +47,11 @@
           <text class="s-lb">已考次数</text>
         </view>
         <view class="s-item">
-          <text class="s-num accent">{{score.best}}</text>
+          <text class="s-num accent">{{score.bestPct}}%</text>
           <text class="s-lb">最好成绩</text>
         </view>
         <view class="s-item">
-          <text class="s-num">{{score.avg}}</text>
+          <text class="s-num">{{score.avg}}%</text>
           <text class="s-lb">平均分</text>
         </view>
         <view class="s-item">

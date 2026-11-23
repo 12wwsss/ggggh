@@ -106,6 +106,20 @@ func (s *Store) QuizAttemptStats(ctx context.Context, userID int64) (attempts, b
 	return attempts, best, nil
 }
 
+// QuizAttemptStatsFull 返回次数、最好成绩、平均分（百分制）和及格率。
+func (s *Store) QuizAttemptStatsFull(ctx context.Context, userID int64) (attempts, best, bestPct int, avgPct, passRate float64, err error) {
+	var avg, pass float64
+	err = s.pool.QueryRow(ctx, `select count(*), coalesce(max(score),0),
+		coalesce(max(case when total>0 then round(score*100.0/total) end),0),
+		coalesce(avg(case when total>0 then score*100.0/total end),0),
+		coalesce(avg(case when total>0 and score*100.0/total>=60 then 100 else 0 end),0)
+		from quiz_attempt where user_id=$1`, userID).Scan(&attempts, &best, &bestPct, &avg, &pass)
+	if err != nil {
+		return 0, 0, 0, 0, 0, wrapErr("统计答题", err)
+	}
+	return attempts, best, bestPct, avg, pass, nil
+}
+
 // MarkLearnRead 记录学习完成（按条目+人 upsert）。
 func (s *Store) MarkLearnRead(ctx context.Context, userID, itemID int64, minutes int) error {
 	if minutes <= 0 {
