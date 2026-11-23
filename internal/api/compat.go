@@ -377,9 +377,14 @@ func (s *Server) compatListIssues(c *gin.Context) {
 		if note == "" {
 			note = it.VerifyComment
 		}
+		rejectReason := ""
+		if it.Status == model.IssueRejected {
+			rejectReason, _ = s.Store.LastFlowComment(c.Request.Context(), it.ID, "reject")
+		}
 		items = append(items, gin.H{
 			"id":             it.ID,
 			"code":           it.Code,
+			"reject_reason":  rejectReason,
 			"title":          it.Title,
 			"desc":           compatIssueDesc(it.Description),
 			"loc":            compatIssueLoc(it.Description),

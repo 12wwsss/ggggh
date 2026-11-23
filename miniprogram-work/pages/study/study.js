@@ -87,6 +87,9 @@ Page({
   completeLearn() {
     const it = this.data.learnCur
     if (!it || this.data.learnBusy) return
+    if (it.status === 'completed') {
+      return wx.showToast({ title: '已标记完成', icon: 'none' })
+    }
     this.setData({ learnBusy: true })
     api.learnProgress(it.id, 100, 60).then(() => {
       this.setData({ learnBusy: false, learnOpen: false })

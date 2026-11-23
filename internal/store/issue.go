@@ -256,6 +256,20 @@ func (s *Store) ListIssueAttachments(ctx context.Context, issueID int64) ([]mode
 	return out, rows.Err()
 }
 
+// LastFlowComment 取最近一次指定动作的备注（例如驳回原因）。
+func (s *Store) LastFlowComment(ctx context.Context, issueID int64, actions ...string) (string, error) {
+	var comment string
+	err := s.pool.QueryRow(ctx, `select coalesce(comment,'') from issue_flow
+		where issue_id=$1 and action = any($2) order by id desc limit 1`, issueID, actions).Scan(&comment)
+	if isNoRows(err) {
+		return "", nil
+	}
+	if err != nil {
+		return "", wrapErr("查询流转备注", err)
+	}
+	return comment, nil
+}
+
 // ResubmitIssue 被驳回后由上报人修改并重新提交，状态回到 reported。
 func (s *Store) ResubmitIssue(ctx context.Context, issueID, userID int64, title, desc string) (*model.Issue, error) {
 	tx, err := s.pool.Begin(ctx)

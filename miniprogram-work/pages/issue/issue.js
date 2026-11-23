@@ -231,6 +231,7 @@ Page({
         isAssigned: String(it.assignee_id) === String(me.id),
         canRectify: String(it.assignee_id) === String(me.id) && it.raw_status === 'accepted',
         canResubmit: String(it.reporter_id) === String(me.id) && it.raw_status === 'rejected',
+        rejectReason: it.reject_reason || '',
         createdAt: fmtTime(it.createdAt)
       }))
       this.setData({ allItems: all }, () => this.applyTab())
@@ -553,7 +554,7 @@ Page({
       '位置：' + (it.loc || '—'),
       '状态：' + (it.status_text || it.status),
       '上报：' + (it.createdAt || ''),
-      it.handleNote ? '处置：' + it.handleNote : '处置：等待安全科处理'
+      it.rejectReason ? '驳回原因：' + it.rejectReason : (it.handleNote ? '处置：' + it.handleNote : '处置：等待安全科处理')
     ]
     if (photos.length) lines.push('照片：' + photos.length + ' 张')
     wx.showModal({

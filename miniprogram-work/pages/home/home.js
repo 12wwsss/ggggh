@@ -27,11 +27,16 @@ Page({
     const week = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][d.getDay()]
     this.setData({
       statusTop: app.globalData.statusBarHeight,
-      meName: '工友',
+      meName: this.displayName(),
       today: pad(d.getMonth() + 1) + '.' + pad(d.getDate()),
       week
     })
     this.load()
+  },
+
+  displayName() {
+    const u = auth.user() || {}
+    return auth.token() && u.name ? u.name : '工友'
   },
 
   onShow() {

@@ -30,8 +30,8 @@
       <view class="card ex" wx:for="{{exams}}" wx:key="id">
         <view class="between">
           <text class="ex-title">{{item.title}}</text>
-          <text class="tag {{item.status === 'done' ? (item.passed ? 'g' : 'r') : (item.mine ? 'y' : 'n')}}">
-            {{item.status === 'done' ? (item.passed ? '已通过' : '未通过') : (item.mine ? '未参加' : '非本岗位')}}
+          <text class="tag {{item.status === 'done' ? (item.passed ? 'g' : 'r') : (item.attempts ? 'y' : (item.mine ? 'y' : 'n'))}}">
+            {{item.status === 'done' ? (item.passed ? '已通过' : '未通过') : (item.attempts ? '已考 ' + item.attempts + ' 次' : (item.mine ? '未参加' : '非本岗位'))}}
           </text>
         </view>
         <view class="tiny muted" style="margin-top:12rpx">
