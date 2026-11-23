@@ -929,12 +929,28 @@ func (s *Server) compatMaterials(c *gin.Context) {
 
 // compatEmployeeSummary 首页个人统计。
 func (s *Server) compatEmployeeSummary(c *gin.Context) {
+	u := s.compatCurrentUser(c)
+	if u == nil {
+		c.JSON(http.StatusOK, gin.H{"ok": true, "hours": 0, "readCount": 0,
+			"quiz": gin.H{"attempts": 0, "best": 0}, "issue": gin.H{"total": 0, "pending": 0}})
+		return
+	}
+	completed, secs, _ := s.Store.LearnStats(c.Request.Context(), u.ID)
+	attempts, best, _ := s.Store.QuizAttemptStats(c.Request.Context(), u.ID)
+	list, total, _ := s.Store.ListIssuesByUser(c.Request.Context(), u.ID, 200, 0)
+	pending := 0
+	for _, it := range list {
+		if it.Status == model.IssueReported || it.Status == model.IssueAccepted ||
+			it.Status == model.IssueRectified || it.Status == model.IssueVerified {
+			pending++
+		}
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"ok":        true,
-		"hours":     0,
-		"readCount": 0,
-		"quiz":      gin.H{"attempts": 0},
-		"issue":     gin.H{"total": 0},
+		"hours":     secs / 3600,
+		"readCount": completed,
+		"quiz":      gin.H{"attempts": attempts, "best": best},
+		"issue":     gin.H{"total": total, "pending": pending},
 	})
 }
 
