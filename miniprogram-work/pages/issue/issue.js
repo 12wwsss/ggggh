@@ -225,6 +225,7 @@ Page({
       const cls = { '待分派': 'pending', '处置中': 'doing', '已闭环': 'closed' }
       const all = (res.items || []).map(it => ({
         ...it,
+        photos: (it.photos || []).map(p => api.absUrl(p)),
         stCls: cls[it.status] || 'pending',
         isMine: String(it.reporter_id) === String(me.id),
         isAssigned: String(it.assignee_id) === String(me.id),
