@@ -413,20 +413,22 @@ func (s *Server) compatExamList(c *gin.Context) {
 	items := make([]gin.H, 0, len(papers))
 	for _, p := range papers {
 		recs := byPaper[p.ID]
-		attempts := len(recs)
+		attempts := 0
 		status := "todo"
 		lastScore := 0
 		passed := false
 		submittedAt := ""
 		for _, r := range recs {
-			if r.Status != "in_progress" {
-				lastScore = r.Score
-				if r.SubmittedAt != nil {
-					submittedAt = r.SubmittedAt.Format("01-02 15:04")
-				}
-				if r.Passed {
-					passed = true
-				}
+			if r.Status == "in_progress" {
+				continue
+			}
+			attempts++
+			lastScore = r.Score
+			if r.SubmittedAt != nil {
+				submittedAt = r.SubmittedAt.Format("01-02 15:04")
+			}
+			if r.Passed {
+				passed = true
 			}
 		}
 		maxAttempts := p.MaxAttempts
