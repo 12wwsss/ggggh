@@ -19,88 +19,47 @@ type TrainingStage struct {
 
 // TrainingPlan 带培计划。
 type TrainingPlan struct {
-	ID         int64           `json:"id"`
-	UserID     int64           `json:"user_id"`
-	UserDeptID *int64          `json:"user_dept_id"`
-	UserName   string          `json:"user_name"`
-	DeptName   string          `json:"dept_name"`
-	Title      string          `json:"title"`
-	Mentor     string          `json:"mentor"`
-	TotalWeeks int             `json:"total_weeks"`
-	Target     string          `json:"target"`
-	Status     string          `json:"status"`
-	Stages     []TrainingStage `json:"stages"`
-	StageTotal int             `json:"stage_total"`
-	StageDone  int             `json:"stage_done"`
+	ID           int64           `json:"id"`
+	UserID       int64           `json:"user_id"`
+	UserDeptID   *int64          `json:"user_dept_id"`
+	UserName     string          `json:"user_name"`
+	DeptName     string          `json:"dept_name"`
+	Title        string          `json:"title"`
+	Mentor       string          `json:"mentor"`
+	MentorUserID *int64          `json:"mentor_user_id"`
+	TotalWeeks   int             `json:"total_weeks"`
+	Target       string          `json:"target"`
+	Status       string          `json:"status"`
+	Stages       []TrainingStage `json:"stages"`
+	StageTotal   int             `json:"stage_total"`
+	StageDone    int             `json:"stage_done"`
 }
 
-// GetTrainingPlan 取某人当前带培计划。
-func (s *Store) GetTrainingPlan(ctx context.Context, userID int64) (*TrainingPlan, error) {
-	var p TrainingPlan
-	err := s.pool.QueryRow(ctx, `select id, user_id, title, coalesce(mentor,''), total_weeks,
-		coalesce(target,''), status from training_plan where user_id=$1 and status<>'paused'
-		order by id desc limit 1`, userID).
-		Scan(&p.ID, &p.UserID, &p.Title, &p.Mentor, &p.TotalWeeks, &p.Target, &p.Status)
-	if isNoRows(err) {
-		return nil, ErrNotFound
-	}
-	if err != nil {
-		return nil, wrapErr("查询带培计划", err)
-	}
+const trainingPlanCols = `select p.id, p.user_id, p.title, coalesce(p.mentor,''), p.total_weeks,
+	coalesce(p.target,''), p.status, coalesce(u.name,''), coalesce(d.name,''), u.dept_id,
+	coalesce(m.name,''), p.mentor_user_id
+	from training_plan p
+	left join org_user u on u.id=p.user_id
+	left join org_user m on m.id=p.mentor_user_id
+	left join org_dept d on d.id=u.dept_id`
+
+func scanPlan(row interface{ Scan(...any) error }, p *TrainingPlan) error {
+	return row.Scan(&p.ID, &p.UserID, &p.Title, &p.Mentor, &p.TotalWeeks, &p.Target, &p.Status,
+		&p.UserName, &p.DeptName, &p.UserDeptID, &p.Mentor, &p.MentorUserID)
+}
+
+func (s *Store) loadStages(ctx context.Context, p *TrainingPlan) error {
 	rows, err := s.pool.Query(ctx, `select id, sort, coalesce(week,''), goal, tasks, done
 		from training_stage where plan_id=$1 order by sort, id`, p.ID)
 	if err != nil {
-		return nil, wrapErr("查询带培阶段", err)
+		return wrapErr("查询带培阶段", err)
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var st TrainingStage
 		var tasks []byte
 		if err := rows.Scan(&st.ID, &st.Sort, &st.Week, &st.Goal, &tasks, &st.Done); err != nil {
-			return nil, err
-		}
-		_ = json.Unmarshal(tasks, &st.Tasks)
-		if st.Tasks == nil {
-			st.Tasks = []string{}
-		}
-		p.Stages = append(p.Stages, st)
-	}
-	return &p, rows.Err()
-}
-
-// SetTrainingStageDone 标记阶段完成/未完成。
-func (s *Store) SetTrainingStageDone(ctx context.Context, planID, stageID int64, done bool) error {
-	_, err := s.pool.Exec(ctx, `update training_stage set done=$3,
-		done_at = case when $3 then now() else null end
-		where id=$1 and plan_id=$2`, stageID, planID, done)
-	return wrapErr("更新带培阶段", err)
-}
-
-// GetTrainingPlanByID 按计划 id 取（管理端）。
-func (s *Store) GetTrainingPlanByID(ctx context.Context, id int64) (*TrainingPlan, error) {
-	var p TrainingPlan
-	err := s.pool.QueryRow(ctx, `select p.id, p.user_id, p.title, coalesce(p.mentor,''), p.total_weeks,
-		coalesce(p.target,''), p.status, coalesce(u.name,''), coalesce(d.name,''), u.dept_id
-		from training_plan p left join org_user u on u.id=p.user_id
-		left join org_dept d on d.id=u.dept_id where p.id=$1`, id).
-		Scan(&p.ID, &p.UserID, &p.Title, &p.Mentor, &p.TotalWeeks, &p.Target, &p.Status, &p.UserName, &p.DeptName, &p.UserDeptID)
-	if isNoRows(err) {
-		return nil, ErrNotFound
-	}
-	if err != nil {
-		return nil, wrapErr("查询带培计划", err)
-	}
-	rows, err := s.pool.Query(ctx, `select id, sort, coalesce(week,''), goal, tasks, done
-		from training_stage where plan_id=$1 order by sort, id`, p.ID)
-	if err != nil {
-		return nil, wrapErr("查询带培阶段", err)
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var st TrainingStage
-		var tasks []byte
-		if err := rows.Scan(&st.ID, &st.Sort, &st.Week, &st.Goal, &tasks, &st.Done); err != nil {
-			return nil, err
+			return err
 		}
 		_ = json.Unmarshal(tasks, &st.Tasks)
 		if st.Tasks == nil {
@@ -114,7 +73,130 @@ func (s *Store) GetTrainingPlanByID(ctx context.Context, id int64) (*TrainingPla
 			p.StageDone++
 		}
 	}
-	return &p, rows.Err()
+	return rows.Err()
+}
+
+// GetTrainingPlan 取某人当前带培计划。
+func (s *Store) GetTrainingPlan(ctx context.Context, userID int64) (*TrainingPlan, error) {
+	var p TrainingPlan
+	err := scanPlan(s.pool.QueryRow(ctx, trainingPlanCols+` where p.user_id=$1 and p.status<>'paused'
+		order by p.id desc limit 1`, userID), &p)
+	if isNoRows(err) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, wrapErr("查询带培计划", err)
+	}
+	return &p, s.loadStages(ctx, &p)
+}
+
+// GetTrainingPlanByID 按计划 id 取（管理端）。
+func (s *Store) GetTrainingPlanByID(ctx context.Context, id int64) (*TrainingPlan, error) {
+	var p TrainingPlan
+	err := scanPlan(s.pool.QueryRow(ctx, trainingPlanCols+` where p.id=$1`, id), &p)
+	if isNoRows(err) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, wrapErr("查询带培计划", err)
+	}
+	return &p, s.loadStages(ctx, &p)
+}
+
+// GetPlanIDByStage 通过阶段找计划。
+func (s *Store) GetPlanIDByStage(ctx context.Context, stageID int64) (int64, error) {
+	var planID int64
+	err := s.pool.QueryRow(ctx, `select plan_id from training_stage where id=$1`, stageID).Scan(&planID)
+	if isNoRows(err) {
+		return 0, ErrNotFound
+	}
+	return planID, wrapErr("查询带培计划", err)
+}
+
+// ListTrainingPlansScoped 按部门/师傅账号过滤。
+func (s *Store) ListTrainingPlansScoped(ctx context.Context, deptID, mentorID *int64, limit, offset int) ([]TrainingPlan, int, error) {
+	where := ` where (($1::bigint is not null and u.dept_id=$1) or ($2::bigint is not null and p.mentor_user_id=$2))`
+	rows, err := s.pool.Query(ctx, trainingPlanCols+where+`
+		order by p.id desc limit $3 offset $4`, deptID, mentorID, limit, offset)
+	if err != nil {
+		return nil, 0, wrapErr("查询带培计划", err)
+	}
+	defer rows.Close()
+	var out []TrainingPlan
+	for rows.Next() {
+		var p TrainingPlan
+		if err := scanPlan(rows, &p); err != nil {
+			return nil, 0, err
+		}
+		out = append(out, p)
+	}
+	var total int
+	err = s.pool.QueryRow(ctx, `select count(*) from training_plan p
+		left join org_user u on u.id=p.user_id`+where, deptID, mentorID).Scan(&total)
+	return out, total, wrapErr("统计带培计划", err)
+}
+
+// ListTrainingPlans 管理端：全部计划。
+func (s *Store) ListTrainingPlans(ctx context.Context, limit, offset int) ([]TrainingPlan, int, error) {
+	rows, err := s.pool.Query(ctx, trainingPlanCols+` order by p.id desc limit $1 offset $2`, limit, offset)
+	if err != nil {
+		return nil, 0, wrapErr("查询带培计划", err)
+	}
+	defer rows.Close()
+	var out []TrainingPlan
+	for rows.Next() {
+		var p TrainingPlan
+		if err := scanPlan(rows, &p); err != nil {
+			return nil, 0, err
+		}
+		out = append(out, p)
+	}
+	var total int
+	err = s.pool.QueryRow(ctx, `select count(*) from training_plan`).Scan(&total)
+	return out, total, wrapErr("统计带培计划", err)
+}
+
+// CreateTrainingPlan 新建计划并生成 4 周默认阶段。
+func (s *Store) CreateTrainingPlan(ctx context.Context, userID, mentorUserID int64, title string, totalWeeks int, target string) (int64, error) {
+	var mentorName string
+	if err := s.pool.QueryRow(ctx, `select name from org_user where id=$1`, mentorUserID).Scan(&mentorName); err != nil {
+		return 0, wrapErr("查询师傅", err)
+	}
+	if totalWeeks <= 0 {
+		totalWeeks = 4
+	}
+	var id int64
+	err := s.pool.QueryRow(ctx, `insert into training_plan(user_id, title, mentor, mentor_user_id, total_weeks, target)
+		values ($1,$2,$3,$4,$5,$6) returning id`,
+		userID, title, mentorName, mentorUserID, totalWeeks, target).Scan(&id)
+	if err != nil {
+		return 0, wrapErr("创建带培计划", err)
+	}
+	stages := []struct {
+		week, goal string
+		tasks      []string
+	}{
+		{"第 1 周", "入矿教育与安全规程", []string{"完成三级安全教育", "学习《煤矿安全规程》总则与入井规定"}},
+		{"第 2 周", "岗位跟班学习", []string{"跟随师傅下井熟悉作业环境", "认识本岗位设备与安全设施"}},
+		{"第 3 周", "实操训练", []string{"本岗位关键操作实操", "应急处置演练"}},
+		{"第 4 周", "考核与独立上岗", []string{"通过岗位安全考试", "师傅评价合格后独立上岗"}},
+	}
+	for i, st := range stages {
+		tasks, _ := json.Marshal(st.tasks)
+		if _, err := s.pool.Exec(ctx, `insert into training_stage(plan_id, sort, week, goal, tasks)
+			values ($1,$2,$3,$4,$5)`, id, i+1, st.week, st.goal, tasks); err != nil {
+			return 0, wrapErr("创建带培阶段", err)
+		}
+	}
+	return id, nil
+}
+
+// SetTrainingStageDone 标记阶段完成/未完成。
+func (s *Store) SetTrainingStageDone(ctx context.Context, planID, stageID int64, done bool) error {
+	_, err := s.pool.Exec(ctx, `update training_stage set done=$3,
+		done_at = case when $3 then now() else null end
+		where id=$1 and plan_id=$2`, stageID, planID, done)
+	return wrapErr("更新带培阶段", err)
 }
 
 // SetStageDoneByID 管理端标记阶段。
@@ -128,72 +210,6 @@ func (s *Store) SetStageDoneByID(ctx context.Context, stageID int64, done bool) 
 		return ErrNotFound
 	}
 	return nil
-}
-
-// GetPlanIDByStage 通过阶段找计划。
-func (s *Store) GetPlanIDByStage(ctx context.Context, stageID int64) (int64, error) {
-	var planID int64
-	err := s.pool.QueryRow(ctx, `select plan_id from training_stage where id=$1`, stageID).Scan(&planID)
-	if isNoRows(err) {
-		return 0, ErrNotFound
-	}
-	return planID, wrapErr("查询带培计划", err)
-}
-
-// ListTrainingPlansScoped 按部门/师傅过滤（管理端与师傅端共用）。
-func (s *Store) ListTrainingPlansScoped(ctx context.Context, deptID *int64, mentor string, limit, offset int) ([]TrainingPlan, int, error) {
-	where := ` where (($1::bigint is not null and u.dept_id=$1) or ($2<>'' and p.mentor=$2))`
-	rows, err := s.pool.Query(ctx, `select p.id, p.user_id, p.title, coalesce(p.mentor,''), p.total_weeks,
-		coalesce(p.target,''), p.status, coalesce(u.name,''), coalesce(d.name,''), u.dept_id,
-		(select count(*) from training_stage st where st.plan_id=p.id),
-		(select count(*) from training_stage st where st.plan_id=p.id and st.done)
-		from training_plan p left join org_user u on u.id=p.user_id
-		left join org_dept d on d.id=u.dept_id`+where+`
-		order by p.id desc limit $3 offset $4`, deptID, mentor, limit, offset)
-	if err != nil {
-		return nil, 0, wrapErr("查询带培计划", err)
-	}
-	defer rows.Close()
-	var out []TrainingPlan
-	for rows.Next() {
-		var p TrainingPlan
-		if err := rows.Scan(&p.ID, &p.UserID, &p.Title, &p.Mentor, &p.TotalWeeks, &p.Target,
-			&p.Status, &p.UserName, &p.DeptName, &p.UserDeptID, &p.StageTotal, &p.StageDone); err != nil {
-			return nil, 0, err
-		}
-		out = append(out, p)
-	}
-	var total int
-	err = s.pool.QueryRow(ctx, `select count(*) from training_plan p
-		left join org_user u on u.id=p.user_id`+where, deptID, mentor).Scan(&total)
-	return out, total, wrapErr("统计带培计划", err)
-}
-
-// ListTrainingPlans 管理端：带培计划列表。
-func (s *Store) ListTrainingPlans(ctx context.Context, limit, offset int) ([]TrainingPlan, int, error) {
-	rows, err := s.pool.Query(ctx, `select p.id, p.user_id, p.title, coalesce(p.mentor,''), p.total_weeks,
-		coalesce(p.target,''), p.status, coalesce(u.name,''), coalesce(d.name,''),
-		(select count(*) from training_stage st where st.plan_id=p.id),
-		(select count(*) from training_stage st where st.plan_id=p.id and st.done)
-		from training_plan p left join org_user u on u.id=p.user_id
-		left join org_dept d on d.id=u.dept_id
-		order by p.id desc limit $1 offset $2`, limit, offset)
-	if err != nil {
-		return nil, 0, wrapErr("查询带培计划", err)
-	}
-	defer rows.Close()
-	var out []TrainingPlan
-	for rows.Next() {
-		var p TrainingPlan
-		if err := rows.Scan(&p.ID, &p.UserID, &p.Title, &p.Mentor, &p.TotalWeeks, &p.Target,
-			&p.Status, &p.UserName, &p.DeptName, &p.StageTotal, &p.StageDone); err != nil {
-			return nil, 0, err
-		}
-		out = append(out, p)
-	}
-	var total int
-	err = s.pool.QueryRow(ctx, `select count(*) from training_plan`).Scan(&total)
-	return out, total, wrapErr("统计带培计划", err)
 }
 
 var _ = model.LearnRecord{}

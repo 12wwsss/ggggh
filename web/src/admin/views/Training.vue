@@ -1,12 +1,19 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { api } from '../../shared/http'
+import { api, getUser } from '../../shared/http'
+
+const role = (getUser() || {}).role
+const canCreate = computed(() => ['admin', 'safety'].includes(role))
 
 const rows = ref([])
 const loading = ref(false)
 const stages = ref({})
 const expanded = ref([])
+const createVisible = ref(false)
+const saving = ref(false)
+const users = ref([])
+const form = ref({ user_id: null, mentor_user_id: null, title: '新员工入矿带培计划', total_weeks: 4, target: '' })
 
 async function load() {
   loading.value = true
@@ -17,6 +24,36 @@ async function load() {
     ElMessage.error(e.message)
   } finally {
     loading.value = false
+  }
+}
+
+async function openCreate() {
+  createVisible.value = true
+  form.value = { user_id: null, mentor_user_id: null, title: '新员工入矿带培计划', total_weeks: 4, target: '' }
+  if (!users.value.length) {
+    try {
+      const data = await api.get('/api/v1/users', { page_size: 200 })
+      users.value = data.list || []
+    } catch (e) {
+      ElMessage.error(e.message)
+    }
+  }
+}
+
+async function submitCreate() {
+  if (!form.value.user_id || !form.value.mentor_user_id) {
+    return ElMessage.warning('请选择员工和师傅')
+  }
+  saving.value = true
+  try {
+    await api.post('/api/v1/training/plans', form.value)
+    ElMessage.success('已创建')
+    createVisible.value = false
+    load()
+  } catch (e) {
+    ElMessage.error(e.message)
+  } finally {
+    saving.value = false
   }
 }
 
@@ -51,6 +88,7 @@ onMounted(load)
   <div>
     <div class="toolbar">
       <div class="muted">新员工带培计划：勾选阶段即完成，员工在小程序「新员工带培」实时看到进度。</div>
+      <el-button v-if="canCreate" type="primary" @click="openCreate">新建带培计划</el-button>
     </div>
 
     <el-table :data="rows" v-loading="loading" row-key="id" @expand-change="onExpand">
@@ -85,6 +123,44 @@ onMounted(load)
       </el-table-column>
       <el-table-column prop="status" label="状态" width="90" />
     </el-table>
+
+    <el-dialog v-model="createVisible" title="新建带培计划" width="520px">
+      <el-form label-width="90px">
+        <el-form-item label="员工">
+          <el-select v-model="form.user_id" filterable placeholder="选择员工" style="width: 100%">
+            <el-option
+              v-for="u in users"
+              :key="u.id"
+              :label="u.name + '（' + u.username + '）'"
+              :value="u.id"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="师傅">
+          <el-select v-model="form.mentor_user_id" filterable placeholder="选择师傅" style="width: 100%">
+            <el-option
+              v-for="u in users"
+              :key="u.id"
+              :label="u.name + '（' + u.username + '）'"
+              :value="u.id"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="计划名称">
+          <el-input v-model="form.title" />
+        </el-form-item>
+        <el-form-item label="周期（周）">
+          <el-input-number v-model="form.total_weeks" :min="1" :max="12" />
+        </el-form-item>
+        <el-form-item label="目标">
+          <el-input v-model="form.target" placeholder="默认：完成入矿教育、岗位跟班与独立上岗考核" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="createVisible = false">取消</el-button>
+        <el-button type="primary" :loading="saving" @click="submitCreate">创建</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 

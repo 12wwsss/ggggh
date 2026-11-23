@@ -143,6 +143,7 @@ func New(cfg *config.Config, st *store.Store, svc *service.Service, mgr *auth.Ma
 
 	// 新员工带培（权限在 handler 内按角色/师傅判断）
 	authed.GET("/training/plans", s.listTrainingPlans)
+	authed.POST("/training/plans", s.createTrainingPlan)
 	authed.GET("/training/plans/:id", s.getTrainingPlan)
 	authed.POST("/training/stages/:id", s.setTrainingStage)
 

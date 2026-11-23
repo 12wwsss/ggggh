@@ -15,22 +15,23 @@ func canManagePlan(cl *auth.Claims, plan *store.TrainingPlan) bool {
 	if cl == nil || plan == nil {
 		return false
 	}
+	isMentor := plan.MentorUserID != nil && *plan.MentorUserID == cl.UserID
 	switch cl.Role {
 	case "admin", "safety":
 		return true
 	case "dept_leader":
+		if isMentor {
+			return true
+		}
 		return cl.DeptID > 0 && plan.UserDeptID != nil && *plan.UserDeptID == cl.DeptID
 	}
-	return cl.Name != "" && plan.Mentor != "" && plan.Mentor == cl.Name
+	return isMentor
 }
 
 func (s *Server) listTrainingPlans(c *gin.Context) {
 	cl := claims(c)
 	p, size, offset := pageParams(c)
-	var dept *int64
-	mentor := ""
-	switch cl.Role {
-	case "admin", "safety":
+	if cl.Role == "admin" || cl.Role == "safety" {
 		list, total, err := s.Store.ListTrainingPlans(c.Request.Context(), size, offset)
 		if err != nil {
 			fail(c, http.StatusInternalServerError, "查询失败")
@@ -38,25 +39,14 @@ func (s *Server) listTrainingPlans(c *gin.Context) {
 		}
 		paged(c, list, total, p, size)
 		return
-	case "dept_leader":
-		if cl.DeptID <= 0 && cl.Name == "" {
-			fail(c, http.StatusForbidden, "没有可管理的带培计划")
-			return
-		}
-		if cl.DeptID > 0 {
-			d := cl.DeptID
-			dept = &d
-		}
-		mentor = cl.Name
-	default:
-		// 师傅：按名字匹配计划里的 mentor
-		mentor = cl.Name
-		if mentor == "" {
-			fail(c, http.StatusForbidden, "没有可管理的带培计划")
-			return
-		}
 	}
-	list, total, err := s.Store.ListTrainingPlansScoped(c.Request.Context(), dept, mentor, size, offset)
+	var dept *int64
+	if cl.Role == "dept_leader" && cl.DeptID > 0 {
+		d := cl.DeptID
+		dept = &d
+	}
+	mentorID := cl.UserID
+	list, total, err := s.Store.ListTrainingPlansScoped(c.Request.Context(), dept, &mentorID, size, offset)
 	if err != nil {
 		fail(c, http.StatusInternalServerError, "查询失败")
 		return
@@ -114,4 +104,57 @@ func (s *Server) setTrainingStage(c *gin.Context) {
 		return
 	}
 	ok(c, gin.H{"id": id, "done": req.Done})
+}
+
+// createTrainingPlan 新建带培计划（管理员/安全科，区队长限本队员工）。
+func (s *Server) createTrainingPlan(c *gin.Context) {
+	cl := claims(c)
+	var req struct {
+		UserID       int64  `json:"user_id"`
+		MentorUserID int64  `json:"mentor_user_id"`
+		Title        string `json:"title"`
+		TotalWeeks   int    `json:"total_weeks"`
+		Target       string `json:"target"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil || req.UserID <= 0 || req.MentorUserID <= 0 {
+		fail(c, http.StatusBadRequest, "请选择员工和师傅")
+		return
+	}
+	u, err := s.Store.GetUserByID(c.Request.Context(), req.UserID)
+	if err != nil || u.Status != "active" {
+		fail(c, http.StatusBadRequest, "员工不存在或已停用")
+		return
+	}
+	if cl.Role == "dept_leader" {
+		if u.DeptID == nil || cl.DeptID <= 0 || *u.DeptID != cl.DeptID {
+			fail(c, http.StatusForbidden, "只能给本队员工建计划")
+			return
+		}
+	} else if cl.Role != "admin" && cl.Role != "safety" {
+		fail(c, http.StatusForbidden, "没有权限")
+		return
+	}
+	m, err := s.Store.GetUserByID(c.Request.Context(), req.MentorUserID)
+	if err != nil || m.Status != "active" {
+		fail(c, http.StatusBadRequest, "师傅不存在或已停用")
+		return
+	}
+	title := req.Title
+	if title == "" {
+		title = "新员工入矿带培计划"
+	}
+	target := req.Target
+	if target == "" {
+		target = "完成入矿教育、岗位跟班与独立上岗考核"
+	}
+	if req.TotalWeeks <= 0 {
+		req.TotalWeeks = 4
+	}
+	id, err := s.Store.CreateTrainingPlan(c.Request.Context(), req.UserID, req.MentorUserID, title, req.TotalWeeks, target)
+	if err != nil {
+		fail(c, http.StatusInternalServerError, "创建失败")
+		return
+	}
+	plan, _ := s.Store.GetTrainingPlanByID(c.Request.Context(), id)
+	ok(c, plan)
 }
