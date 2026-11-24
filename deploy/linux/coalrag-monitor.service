@@ -1,0 +1,7 @@
+[Unit]
+Description=CoalRAG health monitor
+After=coalrag.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/coalrag/scripts/monitor.sh

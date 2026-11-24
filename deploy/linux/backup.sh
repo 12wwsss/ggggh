@@ -1,45 +1,33 @@
 #!/usr/bin/env bash
-# 备份：pg_dump + storage + manifest(sha256)，保留最近 N 份。
-#   /opt/coalrag/scripts/backup.sh
-#   OUT=/data/backup KEEP=14 /opt/coalrag/scripts/backup.sh
+# 备份数据库 + storage（上传附件、视频），默认保留 14 天。
 set -euo pipefail
 
-OUT="${OUT:-/opt/coalrag/backups}"
-KEEP="${KEEP:-7}"
-STORAGE="${STORAGE:-/opt/coalrag/storage}"
-DSN="${COALRAG_DSN:?需要 COALRAG_DSN}"
-STAMP="$(date +%Y%m%d-%H%M%S)"
-DIR="$OUT/coalrag-$STAMP"
+ENV_FILE=${ENV_FILE:-/etc/coalrag/coalrag.env}
+BACKUP_ROOT=${BACKUP_ROOT:-/opt/coalrag/backups}
+RETENTION_DAYS=${RETENTION_DAYS:-14}
 
-mkdir -p "$DIR"
-echo "[$(date '+%F %T')] backup -> $DIR"
+set -a
+# shellcheck disable=SC1090
+. "$ENV_FILE"
+set +a
 
-# 1) 数据库（自定义格式，支持并行恢复）
-pg_dump --format=custom --no-owner --no-privileges --file="$DIR/db.dump" "$DSN"
+: "${COALRAG_DSN:?COALRAG_DSN 未配置}"
+STORAGE_DIR=${COALRAG_STORAGE_DIR:-/opt/coalrag/storage}
 
-# 2) 附件与评测产物
-if [ -d "$STORAGE" ]; then
-  tar -czf "$DIR/storage.tar.gz" -C "$(dirname "$STORAGE")" "$(basename "$STORAGE")"
-fi
+STAMP=$(date +%Y%m%d-%H%M%S)
+DEST="$BACKUP_ROOT/$STAMP"
+mkdir -p "$DEST"
 
-# 3) manifest
-{
-  echo "{"
-  echo "  \"created_at\": \"$(date -Iseconds)\","
-  echo "  \"host\": \"$(hostname)\","
-  echo "  \"db_sha256\": \"$(sha256sum "$DIR/db.dump" | awk '{print $1}')\","
-  if [ -f "$DIR/storage.tar.gz" ]; then
-    echo "  \"storage_sha256\": \"$(sha256sum "$DIR/storage.tar.gz" | awk '{print $1}')\","
-  fi
-  echo "  \"db_size\": $(stat -c%s "$DIR/db.dump")"
-  echo "}"
-} > "$DIR/manifest.json"
+echo "[backup] dump database -> $DEST/db.dump"
+pg_dump --dbname="$COALRAG_DSN" -Fc -f "$DEST/db.dump"
 
-# 4) 清理旧备份
-ls -1dt "$OUT"/coalrag-* 2>/dev/null | tail -n +$((KEEP + 1)) | while read -r old; do
-  echo "  remove $old"
-  rm -rf "$old"
-done
+echo "[backup] archive storage -> $DEST/storage.tar.gz"
+tar -C "$(dirname "$STORAGE_DIR")" -czf "$DEST/storage.tar.gz" "$(basename "$STORAGE_DIR")"
 
-du -sh "$DIR"
-echo "done"
+pg_restore -l "$DEST/db.dump" >/dev/null
+sha256sum "$DEST/db.dump" "$DEST/storage.tar.gz" > "$DEST/SHA256SUMS"
+
+find "$BACKUP_ROOT" -maxdepth 1 -type d \( -name '20*' -o -name 'coalrag-*' \) -mtime +"$RETENTION_DAYS" -exec rm -rf {} + 2>/dev/null || true
+
+SIZE=$(du -sh "$DEST" | cut -f1)
+echo "[backup] ok $DEST ($SIZE)"

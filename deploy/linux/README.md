@@ -1,229 +1,96 @@
-# Ubuntu 离线部署（单机）
+# 生产化部署与运维
 
-目标机器：Ubuntu 24.04 LTS，Xeon Silver 4210R（20 核 40 线程），128 GB 内存，4.5 TB 磁盘，2 x NVIDIA RTX 2080 Ti（11 GB x 2，共 22 GB 显存）。
-服务、数据库、模型全部跑在这一台，数据不出机。
+本目录是煤炭安全员平台的部署脚本与配置模板，服务器路径约定：
 
-## 0. 先确认三件事
+```
+/opt/coalrag/bin/coalrag-server     主程序
+/opt/coalrag/scripts/               本目录脚本
+/opt/coalrag/storage/               上传文件（uploads、media、issues）
+/opt/coalrag/logs/                  日志（logrotate 管理）
+/opt/coalrag/backups/               备份
+/etc/coalrag/coalrag.env            环境变量（含 DSN、JWT）
+/etc/systemd/system/coalrag.service
+```
+
+## 首次部署
 
 ```bash
-nvidia-smi || echo "无 NVIDIA 驱动/显卡"
-lspci | grep -Ei 'nvidia|vga|3d'
-nproc; free -h; df -h /
+# 1. 目录与用户（已存在可跳过）
+useradd -r -s /sbin/nologin coalrag || true
+mkdir -p /opt/coalrag/{bin,scripts,storage,logs,backups,testdata}
+chown -R coalrag:coalrag /opt/coalrag
+
+# 2. 安装脚本与单元
+install -m 0755 deploy/linux/*.sh /opt/coalrag/scripts/
+install -m 0644 deploy/linux/coalrag.service /etc/systemd/system/
+install -m 0644 deploy/linux/coalrag-backup.* /etc/systemd/system/
+install -m 0644 deploy/linux/coalrag-monitor.* /etc/systemd/system/
+install -m 0644 deploy/linux/logrotate-coalrag /etc/logrotate.d/coalrag
+
+systemctl daemon-reload
+systemctl enable --now coalrag
+systemctl enable --now coalrag-backup.timer
+systemctl enable --now coalrag-monitor.timer
 ```
 
-| 情况 | 模型选择 | 预期 |
-| --- | --- | --- |
-| 有 ≥16 GB 显存的 NVIDIA 卡 | 14B Q4_K_M（约 9 GB），`-ngl 99` | 20–40 token/s |
-| 只有 CPU | 7B/8B Q4_K_M（约 5 GB），`-t 20` | 3–6 token/s |
-| CPU 硬跑 14B Q4 | 可以，但慢 | 1.5–3 token/s，一道题要 40–90 秒 |
-
-**没有显卡时不要硬上 14B**：128 GB 内存能装下，但吞吐撑不住多人同时问。先用 7B 把链路跑通，再按实际效果决定。
-
-## 1. 传文件（离线摆渡）
-
-在开发机执行：
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts\build-linux.ps1
-# 产物在 bin\linux\，纯静态编译，不依赖服务器 glibc
-scp bin\linux\* user@server:/opt/coalrag/bin/
-scp -r testdata deploy scripts user@server:/tmp/coalrag-src/
-```
-
-模型文件（GGUF）从 ModelScope / HuggingFace 下载后同样走摆渡，落地先校验：
+## 发布新版本
 
 ```bash
-sha256sum /opt/models/*.gguf
+scp bin/linux/coalrag-server scl@服务器:/tmp/coalrag-server
+ssh scl@服务器 'sudo /opt/coalrag/scripts/deploy.sh /tmp/coalrag-server'
 ```
 
-## 2. 安装依赖（离线）
+健康检查失败会自动回滚到上一版二进制（`/opt/coalrag/bin/coalrag-server.bak-时间`）。
 
-需要：PostgreSQL 16（Ubuntu 24.04 自带）、ca-certificates、tzdata。
-有网时 `apt install -y postgresql`；离线时在**同版本**机器上下载 deb 再 `dpkg -i`。
+## 备份与恢复
 
 ```bash
-sudo apt-get install -y postgresql postgresql-contrib
-sudo systemctl enable --now postgresql
+# 手动备份
+sudo /opt/coalrag/scripts/backup.sh
 
-sudo -u postgres psql <<'SQL'
-create role coalrag login password '换成强口令';
-create database coalrag owner coalrag encoding 'UTF8';
-SQL
+# 查看
+ls -lh /opt/coalrag/backups/
+
+# 恢复（会覆盖数据库和 storage）
+sudo /opt/coalrag/scripts/restore.sh /opt/coalrag/backups/20261124-023000 --yes
 ```
 
-## 3. 模型与 llama.cpp（CUDA 13 注意）
+- 每天 02:30 自动备份，保留 14 天；
+- 备份内容：PostgreSQL 自定义格式 dump + storage 压缩包 + SHA256；
+- 建议每周把备份目录同步到另一台机器或 NAS。
 
-本机驱动 580.105.08 / CUDA 13.0。先确认运行时：
+## 监控
 
 ```bash
-nvidia-smi | head -4
-ldconfig -p | grep -E 'libcudart|libvulkan'
-ls -d /usr/local/cuda* 2>/dev/null
-nvcc --version 2>/dev/null
+systemctl list-timers | grep coalrag
+sudo /opt/coalrag/scripts/monitor.sh
+tail -20 /opt/coalrag/logs/monitor.log
 ```
 
-| 检查结果 | 走哪条路 |
-| --- | --- |
-| 有 `libcudart.so.12` 或 CUDA 12 toolkit | 直接用 llama.cpp 的预编译 CUDA 包 |
-| 只有 CUDA 13、没有 12 | 源码编译（推荐）或 Vulkan 后端，见下 |
-| 都没有 | 先 `-ngl 0` 用 CPU 跑通链路，再补 GPU |
+- 每 5 分钟检查一次 `/healthz`；
+- HTTP 不通 → 自动重启 coalrag；
+- 数据库 down → 先重启 postgresql，再重启 coalrag；
+- 模型 down → 只记日志（不会反复重启模型导致显存抖动）。
 
-**本机已装 CUDA 12.4 + nvcc**，直接用仓库里的脚本编译（约 15–25 分钟）：
-
-`ash
-sudo bash deploy/linux/build-llama.sh      # 默认 SRC=/opt/src/llama.cpp PREFIX=/opt/llama ARCH=75
-`
-
-离线时把 llama.cpp 源码包放到 /tmp/llama.cpp.tar.gz，脚本自动解压、不联网。
-
-手工编译（需要 cmake、g++、CUDA toolkit 12.4）：
+## 一键自检
 
 ```bash
-git clone https://github.com/ggml-org/llama.cpp  # 离线则摆渡源码包
-cd llama.cpp
-cmake -B build -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=75
-cmake --build build -j 20 --target llama-server
-sudo install -m 0755 build/bin/llama-server /opt/llama/llama-server
+# 需要 /opt/coalrag/testdata/smoke-doc.docx
+sudo /opt/coalrag/scripts/check.sh
 ```
 
-`CMAKE_CUDA_ARCHITECTURES=75` 是 2080 Ti 的算力等级，显式指定能省编译时间。
+会检查服务状态、健康接口，并跑一遍 smoke（103 项）。
 
-Vulkan 兜底（不需要 CUDA，性能约为 CUDA 的 80%）：
+## HTTPS / 公网接入（备案后）
 
-```bash
-cmake -B build -DGGML_VULKAN=ON
-cmake --build build -j 20 --target llama-server
-```
+1. 矿内服务器跑 `frpc`，把本机 8080 映射到公网入口机 18080（见 `frpc.toml`）；
+2. 公网入口机跑 `frps`（见 `frps.toml`），并用 nginx 反代 18080（见 `nginx-coalrag.conf`）；
+3. 域名解析到入口机，申请证书（certbot），把 `server_name`、证书路径换掉；
+4. 小程序 `utils/config.js` 的 `baseUrl` 改成 `https://域名`；
+5. 小程序后台把域名加入 request 合法域名。
 
+## 安全注意
 
-### 编译依赖
-
-本机只缺 cmake（3.27 即可），g++ 13.3 / git 2.43 已满足：
-
-`ash
-sudo apt install -y cmake          # 有网
-cmake --version | head -1
-`
-
-离线时二选一：
-
-`ash
-# A. deb 摆渡（在同版本 Ubuntu 24.04 上）
-apt-get download cmake libarchive13t64 librhash0 libjsoncpp25
-# 拷到服务器后
-sudo dpkg -i ./*.deb
-
-# B. pip 轮子（不需要 apt 源）
-python3 -m pip download cmake -d ./pkgs       # 联网机器
-python3 -m pip install --no-index --find-links ./pkgs cmake
-`
-
-g++ 13.3 + CUDA 12.4 会触发主机编译器版本检查，编译脚本已加
--DCMAKE_CUDA_FLAGS=-allow-unsupported-compiler，不需要降级 g++。
-
-### 模型选择
-
-22 GB 显存，14B 的 Q4/Q5/Q6 都放得下，**推荐 Q5_K_M**（质量接近 Q6，速度比 Q6 快）：
-
-| 量化 | 文件大小 | +8k KV | 预期速度（双卡） |
-| --- | --- | --- | --- |
-| Q4_K_M | ~9.0 GB | ~10.6 GB | 30–40 tok/s |
-| **Q5_K_M** | ~10.5 GB | ~12.1 GB | **25–35 tok/s** |
-| Q6_K | ~12.4 GB | ~14.0 GB | 20–28 tok/s |
-
-注意：桌面 GNOME 占 GPU0 约 0.4 GB，分片后每卡仍有 5–7 GB 余量，够 KV 缓存。
-显存不够时优先把 `-c` 从 8192 降到 4096，别先降量化。
-
-模型文件（ModelScope / HuggingFace 的 GGUF 仓库）：
-
-- 对话：`qwen2.5-14b-instruct-q5_k_m.gguf`
-- 嵌入：`bge-m3-q8_0.gguf`（1024 维）
-
-摆渡到 `/opt/models/` 后校验：
-
-```bash
-sha256sum /opt/models/*.gguf
-```
-
-### 启动
-
-```bash
-/opt/llama/llama-server -m /opt/models/qwen2.5-14b-instruct-q5_k_m.gguf \
-  --host 127.0.0.1 --port 8001 -c 8192 -t 8 -ngl 99 --tensor-split 11,11 --jinja
-curl -s http://127.0.0.1:8001/v1/models
-
-/opt/llama/llama-server -m /opt/models/bge-m3-q8_0.gguf \
-  --host 127.0.0.1 --port 8002 --embeddings --pooling cls -c 512 -t 10
-curl -s http://127.0.0.1:8002/v1/embeddings -H 'Content-Type: application/json' \
-  -d '{"model":"bge-m3","input":"瓦斯浓度超限"}' | head -c 200
-```
-
-## 4. 配置服务
-
-```bash
-sudo useradd -r -s /usr/sbin/nologin coalrag || true
-sudo mkdir -p /opt/coalrag/{bin,storage} /etc/coalrag
-sudo cp /tmp/coalrag-src/deploy/linux/coalrag.env.example /etc/coalrag/coalrag.env
-sudo nano /etc/coalrag/coalrag.env      # 改 DSN、JWT_SECRET、模型名
-sudo chmod 600 /etc/coalrag/coalrag.env
-```
-
-**`COALRAG_MIN_SCORE` 必须重标**：默认 0.08 是给桩嵌入用的。换成 bge-m3 后，
-相关条款的余弦相似度通常在 0.5–0.7，无关的在 0.2–0.4，起点取 `0.35`，
-再用第 6 步的评测集调到“该答的答、该兜底的兜底”。
-
-## 5. 首次启动
-
-```bash
-sudo install -m 0755 /tmp/coalrag-src/deploy/linux/systemd/*.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now llama-chat llama-embed coalrag
-journalctl -u coalrag -f
-```
-
-首启（`COALRAG_BOOTSTRAP=true`）会自动建表并写入演示账号。登录后台改掉演示口令，
-再上传真实的《煤矿安全规程》并发布。
-
-## 6. 验收（同一台机器）
-
-```bash
-cd /opt/coalrag
-./bin/smoke -base http://127.0.0.1:8080 -doc /opt/coalrag/testdata/煤矿安全规程节选.docx
-# 期望：103 项全过；问答/检索评测数字会被真实模型改变，看报告而不是只看通过
-
-# 检索与问答评测（20/30 题）
-curl -s -X POST http://127.0.0.1:8080/api/v1/eval/retrieval \
-  -H "Authorization: Bearer <token>" -H 'Content-Type: application/json' \
-  -d @testdata/eval/retrieval_20.json
-```
-
-评测报告在 `/opt/coalrag/storage/eval/`。准确率低于 0.9 时按顺序调：
-`COALRAG_MIN_SCORE` → `COALRAG_TOP_K` → 换更大模型。
-
-## 7. 备份与探活
-
-```bash
-sudo install -m 0755 /tmp/coalrag-src/deploy/linux/*.sh /opt/coalrag/scripts/
-sudo /opt/coalrag/scripts/backup.sh              # 手动跑一次
-sudo systemctl enable --now coalrag-backup.timer # 每天 02:30
-sudo systemctl enable --now coalrag-watch        # 每 60 秒探活
-```
-
-## 8. 性能基线
-
-```bash
-./bin/loadtest -users 5 -duration 30s -mix ask,search
-```
-
-CPU 跑 7B 时关注 **问答 p95**：这一项由模型决定，不是 Go 服务；检索 p95 应在 50ms 内。
-把数字记进交付文档，别拿桩模型的 1000 QPS 当真实容量。
-
-## 常见问题
-
-| 现象 | 原因 |
-| --- | --- |
-| `向量维度不一致，拒绝启动` | `COALRAG_EMBED_DIM` 与模型不符（bge-m3 = 1024） |
-| 答案都走兜底 | `min_score` 太高，或嵌入实例没起 |
-| 答案很慢 | 模型太大 / 没用 GPU / `max_tokens` 太高 |
-| `unsupported architecture` | llama.cpp 版本太旧，换新 release |
-| 启动即退出 | 看 `journalctl -u coalrag -n 50`，多为 DSN 或迁移失败 |
+- 8080 只应在内网/本机监听；公网只暴露 443；
+- `/etc/coalrag/coalrag.env` 权限保持 600，里面有 DSN 和 JWT 密钥；
+- 定期检查 `journalctl -u coalrag -p warning`。

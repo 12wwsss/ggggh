@@ -1,0 +1,28 @@
+[Unit]
+Description=CoalRAG API server
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=coalrag
+Group=coalrag
+WorkingDirectory=/opt/coalrag
+EnvironmentFile=/etc/coalrag/coalrag.env
+ExecStart=/opt/coalrag/bin/coalrag-server
+Restart=always
+RestartSec=3
+LimitNOFILE=65535
+
+# 安全加固：只允许写 storage / logs / backups
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+ReadWritePaths=/opt/coalrag/storage /opt/coalrag/logs /opt/coalrag/backups
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,10 @@
+/opt/coalrag/logs/*.log {
+    weekly
+    rotate 8
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+    su coalrag coalrag
+}

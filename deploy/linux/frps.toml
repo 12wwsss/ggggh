@@ -1,0 +1,7 @@
+# frps（公网入口机）：监听 7000 供 frpc 连接。
+bindAddr = "0.0.0.0"
+bindPort = 7000
+auth.token = "换成随机长口令"
+# 控制台（可选）
+webServer.addr = "127.0.0.1"
+webServer.port = 7500

@@ -1,0 +1,12 @@
+# frpc（在矿内服务器上运行）：把本机 8080 映射到公网 frps 的 18080。
+# 公网入口机再用 nginx 反代 127.0.0.1:18080 并配 HTTPS。
+serverAddr = "公网服务器IP"
+serverPort = 7000
+auth.token = "换成随机长口令"
+
+[[proxies]]
+name = "coalrag"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = 8080
+remotePort = 18080

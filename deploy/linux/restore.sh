@@ -1,34 +1,36 @@
 #!/usr/bin/env bash
-# 恢复：校验 manifest 的 sha256，然后重建库并还原 storage。
-#   /opt/coalrag/scripts/restore.sh /opt/coalrag/backups/coalrag-20261113-023000
-# 服务必须先停：systemctl stop coalrag
+# 从备份恢复：restore.sh <备份目录> --yes
 set -euo pipefail
 
-DIR="${1:?用法: restore.sh <备份目录>}"
-DSN="${COALRAG_DSN:?需要 COALRAG_DSN}"
-STORAGE="${STORAGE:-/opt/coalrag/storage}"
-
-[ -f "$DIR/manifest.json" ] || { echo "缺少 manifest.json"; exit 1; }
-[ -f "$DIR/db.dump" ] || { echo "缺少 db.dump"; exit 1; }
-
-want_db="$(grep -o '"db_sha256": "[a-f0-9]*"' "$DIR/manifest.json" | cut -d'"' -f4)"
-got_db="$(sha256sum "$DIR/db.dump" | awk '{print $1}')"
-[ "$want_db" = "$got_db" ] || { echo "db.dump 校验失败：$got_db != $want_db"; exit 1; }
-
-if [ -f "$DIR/storage.tar.gz" ]; then
-  want_st="$(grep -o '"storage_sha256": "[a-f0-9]*"' "$DIR/manifest.json" | cut -d'"' -f4)"
-  got_st="$(sha256sum "$DIR/storage.tar.gz" | awk '{print $1}')"
-  [ "$want_st" = "$got_st" ] || { echo "storage.tar.gz 校验失败"; exit 1; }
+DEST=${1:?用法: restore.sh /opt/coalrag/backups/20261124-023000 --yes}
+CONFIRM=${2:-}
+if [ "$CONFIRM" != "--yes" ]; then
+  echo "这会覆盖当前数据库和 storage，确认请加 --yes"
+  exit 2
 fi
 
-read -r -p "将覆盖当前数据库，输入 yes 继续: " ans
-[ "$ans" = "yes" ] || { echo "已取消"; exit 1; }
+ENV_FILE=${ENV_FILE:-/etc/coalrag/coalrag.env}
+set -a
+# shellcheck disable=SC1090
+. "$ENV_FILE"
+set +a
+STORAGE_DIR=${COALRAG_STORAGE_DIR:-/opt/coalrag/storage}
 
-pg_restore --clean --if-exists --no-owner --no-privileges --dbname="$DSN" "$DIR/db.dump"
+[ -f "$DEST/db.dump" ] || { echo "备份缺少 db.dump"; exit 1; }
+[ -f "$DEST/storage.tar.gz" ] || { echo "备份缺少 storage.tar.gz"; exit 1; }
 
-if [ -f "$DIR/storage.tar.gz" ]; then
-  rm -rf "$STORAGE"
-  tar -xzf "$DIR/storage.tar.gz" -C "$(dirname "$STORAGE")"
-fi
+echo "[restore] 停止服务"
+systemctl stop coalrag
 
-echo "恢复完成，启动服务：systemctl start coalrag"
+echo "[restore] 恢复数据库"
+pg_restore --clean --if-exists --no-owner --dbname="$COALRAG_DSN" "$DEST/db.dump"
+
+echo "[restore] 恢复 storage"
+rm -rf "${STORAGE_DIR:?}"/*
+tar -C "$(dirname "$STORAGE_DIR")" -xzf "$DEST/storage.tar.gz"
+chown -R coalrag:coalrag "$STORAGE_DIR"
+
+echo "[restore] 启动服务"
+systemctl start coalrag
+sleep 3
+curl -fsS -m 5 http://127.0.0.1:8080/healthz >/dev/null && echo "[restore] 完成，健康检查通过"
