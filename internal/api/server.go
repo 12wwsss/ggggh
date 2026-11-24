@@ -141,6 +141,11 @@ func New(cfg *config.Config, st *store.Store, svc *service.Service, mgr *auth.Ma
 	authed.GET("/auth/me", s.me)
 	authed.POST("/auth/password", s.changePassword)
 
+	// 报表
+	authed.GET("/reports/learning", s.learningReport)
+	authed.GET("/reports/wrong", s.wrongReport)
+	authed.GET("/reports/issues", s.issueReport)
+
 	// 新员工带培（权限在 handler 内按角色/师傅判断）
 	authed.GET("/training/plans", s.listTrainingPlans)
 	authed.POST("/training/plans", s.createTrainingPlan)

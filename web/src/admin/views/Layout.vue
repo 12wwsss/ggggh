@@ -13,7 +13,7 @@ const active = computed(() => route.path)
 const groups = [
   {
     title: '运行',
-    items: [{ path: '/dashboard', label: '运行看板' }],
+    items: [{ path: '/dashboard', label: '运行看板' }, { path: '/reports', label: '报表中心' }],
   },
   {
     title: '知识与学习',
