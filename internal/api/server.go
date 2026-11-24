@@ -237,6 +237,7 @@ func New(cfg *config.Config, st *store.Store, svc *service.Service, mgr *auth.Ma
 	authed.POST("/broadcast/tasks", s.require("broadcast", "write"), s.createBroadcast)
 	authed.POST("/broadcast/tasks/:id/publish", s.require("broadcast", "write"), s.publishBroadcast)
 	authed.GET("/broadcast/tasks/:id/records", s.require("broadcast", "read"), s.listBroadcastRecords)
+	authed.GET("/broadcast/tasks/:id/quiz-stats", s.require("broadcast", "read"), s.broadcastQuizStats)
 	authed.POST("/broadcast/tasks/:id/ack", s.require("broadcast", "write"), s.ackBroadcast)
 	authed.GET("/broadcast/mine", s.require("broadcast", "read"), s.myBroadcasts)
 

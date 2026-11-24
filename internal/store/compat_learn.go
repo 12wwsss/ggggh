@@ -90,10 +90,50 @@ func (s *Store) CompatQuestionGroups(ctx context.Context) ([]map[string]any, err
 }
 
 // AddQuizAttempt 记录一次练题成绩。
-func (s *Store) AddQuizAttempt(ctx context.Context, userID int64, job string, score, total int, wrong []byte) error {
-	_, err := s.pool.Exec(ctx, `insert into quiz_attempt(user_id, job, score, total, wrong)
-		values ($1,$2,$3,$4,$5)`, userID, job, score, total, wrong)
+func (s *Store) AddQuizAttempt(ctx context.Context, userID int64, job string, score, total int, wrong []byte, broadcastID *int64) error {
+	_, err := s.pool.Exec(ctx, `insert into quiz_attempt(user_id, job, score, total, wrong, broadcast_id)
+		values ($1,$2,$3,$4,$5,$6)`, userID, job, score, total, wrong, broadcastID)
 	return wrapErr("记录答题", err)
+}
+
+// BroadcastQuizRow 宣贯答题个人成绩。
+type BroadcastQuizRow struct {
+	Name     string `json:"name"`
+	Attempts int    `json:"attempts"`
+	BestPct  int    `json:"best_pct"`
+	LastAt   string `json:"last_at"`
+}
+
+// BroadcastQuizStats 宣贯配套答题统计。
+func (s *Store) BroadcastQuizStats(ctx context.Context, taskID int64) (int, int, float64, float64, []BroadcastQuizRow, error) {
+	var attempts, users int
+	var avgPct, passRate float64
+	err := s.pool.QueryRow(ctx, `select count(*), count(distinct user_id),
+		coalesce(avg(case when total>0 then score*100.0/total end),0),
+		coalesce(avg(case when total>0 and score*100.0/total>=60 then 100 else 0 end),0)
+		from quiz_attempt where broadcast_id=$1`, taskID).Scan(&attempts, &users, &avgPct, &passRate)
+	if err != nil {
+		return 0, 0, 0, 0, nil, wrapErr("统计宣贯答题", err)
+	}
+	rows, err := s.pool.Query(ctx, `select u.name, count(*),
+		coalesce(max(case when a.total>0 then round(a.score*100.0/a.total) end),0),
+		to_char(max(a.created_at),'MM-DD HH24:MI')
+		from quiz_attempt a join org_user u on u.id=a.user_id
+		where a.broadcast_id=$1 group by u.id, u.name
+		order by 3 desc, 2 desc`, taskID)
+	if err != nil {
+		return 0, 0, 0, 0, nil, wrapErr("查询宣贯答题", err)
+	}
+	defer rows.Close()
+	out := []BroadcastQuizRow{}
+	for rows.Next() {
+		var r BroadcastQuizRow
+		if err := rows.Scan(&r.Name, &r.Attempts, &r.BestPct, &r.LastAt); err != nil {
+			return 0, 0, 0, 0, nil, err
+		}
+		out = append(out, r)
+	}
+	return attempts, users, avgPct, passRate, out, rows.Err()
 }
 
 // QuizAttemptStats 返回本人答题次数与最好成绩。

@@ -17,6 +17,21 @@ const recordsDialog = ref(false)
 const records = ref([])
 const current = ref(null)
 
+const quizDialog = ref(false)
+const quizTitle = ref('')
+const quiz = ref({ attempts: 0, users: 0, avg_pct: 0, pass_rate: 0, rows: [] })
+
+async function openQuiz(row) {
+  quizTitle.value = row.title
+  try {
+    const data = await api.get(`/api/v1/broadcast/tasks/${row.id}/quiz-stats`)
+    quiz.value = data
+    quizDialog.value = true
+  } catch (e) {
+    ElMessage.error(e.message)
+  }
+}
+
 async function load() {
   loading.value = true
   try {
@@ -108,10 +123,11 @@ async function openRecords(row) {
       <el-table-column label="截止" width="150">
         <template #default="{ row }">{{ row.deadline ? fmtTime(row.deadline) : '—' }}</template>
       </el-table-column>
-      <el-table-column label="操作" width="170">
+      <el-table-column label="操作" width="240">
         <template #default="{ row }">
           <el-button v-if="row.status === 'draft'" link type="success" @click="publish(row)">发布</el-button>
           <el-button link type="primary" @click="openRecords(row)">签收明细</el-button>
+          <el-button link type="warning" @click="openQuiz(row)">答题统计</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -153,5 +169,38 @@ async function openRecords(row) {
         </el-table-column>
       </el-table>
     </el-drawer>
+
+    <el-dialog v-model="quizDialog" :title="`答题统计 · ${quizTitle}`" width="600px">
+      <div class="quiz-sum">
+        <span>参与人数 <strong>{{ quiz.users }}</strong></span>
+        <span>答题次数 <strong>{{ quiz.attempts }}</strong></span>
+        <span>平均分 <strong>{{ quiz.avg_pct }}</strong></span>
+        <span>及格率 <strong>{{ quiz.pass_rate }}%</strong></span>
+      </div>
+      <el-table :data="quiz.rows" size="small" max-height="380">
+        <el-table-column prop="name" label="姓名" width="100" />
+        <el-table-column prop="attempts" label="次数" width="80" />
+        <el-table-column prop="best_pct" label="最好成绩" width="100" />
+        <el-table-column prop="last_at" label="最近答题" width="140" />
+      </el-table>
+      <el-empty v-if="!quiz.rows.length" description="还没有人答题" :image-size="60" />
+      <template #footer>
+        <el-button @click="quizDialog = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
+
+<style scoped>
+.quiz-sum {
+  display: flex;
+  gap: 24px;
+  color: #59636e;
+  margin-bottom: 12px;
+}
+.quiz-sum strong {
+  color: #a5311f;
+  font-size: 18px;
+  margin-left: 4px;
+}
+</style>

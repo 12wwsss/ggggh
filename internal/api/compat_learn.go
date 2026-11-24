@@ -85,10 +85,11 @@ func (s *Server) compatQuizSubmit(c *gin.Context) {
 		return
 	}
 	var req struct {
-		Score int               `json:"score"`
-		Total int               `json:"total"`
-		Job   string            `json:"job"`
-		Wrong []json.RawMessage `json:"wrong"`
+		Score  int               `json:"score"`
+		Total  int               `json:"total"`
+		Job    string            `json:"job"`
+		Notice json.RawMessage   `json:"notice"`
+		Wrong  []json.RawMessage `json:"wrong"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "message": "参数不正确"})
@@ -99,7 +100,14 @@ func (s *Server) compatQuizSubmit(c *gin.Context) {
 		b, _ := json.Marshal(req.Wrong)
 		raw = b
 	}
-	if err := s.Store.AddQuizAttempt(c.Request.Context(), u.ID, req.Job, req.Score, req.Total, raw); err != nil {
+	var broadcastID *int64
+	if len(req.Notice) > 0 {
+		raw := strings.Trim(strings.TrimSpace(string(req.Notice)), `"`)
+		if id, err := strconv.ParseInt(raw, 10, 64); err == nil && id > 0 {
+			broadcastID = &id
+		}
+	}
+	if err := s.Store.AddQuizAttempt(c.Request.Context(), u.ID, req.Job, req.Score, req.Total, raw, broadcastID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "message": "记录失败"})
 		return
 	}
