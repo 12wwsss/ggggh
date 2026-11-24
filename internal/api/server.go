@@ -119,6 +119,7 @@ func New(cfg *config.Config, st *store.Store, svc *service.Service, mgr *auth.Ma
 	compat.GET("/issue/flow", s.compatIssueFlow)
 	compat.GET("/users", s.compatUsers)
 	s.Engine.GET("/uploads/:name", s.serveUpload)
+	s.Engine.GET("/media/:name", s.serveMedia)
 	compat.GET("/options", s.compatOptions)
 	compat.GET("/culture", s.compatCulture)
 	compat.GET("/content", s.compatContentList)
@@ -145,6 +146,12 @@ func New(cfg *config.Config, st *store.Store, svc *service.Service, mgr *auth.Ma
 	authed.GET("/reports/learning", s.learningReport)
 	authed.GET("/reports/wrong", s.wrongReport)
 	authed.GET("/reports/issues", s.issueReport)
+
+	// 视频/资料库
+	authed.GET("/media", s.listMedia)
+	authed.POST("/media/upload", s.uploadMedia)
+	authed.POST("/media/link", s.createMediaLink)
+	authed.DELETE("/media/:id", s.deleteMedia)
 
 	// 新员工带培（权限在 handler 内按角色/师傅判断）
 	authed.GET("/training/plans", s.listTrainingPlans)

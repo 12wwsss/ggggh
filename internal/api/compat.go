@@ -926,11 +926,15 @@ func (s *Server) compatOptions(c *gin.Context) {
 	if err != nil {
 		teams = []string{}
 	}
+	mediaCats, err := s.Store.MediaCategories(c.Request.Context())
+	if err != nil || len(mediaCats) == 0 {
+		mediaCats = []string{"操作视频", "设备原理", "规程制度", "事故案例"}
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"ok":        true,
 		"jobs":      jobs,
 		"teams":     teams,
-		"mediaCats": []string{"操作视频", "设备原理", "规程制度", "事故案例"},
+		"mediaCats": mediaCats,
 		"contact":   "",
 		"version":   "1.0",
 	})
@@ -977,10 +981,6 @@ func (s *Server) compatNotices(c *gin.Context) {
 }
 
 // compatMaterials 视频/资料列表；当前没有资料返回空列表，页面不报错。
-func (s *Server) compatMaterials(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"ok": true, "items": []any{}})
-}
-
 // compatEmployeeSummary 首页个人统计。
 func (s *Server) compatEmployeeSummary(c *gin.Context) {
 	u := s.compatCurrentUser(c)
