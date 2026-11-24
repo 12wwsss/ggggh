@@ -24,6 +24,7 @@ const groups = [
       { path: '/exams', label: '考试管理' },
       { path: '/broadcasts', label: '宣贯管理' },
       { path: '/media', label: '视频资料' },
+      { path: '/risks', label: '岗位风险' },
       { path: '/training', label: '新员工带培', roles: ['admin', 'safety', 'dept_leader', 'employee'] },
     ],
   },

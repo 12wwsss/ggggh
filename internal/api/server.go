@@ -130,6 +130,7 @@ func New(cfg *config.Config, st *store.Store, svc *service.Service, mgr *auth.Ma
 	compat.GET("/learn/items/:id", s.compatLearnItemDetail)
 	compat.POST("/learn/items/:id/progress", s.compatLearnProgress)
 	compat.GET("/materials", s.compatMaterials)
+	compat.GET("/risks", s.compatRisks)
 	compat.GET("/employee/summary", s.compatEmployeeSummary)
 
 	// 登录不需要令牌
@@ -152,6 +153,11 @@ func New(cfg *config.Config, st *store.Store, svc *service.Service, mgr *auth.Ma
 	authed.POST("/media/upload", s.uploadMedia)
 	authed.POST("/media/link", s.createMediaLink)
 	authed.DELETE("/media/:id", s.deleteMedia)
+
+	// 岗位风险点
+	authed.GET("/risks", s.listRisks)
+	authed.POST("/risks", s.createRisk)
+	authed.DELETE("/risks/:id", s.deleteRisk)
 
 	// 新员工带培（权限在 handler 内按角色/师傅判断）
 	authed.GET("/training/plans", s.listTrainingPlans)

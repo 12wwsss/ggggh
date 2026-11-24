@@ -27,6 +27,17 @@
       <text class="retry" bindtap="retry">重试</text>
     </view>
 
+    <block wx:if="{{risks.length}}">
+      <view class="sec-title">岗位风险</view>
+      <view class="card learn-item" wx:for="{{risks}}" wx:key="id" data-id="{{item.id}}" bindtap="openRisk">
+        <view class="between">
+          <text class="small bold">{{item.title}}</text>
+          <text class="tiny lvl">{{item.level}}</text>
+        </view>
+        <view class="tiny muted" style="margin-top:8rpx">{{item.job}} · {{item.cat}}</view>
+      </view>
+    </block>
+
     <block wx:if="{{learnItems.length}}">
       <view class="sec-title">学规程</view>
       <view class="card learn-item" wx:for="{{learnItems}}" wx:key="id" data-id="{{item.id}}" bindtap="openLearn">
@@ -114,6 +125,20 @@
       </view>
       <view class="btn-mini" style="margin-top:14rpx" bindtap="quizItem">去小测（按分类抽题）</view>
       <view class="sheet-cancel" bindtap="closeLearn">关闭</view>
+    </view>
+  </view>
+
+  <view wx:if="{{riskOpen}}" class="mask" catchtap="closeRisk">
+    <view class="sheet" catchtap="noop">
+      <view class="sheet-h">{{riskCur.title}}</view>
+      <view class="tiny muted">{{riskCur.job}} · {{riskCur.cat}} · 风险等级 {{riskCur.level}}</view>
+      <scroll-view scroll-y style="max-height: 55vh">
+        <view style="margin-top:14rpx;line-height:1.8">{{riskCur.desc}}</view>
+        <view class="tiny muted bold" style="margin-top:16rpx">管控措施</view>
+        <view wx:for="{{riskCur.measures}}" wx:key="*this" class="tiny" style="margin-top:6rpx;line-height:1.7">· {{item}}</view>
+        <view wx:if="{{riskCur.clauses.length}}" class="tiny muted" style="margin-top:12rpx">依据：{{riskCur.clauses}}</view>
+      </scroll-view>
+      <view class="sheet-cancel" bindtap="closeRisk">关闭</view>
     </view>
   </view>
 </view>

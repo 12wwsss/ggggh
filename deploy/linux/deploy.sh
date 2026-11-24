@@ -7,7 +7,7 @@ NEW=${1:?用法: deploy.sh /tmp/coalrag-server}
 BIN=/opt/coalrag/bin/coalrag-server
 TS=$(date +%Y%m%d-%H%M%S)
 
-[ -x "$NEW" ] || { echo "文件不可执行: $NEW"; exit 1; }
+[ -f "$NEW" ] || { echo "文件不存在: $NEW"; exit 1; }
 
 cp -a "$BIN" "$BIN.bak-$TS" 2>/dev/null || true
 install -m 0755 "$NEW" "$BIN"

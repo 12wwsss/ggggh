@@ -5,6 +5,9 @@ Page({
     qGroups: [],
     exams: [],
     learnItems: [],
+    risks: [],
+    riskOpen: false,
+    riskCur: null,
     learnOpen: false,
     learnCur: null,
     learnBusy: false,
@@ -29,8 +32,9 @@ Page({
     Promise.all([
       api.practiceGroups().catch(() => ({ groups: [] })),
       api.examList().catch(() => ({ items: [] })),
-      api.learnItems().catch(() => ({ items: [] }))
-    ]).then(([g, e, l]) => {
+      api.learnItems().catch(() => ({ items: [] })),
+      api.risks().catch(() => ({ items: [] }))
+    ]).then(([g, e, l, r]) => {
       const qGroups = g.groups || []
       const total = qGroups.reduce((n, x) => n + (x.count || 0), 0)
       this.loaded = true
@@ -38,6 +42,7 @@ Page({
         qGroups,
         exams: e.items || [],
         learnItems: l.items || [],
+        risks: r.items || [],
         total,
         wrongCount: (wx.getStorageSync('wrongBook') || []).length,
         best: wx.getStorageSync('quizBest') || 0,
@@ -84,6 +89,16 @@ Page({
   },
 
   noop() {},
+
+  openRisk(e) {
+    const id = Number(e.currentTarget.dataset.id)
+    const it = (this.data.risks || []).find(x => Number(x.id) === id)
+    if (it) this.setData({ riskOpen: true, riskCur: it })
+  },
+
+  closeRisk() {
+    this.setData({ riskOpen: false, riskCur: null })
+  },
 
   completeLearn() {
     const it = this.data.learnCur

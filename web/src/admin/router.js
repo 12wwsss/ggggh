@@ -17,6 +17,7 @@ const routes = [
       { path: 'exams', name: 'exams', component: () => import('./views/Exams.vue'), meta: { title: '考试管理' } },
       { path: 'broadcasts', name: 'broadcasts', component: () => import('./views/Broadcasts.vue'), meta: { title: '宣贯管理' } },
       { path: 'media', name: 'media', component: () => import('./views/Media.vue'), meta: { title: '视频资料' } },
+      { path: 'risks', name: 'risks', component: () => import('./views/Risks.vue'), meta: { title: '岗位风险' } },
       { path: 'training', name: 'training', component: () => import('./views/Training.vue'), meta: { title: '新员工带培' } },
       { path: 'issues', name: 'issues', component: () => import('./views/Issues.vue'), meta: { title: '问题受理与闭环' } },
       { path: 'org', name: 'org', component: () => import('./views/Org.vue'), meta: { title: '组织与权限' } },
