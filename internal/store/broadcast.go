@@ -44,7 +44,15 @@ func (s *Store) PublishBroadcast(ctx context.Context, id int64) (int64, error) {
 	if err != nil {
 		return 0, wrapErr("生成签收记录", err)
 	}
-	return tag.RowsAffected(), tx.Commit(ctx)
+	ackCount := tag.RowsAffected()
+	if _, err := tx.Exec(ctx, `insert into message(user_id, kind, title, body, ref_type, ref_id)
+		select u.id, 'broadcast', '新的制度宣贯：'||t.title, left(coalesce(t.content,''), 120), 'broadcast', t.id
+		from broadcast_task t cross join org_user u
+		where t.id=$1 and u.status='active'
+		  and (cardinality(t.dept_ids)=0 or u.dept_id = any(t.dept_ids))`, id); err != nil {
+		return 0, wrapErr("生成宣贯消息", err)
+	}
+	return ackCount, tx.Commit(ctx)
 }
 
 // ListBroadcastTasks 管理端查询任务，附带签收统计。

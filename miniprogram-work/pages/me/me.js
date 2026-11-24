@@ -11,6 +11,7 @@ function buildMenus(best, wrongCount, quizCount, s, contact, manager, hasTrainin
     { t: '错题集', ch: '错', sub: wrongCount ? `${wrongCount} 道待巩固 · 答对自动移出` : '答错自动收录 · 按岗位筛选', c: '#A97900', bg: '#FFF3C4', path: '/pages/wrong/wrong' },
     { t: '学习档案', ch: '学', sub: `学时 ${hours} / 72`, c: '#2E6BE6', bg: '#EAF0FD', path: '/pages/study/study' },
     { t: '我的上报', ch: '报', sub: pending ? pending + ' 条待闭环' : '上报隐患 · 查看进度', c: '#F79009', bg: '#FFF6E5', path: '/pages/issue/issue' },
+    { t: '消息中心', ch: '信', sub: '待办与通知', c: '#2E6BE6', bg: '#EAF0FD', path: '/pages/messages/messages' },
     { t: '安全科电话', ch: '电', sub: contact || '后台「基础配置」里填写', c: '#A97900', bg: '#FFF3C4', contact: true },
     { t: '帮助与设置', ch: '设', sub: '常见问题 · 清除数据', c: '#7C8B9B', bg: '#EEF1F5', path: '/pages/settings/settings' }
   ]
@@ -117,6 +118,7 @@ Page({
     this.loadProfile()
     this.loadTodos()
     this.loadTraining()
+    this.loadMsgBadge()
     const best = wx.getStorageSync('quizBest') || 0
     const wrong = wx.getStorageSync('wrongBook') || []
     const quizCount = wx.getStorageSync('quizCount') || 0
@@ -149,9 +151,20 @@ Page({
     }).catch(() => {})
   },
 
-  /** 有带培计划才显示「新员工带培」入口 */
-  loadTraining() {
+  /** 消息中心未读数 */
+  loadMsgBadge() {
     if (!auth.token()) return
+    api.messages().then(res => {
+      const unread = res.unread || 0
+      if (!unread) return
+      const menus = (this.data.menus || []).map(x =>
+        x.path === '/pages/messages/messages' ? { ...x, sub: '未读 ' + unread + ' 条' } : x)
+      this.setData({ menus })
+    }).catch(() => {})
+  },
+
+  /** 有带培计划才显示「新员工带培」入口 */
+  loadTraining() {    if (!auth.token()) return
     api.training().then(res => {
       const has = (res.plans || []).length > 0
       if (has !== this.hasTraining) {

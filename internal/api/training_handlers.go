@@ -103,6 +103,10 @@ func (s *Server) setTrainingStage(c *gin.Context) {
 		fail(c, http.StatusNotFound, "阶段不存在")
 		return
 	}
+	if req.Done {
+		body := plan.Title + "：阶段已完成确认"
+		_ = s.Store.CreateMessage(c.Request.Context(), plan.UserID, "training", "带培进度更新", body, "training", &plan.ID)
+	}
 	ok(c, gin.H{"id": id, "done": req.Done})
 }
 

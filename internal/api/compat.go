@@ -807,6 +807,10 @@ func (s *Server) compatNotifications(c *gin.Context) {
 			total += close
 		}
 	}
+	if unread, err := s.Store.UnreadMessageCount(c.Request.Context(), u.ID); err == nil && unread > 0 {
+		items = append([]gin.H{{"key": "messages", "label": "未读消息", "count": unread}}, items...)
+		total += unread
+	}
 	c.JSON(http.StatusOK, gin.H{"ok": true, "total": total, "items": items})
 }
 

@@ -119,6 +119,18 @@ function notifications() {
   return request('/api/notifications', {}, 'GET')
 }
 
+function messages() {
+  return request('/api/messages', {}, 'GET')
+}
+
+function messageRead(id) {
+  return request('/api/messages/read', { id })
+}
+
+function messageReadAll() {
+  return request('/api/messages/read', { all: true })
+}
+
 function users(deptId) {
   const q = deptId ? '?dept_id=' + encodeURIComponent(deptId) : ''
   return request('/api/users' + q, {}, 'GET')
@@ -277,6 +289,6 @@ module.exports = {
   culture, profile, saveProfile,
   chat, submitQuiz, health,
   content, article, risks, training,
-  createIssue, issues, handleIssue, issueFlow, issueRectify, issueResubmit, notifications, users, issueStats, upload,
+  createIssue, issues, handleIssue, issueFlow, issueRectify, issueResubmit, notifications, messages, messageRead, messageReadAll, users, issueStats, upload,
   notices, noticeRead, noticeAck, quizStats, questions,
 }

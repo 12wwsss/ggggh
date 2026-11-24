@@ -149,7 +149,10 @@ func (s *Store) TransitionIssue(ctx context.Context, req TransitionRequest) (*mo
 	defer tx.Rollback(ctx)
 
 	var current string
-	if err := tx.QueryRow(ctx, `select status from issue where id=$1 for update`, req.IssueID).Scan(&current); err != nil {
+	var reporter, assignee *int64
+	var title, code string
+	if err := tx.QueryRow(ctx, `select status, reporter_id, assignee_id, title, code from issue where id=$1 for update`,
+		req.IssueID).Scan(&current, &reporter, &assignee, &title, &code); err != nil {
 		if isNoRows(err) {
 			return nil, ErrNotFound
 		}
@@ -185,6 +188,50 @@ func (s *Store) TransitionIssue(ctx context.Context, req TransitionRequest) (*mo
 		values ($1,$2,$3,$4,$5,$6)`, req.IssueID, req.Action, current, req.To, req.ActorID, req.Comment); err != nil {
 		return nil, wrapErr("写入流转记录", err)
 	}
+
+	// 站内消息：受理/整改/验收/闭环/驳回通知相关人。
+	type msg struct {
+		to    *int64
+		title string
+		body  string
+	}
+	msgs := []msg{}
+	label := code + " " + title
+	comment := req.Comment
+	if len(comment) > 60 {
+		comment = comment[:60] + "…"
+	}
+	switch req.To {
+	case model.IssueAccepted:
+		assigneeToNotify := assignee
+		if req.AssigneeID != nil {
+			assigneeToNotify = req.AssigneeID
+		}
+		if current == model.IssueRectified {
+			msgs = append(msgs, msg{assigneeToNotify, "验收不合格，请重新整改", label + "；" + comment})
+		} else {
+			msgs = append(msgs, msg{assigneeToNotify, "你有一条隐患整改任务", label})
+			msgs = append(msgs, msg{reporter, "你的上报已受理", label})
+		}
+	case model.IssueRectified:
+		msgs = append(msgs, msg{reporter, "隐患已整改，等待验收", label})
+	case model.IssueVerified:
+		msgs = append(msgs, msg{reporter, "隐患验收通过", label})
+	case model.IssueClosed:
+		msgs = append(msgs, msg{reporter, "隐患已闭环", label})
+	case model.IssueRejected:
+		msgs = append(msgs, msg{reporter, "上报被驳回", label + "；原因：" + comment})
+	}
+	for _, m := range msgs {
+		if m.to == nil || *m.to == req.ActorID {
+			continue
+		}
+		if _, err := tx.Exec(ctx, `insert into message(user_id, kind, title, body, ref_type, ref_id)
+			values ($1,'issue',$2,$3,'issue',$4)`, *m.to, m.title, m.body, req.IssueID); err != nil {
+			return nil, wrapErr("写入消息", err)
+		}
+	}
+
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}

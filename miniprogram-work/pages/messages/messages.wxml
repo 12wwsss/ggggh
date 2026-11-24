@@ -1,0 +1,37 @@
+<view class="page">
+  <view class="wrap">
+    <view class="card head-card">
+      <view class="between">
+        <view>
+          <view class="tiny muted bold">消息中心</view>
+          <view class="row" style="margin-top: 8rpx">
+            <text class="big">{{unread}}</text>
+            <text class="tiny muted" style="margin-left: 10rpx">条未读</text>
+          </view>
+        </view>
+        <text class="link" bindtap="readAll">全部已读</text>
+      </view>
+    </view>
+
+    <view wx:if="{{err}}" class="card err">
+      <view class="small bold" style="color:#E5484D">消息加载失败</view>
+      <view class="tiny muted" style="margin-top:8rpx">{{err}}</view>
+      <text class="retry" bindtap="fetch">重试</text>
+    </view>
+
+    <view wx:if="{{!loading && !items.length}}" class="tip">暂无消息</view>
+
+    <view class="card m-item {{item.read ? '' : 'unread'}}" wx:for="{{items}}" wx:key="id"
+          data-i="{{index}}" bindtap="open">
+      <view class="between">
+        <view class="row">
+          <view wx:if="{{!item.read}}" class="dot"></view>
+          <text class="m-title">{{item.title}}</text>
+        </view>
+        <text class="tiny muted">{{item.createdAt}}</text>
+      </view>
+      <view class="tiny muted" style="margin-top:8rpx;line-height:1.6">{{item.body}}</view>
+    </view>
+  </view>
+  <view class="bottom-space"></view>
+</view>
