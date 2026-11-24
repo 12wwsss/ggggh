@@ -1,11 +1,17 @@
 <view class="page">
   <!-- 播放器 -->
-  <view wx:if="{{playing}}" class="player-wrap">
-    <video class="player" src="{{playing}}" autoplay controls object-fit="contain"
-           show-center-play-btn enable-play-gesture
+  <view wx:if="{{playing}}" class="player-wrap {{playerMini ? 'mini' : ''}}">
+    <video id="videoPlayer" class="player" src="{{playing}}" autoplay controls object-fit="contain"
+           show-center-play-btn enable-play-gesture show-fullscreen-btn
+           picture-in-picture-mode="{{['push','pop']}}"
+           bindfullscreenchange="onFullscreen"
+           bindenterpictureinpicture="onPip"
+           bindleavepictureinpicture="onPipLeave"
            bindended="closePlayer"></video>
     <view class="player-bar">
       <text class="p-title">{{playingTitle}}</text>
+      <text class="p-act" bindtap="toggleMini">{{playerMini ? '还原' : '小窗'}}</text>
+      <text class="p-act" bindtap="toggleFullscreen">{{fullscreen ? '退出全屏' : '全屏'}}</text>
       <text class="p-close" bindtap="closePlayer">关闭</text>
     </view>
   </view>

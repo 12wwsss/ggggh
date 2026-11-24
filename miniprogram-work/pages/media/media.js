@@ -7,6 +7,8 @@ Page({
     cat: 0,
     playing: null,     // 当前播放的 url
     playingTitle: '',
+    playerMini: false,
+    fullscreen: false,
     loading: true,
     err: ''
   },
@@ -125,5 +127,29 @@ Page({
     })
   },
 
-  closePlayer() { this.setData({ playing: null }) }
+  closePlayer() { this.setData({ playing: null, playerMini: false, fullscreen: false }) },
+
+  /** 小窗 / 还原：固定在右下角，可以一边看一边翻列表 */
+  toggleMini() {
+    const mini = !this.data.playerMini
+    this.setData({ playerMini: mini })
+    if (!mini) wx.pageScrollTo({ scrollTop: 0, duration: 200 })
+  },
+
+  /** 全屏 / 退出全屏 */
+  toggleFullscreen() {
+    const ctx = wx.createVideoContext('videoPlayer', this)
+    if (this.data.fullscreen) ctx.exitFullScreen()
+    else ctx.requestFullScreen()
+  },
+
+  onFullscreen(e) {
+    this.setData({ fullscreen: !!(e.detail && e.detail.fullScreen) })
+  },
+
+  onPip() {
+    wx.showToast({ title: '已进入系统小窗', icon: 'none' })
+  },
+
+  onPipLeave() {}
 })
