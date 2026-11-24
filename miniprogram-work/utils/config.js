@@ -3,7 +3,7 @@
 // - 手机预览/真机调试：http://<服务器局域网IP>:8789（手机和服务器同一 WiFi）
 // - 正式上线：https://<已备案域名>，并在小程序后台把域名加进 request 白名单
 module.exports = {
-  baseUrl: 'http://127.0.0.1:18080',
+  baseUrl: 'http://192.168.134.103:8080',
   timeout: 40000,
   appName: '煤矿安全员 AI 智能体'
 }
