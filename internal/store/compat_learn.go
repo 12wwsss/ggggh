@@ -25,10 +25,10 @@ func (s *Store) ListCompatQuestions(ctx context.Context, job, cat string, all bo
 		count = 5
 	}
 	q := `select q.id, q.stem, q.options, q.answer, coalesce(q.analysis,''),
-		coalesce(li.post,''), coalesce(li.category,'')
+		coalesce(nullif(q.job,''), li.post, ''), coalesce(nullif(q.category,''), li.category, '')
 		from quiz_question q left join learn_item li on li.id=q.item_id
-		where ($1='' or li.post=$1 or coalesce(li.post,'')='' or li.post='通用')
-		  and ($2='' or li.category=$2)
+		where ($1='' or q.job=$1 or li.post=$1 or coalesce(q.job,li.post,'')='' or coalesce(q.job,li.post,'')='通用')
+		  and ($2='' or q.category=$2 or li.category=$2)
 		order by q.id`
 	args := []any{job, cat}
 	if !all {
@@ -70,7 +70,7 @@ func StripOptionPrefix(opts []string) []string {
 
 // CompatQuestionGroups 按岗位统计题量。
 func (s *Store) CompatQuestionGroups(ctx context.Context) ([]map[string]any, error) {
-	rows, err := s.pool.Query(ctx, `select coalesce(nullif(li.post,''),'通用') as job, count(*)
+	rows, err := s.pool.Query(ctx, `select coalesce(nullif(q.job,''), nullif(li.post,''), '通用') as job, count(*)
 		from quiz_question q left join learn_item li on li.id=q.item_id
 		group by 1 order by 2 desc`)
 	if err != nil {
