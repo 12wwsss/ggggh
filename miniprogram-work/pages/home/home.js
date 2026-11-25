@@ -12,6 +12,7 @@ Page({
     medias: [],
     cultures: [],
     summary: null,
+    unread: 0,
     loading: true,
     err: '',
     quick: [
@@ -80,6 +81,7 @@ Page({
         medias: medias.slice(1, 4),
         cultures,
         summary: s,
+      unread: (s && s.unreadMessages) || 0,
         loading: false
       })
       done && done()
@@ -108,6 +110,8 @@ Page({
   },
 
   toMedia() { wx.navigateTo({ url: '/pages/media/media' }) },
+
+  goMessages() { wx.navigateTo({ url: '/pages/messages/messages' }) },
 
   toStudy() { wx.navigateTo({ url: '/pages/study/study' }) }
 })

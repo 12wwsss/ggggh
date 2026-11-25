@@ -9,3 +9,7 @@
 .m-title { font-size: 28rpx; font-weight: 700; color: #1D1A15; }
 .dot { width: 14rpx; height: 14rpx; border-radius: 50%; background: #E5484D; margin-right: 12rpx; }
 .retry { color: #2E6BE6; font-size: 26rpx; }
+
+.tabs { display: flex; gap: 14rpx; margin-bottom: 16rpx; flex-wrap: wrap; }
+.tab { font-size: 25rpx; color: #59636E; background: #fff; padding: 8rpx 22rpx; border-radius: 999rpx; }
+.tab-on { background: #FFC400; color: #141A21; font-weight: 700; }

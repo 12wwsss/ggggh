@@ -51,6 +51,9 @@
           </text>
         </view>
         <view class="tiny muted" style="margin-top:8rpx">{{item.category}} · {{item.post || '通用'}}</view>
+        <view wx:if="{{item.due_at}}" class="tiny {{item.overdue ? 'lvl' : 'muted'}}" style="margin-top:6rpx">
+          截止 {{item.due_at}}{{item.overdue ? ' · 已超期' : ''}}
+        </view>
       </view>
     </block>
 

@@ -123,3 +123,5 @@
 .news-title { font-size: 27rpx; font-weight: 700; line-height: 40rpx; }
 .news-meta { font-size: 20rpx; color: #98A2AC; margin-top: 8rpx; }
 .news-sum { font-size: 23rpx; color: #59636E; line-height: 36rpx; margin-top: 10rpx; }
+
+.msg-card { margin-bottom: 18rpx; border: 2rpx solid #FFD34D; background: #FFFBE8; }

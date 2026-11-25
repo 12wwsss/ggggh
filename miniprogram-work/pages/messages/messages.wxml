@@ -13,6 +13,11 @@
       </view>
     </view>
 
+    <view class="row tabs">
+      <text wx:for="{{tabs}}" wx:key="label" class="tab {{tab === index ? 'tab-on' : ''}}"
+            data-i="{{index}}" bindtap="pickTab">{{item.label}}</text>
+    </view>
+
     <view wx:if="{{err}}" class="card err">
       <view class="small bold" style="color:#E5484D">消息加载失败</view>
       <view class="tiny muted" style="margin-top:8rpx">{{err}}</view>

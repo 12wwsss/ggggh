@@ -995,7 +995,7 @@ func (s *Server) compatEmployeeSummary(c *gin.Context) {
 	}
 	completed, secs, _ := s.Store.LearnStats(c.Request.Context(), u.ID)
 	attempts, best, _ := s.Store.QuizAttemptStats(c.Request.Context(), u.ID)
-	reqTotal, reqDone, _ := s.Store.LearnRequirementStats(c.Request.Context(), u.ID)
+	reqTotal, reqDone, _ := s.Store.LearnRequiredStats(c.Request.Context(), u.ID, u.Post, u.DeptID)
 	target := s.Cfg.LearnHours
 	if target <= 0 {
 		target = 72
@@ -1010,16 +1010,18 @@ func (s *Server) compatEmployeeSummary(c *gin.Context) {
 			pending++
 		}
 	}
+	unreadMsgs, _ := s.Store.UnreadMessageCount(c.Request.Context(), u.ID)
 	c.JSON(http.StatusOK, gin.H{
-		"ok":            true,
-		"hours":         hours,
-		"targetHours":   target,
-		"requiredTotal": reqTotal,
-		"requiredDone":  reqDone,
-		"qualified":     qualified,
-		"readCount":     completed,
-		"quiz":          gin.H{"attempts": attempts, "best": best},
-		"issue":         gin.H{"total": total, "pending": pending},
+		"ok":             true,
+		"hours":          hours,
+		"unreadMessages": unreadMsgs,
+		"targetHours":    target,
+		"requiredTotal":  reqTotal,
+		"requiredDone":   reqDone,
+		"qualified":      qualified,
+		"readCount":      completed,
+		"quiz":           gin.H{"attempts": attempts, "best": best},
+		"issue":          gin.H{"total": total, "pending": pending},
 	})
 }
 

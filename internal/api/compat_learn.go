@@ -309,13 +309,19 @@ func (s *Server) compatLearnItems(c *gin.Context) {
 	for _, r := range recs {
 		byItem[r.ItemID] = r
 	}
+	assigns, _ := s.Store.LearnAssignmentsForUser(c.Request.Context(), u.Post, u.DeptID)
+	today := time.Now().Format("2006-01-02")
 	items := make([]gin.H, 0, len(list))
 	for _, it := range list {
 		r := byItem[it.ID]
+		due := assigns[it.ID]
+		required := it.Required || due != ""
+		overdue := due != "" && due < today && r.Status != "completed"
 		items = append(items, gin.H{
 			"id": it.ID, "title": it.Title, "category": it.Category, "post": it.Post,
 			"content": it.Content, "clause_refs": it.ClauseRefs,
-			"status": r.Status, "progress": r.Progress, "required": it.Required,
+			"status": r.Status, "progress": r.Progress, "required": required,
+			"due_at": due, "overdue": overdue,
 		})
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true, "items": items})

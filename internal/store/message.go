@@ -28,11 +28,12 @@ func (s *Store) CreateMessage(ctx context.Context, userID int64, kind, title, bo
 	return wrapErr("写入消息", err)
 }
 
-// ListMessages 我的消息（按时间倒序）。
-func (s *Store) ListMessages(ctx context.Context, userID int64, limit, offset int) ([]Message, int, error) {
+// ListMessages 我的消息（按时间倒序，可按类型/未读过滤）。
+func (s *Store) ListMessages(ctx context.Context, userID int64, kind string, unread bool, limit, offset int) ([]Message, int, error) {
 	rows, err := s.pool.Query(ctx, `select id, kind, title, body, coalesce(ref_type,''), ref_id, read,
 		to_char(created_at,'MM-DD HH24:MI') from message where user_id=$1
-		order by id desc limit $2 offset $3`, userID, limit, offset)
+		  and ($2='' or kind=$2) and (not $3 or not read)
+		order by id desc limit $4 offset $5`, userID, kind, unread, limit, offset)
 	if err != nil {
 		return nil, 0, wrapErr("查询消息", err)
 	}
@@ -46,7 +47,8 @@ func (s *Store) ListMessages(ctx context.Context, userID int64, limit, offset in
 		out = append(out, m)
 	}
 	var total int
-	err = s.pool.QueryRow(ctx, `select count(*) from message where user_id=$1`, userID).Scan(&total)
+	err = s.pool.QueryRow(ctx, `select count(*) from message where user_id=$1
+		and ($2='' or kind=$2) and (not $3 or not read)`, userID, kind, unread).Scan(&total)
 	return out, total, wrapErr("统计消息", err)
 }
 

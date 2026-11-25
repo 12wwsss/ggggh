@@ -4,6 +4,14 @@ Page({
   data: {
     items: [],
     unread: 0,
+    tabs: [
+      { label: '全部', kind: '', unread: false },
+      { label: '未读', kind: '', unread: true },
+      { label: '工单', kind: 'issue' },
+      { label: '宣贯', kind: 'broadcast' },
+      { label: '带培', kind: 'training' }
+    ],
+    tab: 0,
     loading: true,
     err: ''
   },
@@ -18,13 +26,22 @@ Page({
 
   fetch(done) {
     this.setData({ loading: true, err: '' })
-    api.messages().then(res => {
+    const t = this.data.tabs[this.data.tab] || {}
+    const qs = []
+    if (t.kind) qs.push('kind=' + t.kind)
+    if (t.unread) qs.push('unread=1')
+    const q = qs.length ? '?' + qs.join('&') : ''
+    api.messages(q).then(res => {
       this.setData({ items: res.items || [], unread: res.unread || 0, loading: false })
       done && done()
     }).catch(e => {
       this.setData({ loading: false, err: e.message })
       done && done()
     })
+  },
+
+  pickTab(e) {
+    this.setData({ tab: Number(e.currentTarget.dataset.i) }, () => this.fetch())
   },
 
   open(e) {

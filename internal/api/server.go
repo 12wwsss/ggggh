@@ -155,6 +155,8 @@ func New(cfg *config.Config, st *store.Store, svc *service.Service, mgr *auth.Ma
 	authed.GET("/export/reports", s.exportReports)
 	authed.GET("/export/exam", s.exportExamSheet)
 	authed.GET("/export/audit", s.exportAuditSheet)
+	authed.GET("/export/quiz", s.exportQuiz)
+	authed.POST("/import/quiz", s.importQuiz)
 
 	// 视频/资料库
 	authed.GET("/media", s.listMedia)
@@ -170,6 +172,7 @@ func New(cfg *config.Config, st *store.Store, svc *service.Service, mgr *auth.Ma
 	// 新员工带培（权限在 handler 内按角色/师傅判断）
 	authed.GET("/training/plans", s.listTrainingPlans)
 	authed.POST("/training/plans", s.createTrainingPlan)
+	authed.POST("/training/plans/batch", s.createTrainingPlansBatch)
 	authed.GET("/training/plans/:id", s.getTrainingPlan)
 	authed.POST("/training/stages/:id", s.setTrainingStage)
 
@@ -218,6 +221,9 @@ func New(cfg *config.Config, st *store.Store, svc *service.Service, mgr *auth.Ma
 	authed.GET("/learn/items", s.require("learn", "read"), s.listLearnItems)
 	authed.POST("/learn/items", s.require("learn", "write"), s.createLearnItem)
 	authed.GET("/learn/items/:id", s.require("learn", "read"), s.getLearnItem)
+	authed.GET("/learn/assignments", s.require("learn", "read"), s.listLearnAssignments)
+	authed.POST("/learn/assignments", s.require("learn", "write"), s.createLearnAssignment)
+	authed.DELETE("/learn/assignments/:id", s.require("learn", "write"), s.deleteLearnAssignment)
 	authed.PUT("/learn/items/:id", s.require("learn", "write"), s.updateLearnItem)
 	authed.POST("/learn/items/:id/progress", s.require("learn", "write"), s.saveLearnProgress)
 	authed.GET("/learn/records", s.require("learn", "read"), s.listLearnRecords)

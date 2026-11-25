@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -52,7 +53,8 @@ func (s *Server) exportIssues(c *gin.Context) {
 		d := cl.DeptID
 		dept = &d
 	}
-	list, _, err := s.Store.ListIssues(c.Request.Context(), "", dept, reporter, "", 5000, 0)
+	list, _, err := s.Store.ListIssues(c.Request.Context(), c.Query("status"), dept, reporter,
+		strings.TrimSpace(c.Query("keyword")), 5000, 0)
 	if err != nil {
 		fail(c, http.StatusInternalServerError, "导出失败")
 		return
@@ -110,7 +112,8 @@ func (s *Server) exportReports(c *gin.Context) {
 		xlsxHeader(c, "错题统计")
 		_ = export.XLSX(c.Writer, "错题统计", []string{"题目", "岗位", "分类", "答错次数", "人数"}, rows)
 	case "issues":
-		rep, err := s.Store.IssueReport(c.Request.Context(), 30)
+		days, _ := strconv.Atoi(c.DefaultQuery("days", "30"))
+		rep, err := s.Store.IssueReport(c.Request.Context(), days)
 		if err != nil {
 			fail(c, http.StatusInternalServerError, "导出失败")
 			return
@@ -122,7 +125,8 @@ func (s *Server) exportReports(c *gin.Context) {
 		xlsxHeader(c, "隐患趋势")
 		_ = export.XLSX(c.Writer, "隐患趋势", []string{"日期", "上报数", "闭环数"}, rows)
 	case "dept":
-		rep, err := s.Store.IssueReport(c.Request.Context(), 14)
+		days, _ := strconv.Atoi(c.DefaultQuery("days", "14"))
+		rep, err := s.Store.IssueReport(c.Request.Context(), days)
 		if err != nil {
 			fail(c, http.StatusInternalServerError, "导出失败")
 			return

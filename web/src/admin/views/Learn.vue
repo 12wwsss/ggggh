@@ -1,7 +1,7 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { api } from '../../shared/http'
+import { api, download } from '../../shared/http'
 
 const rows = ref([])
 const total = ref(0)
@@ -31,7 +31,66 @@ async function load() {
   }
 }
 
+const assignVisible = ref(false)
+const assignments = ref([])
+const assignItem = ref(null)
+const depts = ref([])
+const assignForm = reactive({ post: '', dept_id: null, due_at: '' })
+
+async function loadDepts() {
+  try {
+    const data = await api.get('/api/v1/depts')
+    depts.value = data.list || data || []
+  } catch (e) {
+    depts.value = []
+  }
+}
+
+async function openAssign(row) {
+  assignItem.value = row
+  assignForm.post = ''
+  assignForm.dept_id = null
+  assignForm.due_at = ''
+  assignVisible.value = true
+  await loadAssignments(row.id)
+}
+
+async function loadAssignments(itemId) {
+  try {
+    const data = await api.get('/api/v1/learn/assignments', { item_id: itemId })
+    assignments.value = data.list || []
+  } catch (e) {
+    assignments.value = []
+  }
+}
+
+async function saveAssign() {
+  if (!assignItem.value) return
+  try {
+    await api.post('/api/v1/learn/assignments', {
+      item_id: assignItem.value.id,
+      post: assignForm.post,
+      dept_id: assignForm.dept_id,
+      due_at: assignForm.due_at,
+    })
+    ElMessage.success('已分配')
+    await loadAssignments(assignItem.value.id)
+  } catch (e) {
+    ElMessage.error(e.message)
+  }
+}
+
+async function delAssign(row) {
+  try {
+    await api.del('/api/v1/learn/assignments/' + row.id)
+    await loadAssignments(assignItem.value.id)
+  } catch (e) {
+    ElMessage.error(e.message)
+  }
+}
+
 onMounted(load)
+onMounted(loadDepts)
 
 function openCreate() {
   Object.assign(form, { id: 0, title: '', category: '规程', post: '', content: '', clause_refs: '', sort: 0, status: 'published' })
@@ -127,6 +186,28 @@ async function addQuestion() {
   }
 }
 
+const importVisible = ref(false)
+const importBusy = ref(false)
+const importFile = ref(null)
+
+function onImportFile(f) {
+  importFile.value = f.raw
+}
+
+async function doImport() {
+  if (!importFile.value) return ElMessage.warning('请选择 CSV 文件')
+  importBusy.value = true
+  try {
+    const res = await api.upload('/api/v1/import/quiz', importFile.value)
+    ElMessage.success('导入完成：成功 ' + (res.created || 0) + ' 条，跳过 ' + (res.skipped || 0) + ' 条（待审核）')
+    importVisible.value = false
+    importFile.value = null
+  } catch (e) {
+    ElMessage.error(e.message)
+  } finally {
+    importBusy.value = false
+  }
+}
 async function toggleRequired(row, v) {
   try {
     await api.put(`/api/v1/learn/items/${row.id}`, { ...row, required: v })
@@ -150,8 +231,10 @@ async function removeItem(row) {
 
 <template>
   <div class="panel">
-    <div style="display: flex; margin-bottom: 14px">
+    <div style="display: flex; gap: 8px; margin-bottom: 14px">
       <el-button type="primary" @click="openCreate">新建学习条目</el-button>
+      <el-button @click="download('/api/v1/export/quiz', '题库.xlsx')">导出题库</el-button>
+      <el-button @click="importVisible = true">导入题库（CSV）</el-button>
       <div style="flex: 1"></div>
       <span class="muted">共 {{ total }} 条</span>
     </div>
@@ -182,6 +265,7 @@ async function removeItem(row) {
       <el-table-column label="操作" width="210">
         <template #default="{ row }">
           <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
+          <el-button link type="info" @click="openAssign(row)">分配</el-button>
           <el-button link type="success" @click="openQuiz(row)">题目</el-button>
           <el-button link type="warning" @click="removeItem(row)">归档</el-button>
         </template>
@@ -197,6 +281,56 @@ async function removeItem(row) {
         @current-change="load"
       />
     </div>
+
+    <el-dialog v-model="assignVisible" :title="`学习计划分配 · ${assignItem?.title || ''}`" width="620px">
+      <el-table :data="assignments" size="small" max-height="240">
+        <el-table-column prop="post" label="岗位" width="100">
+          <template #default="{ row }">{{ row.post || '全部' }}</template>
+        </el-table-column>
+        <el-table-column prop="dept_name" label="区队" width="120">
+          <template #default="{ row }">{{ row.dept_name || '全部' }}</template>
+        </el-table-column>
+        <el-table-column prop="due_at" label="截止" width="120" />
+        <el-table-column label="操作" width="80">
+          <template #default="{ row }">
+            <el-button link type="danger" @click="delAssign(row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <el-divider content-position="left">新增分配</el-divider>
+      <el-form label-width="80px">
+        <el-form-item label="岗位">
+          <el-input v-model="assignForm.post" placeholder="留空表示全部岗位" />
+        </el-form-item>
+        <el-form-item label="区队">
+          <el-select v-model="assignForm.dept_id" clearable placeholder="留空表示全部区队" style="width: 100%">
+            <el-option v-for="d in depts" :key="d.id" :label="d.name" :value="d.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="截止日期">
+          <el-date-picker v-model="assignForm.due_at" type="date" value-format="YYYY-MM-DD" style="width: 100%" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="assignVisible = false">关闭</el-button>
+        <el-button type="primary" @click="saveAssign">分配</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="importVisible" title="导入题库（CSV）" width="560px">
+      <div class="muted" style="line-height: 1.8; margin-bottom: 10px">
+        表头必须包含：岗位、分类、题干、选项A、选项B、选项C、选项D、答案、解析。<br />
+        答案填 A/B/C/D。导入的题目为「待审核」，通过后才进入员工练习。
+      </div>
+      <el-upload :auto-upload="false" :limit="1" accept=".csv" :on-change="onImportFile">
+        <el-button>选择 CSV 文件</el-button>
+      </el-upload>
+      <template #footer>
+        <el-button @click="importVisible = false">取消</el-button>
+        <el-button type="primary" :loading="importBusy" @click="doImport">开始导入</el-button>
+      </template>
+    </el-dialog>
 
     <el-dialog v-model="dialog" :title="form.id ? '编辑学习条目' : '新建学习条目'" width="640px">
       <el-form label-width="88px">

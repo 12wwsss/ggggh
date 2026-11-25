@@ -4,7 +4,8 @@ import { ElMessage } from 'element-plus'
 import { api, getUser } from '../../shared/http'
 
 const role = (getUser() || {}).role
-const canCreate = computed(() => ['admin', 'safety'].includes(role))
+const canCreate = computed(() => ['admin', 'safety', 'dept_leader'].includes(role))
+const batch = ref(false)
 
 const rows = ref([])
 const loading = ref(false)
@@ -13,7 +14,7 @@ const expanded = ref([])
 const createVisible = ref(false)
 const saving = ref(false)
 const users = ref([])
-const form = ref({ user_id: null, mentor_user_id: null, title: '新员工入矿带培计划', total_weeks: 4, target: '' })
+const form = ref({ user_id: null, user_ids: [], mentor_user_id: null, title: '新员工入矿带培计划', total_weeks: 4, target: '' })
 
 async function load() {
   loading.value = true
@@ -29,7 +30,8 @@ async function load() {
 
 async function openCreate() {
   createVisible.value = true
-  form.value = { user_id: null, mentor_user_id: null, title: '新员工入矿带培计划', total_weeks: 4, target: '' }
+  form.value = { user_id: null, user_ids: [], mentor_user_id: null, title: '新员工入矿带培计划', total_weeks: 4, target: '' }
+  batch.value = false
   if (!users.value.length) {
     try {
       const data = await api.get('/api/v1/users', { page_size: 200 })
@@ -41,13 +43,22 @@ async function openCreate() {
 }
 
 async function submitCreate() {
-  if (!form.value.user_id || !form.value.mentor_user_id) {
+  if (batch.value) {
+    if (!form.value.user_ids.length || !form.value.mentor_user_id) {
+      return ElMessage.warning('请选择员工和师傅')
+    }
+  } else if (!form.value.user_id || !form.value.mentor_user_id) {
     return ElMessage.warning('请选择员工和师傅')
   }
   saving.value = true
   try {
-    await api.post('/api/v1/training/plans', form.value)
-    ElMessage.success('已创建')
+    if (batch.value) {
+      const res = await api.post('/api/v1/training/plans/batch', form.value)
+      ElMessage.success('已创建 ' + ((res && res.count) || 0) + ' 份计划')
+    } else {
+      await api.post('/api/v1/training/plans', form.value)
+      ElMessage.success('已创建')
+    }
     createVisible.value = false
     load()
   } catch (e) {
@@ -126,8 +137,21 @@ onMounted(load)
 
     <el-dialog v-model="createVisible" title="新建带培计划" width="520px">
       <el-form label-width="90px">
-        <el-form-item label="员工">
+        <el-form-item label="方式">
+          <el-switch v-model="batch" active-text="批量给多人建计划" />
+        </el-form-item>
+        <el-form-item v-if="!batch" label="员工">
           <el-select v-model="form.user_id" filterable placeholder="选择员工" style="width: 100%">
+            <el-option
+              v-for="u in users"
+              :key="u.id"
+              :label="u.name + '（' + u.username + '）'"
+              :value="u.id"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item v-else label="员工（多选）">
+          <el-select v-model="form.user_ids" multiple filterable placeholder="选择一名或多名新员工" style="width: 100%">
             <el-option
               v-for="u in users"
               :key="u.id"

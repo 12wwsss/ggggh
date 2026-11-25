@@ -48,6 +48,16 @@
       </view>
     </view>
 
+    <view wx:if="{{unread}}" class="card msg-card" bindtap="goMessages">
+      <view class="between">
+        <view>
+          <view class="small bold">有 {{unread}} 条未读消息</view>
+          <view class="tiny muted" style="margin-top:6rpx">工单进度、宣贯、带培通知</view>
+        </view>
+        <text class="arrow">›</text>
+      </view>
+    </view>
+
     <block wx:if="{{medias.length}}">
       <view class="between section">
         <view class="row">

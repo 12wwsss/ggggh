@@ -2,7 +2,6 @@ package api
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -14,11 +13,10 @@ func (s *Server) compatMessages(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"ok": false, "message": "请先登录"})
 		return
 	}
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
-	if limit <= 0 || limit > 200 {
-		limit = 50
-	}
-	list, total, err := s.Store.ListMessages(c.Request.Context(), u.ID, limit, 0)
+	_, size, offset := pageParams(c)
+	kind := c.Query("kind")
+	unreadOnly := c.Query("unread") == "1"
+	list, total, err := s.Store.ListMessages(c.Request.Context(), u.ID, kind, unreadOnly, size, offset)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "message": "消息加载失败"})
 		return

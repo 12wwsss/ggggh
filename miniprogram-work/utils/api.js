@@ -119,8 +119,8 @@ function notifications() {
   return request('/api/notifications', {}, 'GET')
 }
 
-function messages() {
-  return request('/api/messages', {}, 'GET')
+function messages(query) {
+  return request('/api/messages' + (query || ''), {}, 'GET')
 }
 
 function messageRead(id) {
