@@ -995,6 +995,13 @@ func (s *Server) compatEmployeeSummary(c *gin.Context) {
 	}
 	completed, secs, _ := s.Store.LearnStats(c.Request.Context(), u.ID)
 	attempts, best, _ := s.Store.QuizAttemptStats(c.Request.Context(), u.ID)
+	reqTotal, reqDone, _ := s.Store.LearnRequirementStats(c.Request.Context(), u.ID)
+	target := s.Cfg.LearnHours
+	if target <= 0 {
+		target = 72
+	}
+	hours := secs / 3600
+	qualified := hours >= target && reqDone >= reqTotal
 	list, total, _ := s.Store.ListIssuesByUser(c.Request.Context(), u.ID, 200, 0)
 	pending := 0
 	for _, it := range list {
@@ -1004,11 +1011,15 @@ func (s *Server) compatEmployeeSummary(c *gin.Context) {
 		}
 	}
 	c.JSON(http.StatusOK, gin.H{
-		"ok":        true,
-		"hours":     secs / 3600,
-		"readCount": completed,
-		"quiz":      gin.H{"attempts": attempts, "best": best},
-		"issue":     gin.H{"total": total, "pending": pending},
+		"ok":            true,
+		"hours":         hours,
+		"targetHours":   target,
+		"requiredTotal": reqTotal,
+		"requiredDone":  reqDone,
+		"qualified":     qualified,
+		"readCount":     completed,
+		"quiz":          gin.H{"attempts": attempts, "best": best},
+		"issue":         gin.H{"total": total, "pending": pending},
 	})
 }
 

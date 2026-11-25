@@ -176,6 +176,8 @@ async function act(kind) {
       </el-select>
       <el-tag :type="openCount ? 'warning' : 'info'">未闭环 {{ openCount }}</el-tag>
       <el-tag :type="stats.overdue ? 'danger' : 'info'">超时 {{ stats.overdue ?? 0 }}</el-tag>
+      <div style="flex: 1"></div>
+      <el-button @click="download('/api/v1/export/issues', '隐患台账.xlsx')">导出 Excel</el-button>
     </div>
 
     <el-table v-loading="loading" :data="rows" size="small">

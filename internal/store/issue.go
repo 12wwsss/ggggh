@@ -361,7 +361,31 @@ func (s *Store) SweepOverdueIssues(ctx context.Context) ([]int64, error) {
 		}
 		ids = append(ids, id)
 	}
-	return ids, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if len(ids) > 0 {
+		// 超时提醒：责任人 + 本队队长 + 安全科
+		if _, err := s.pool.Exec(ctx, `insert into message(user_id, kind, title, body, ref_type, ref_id)
+			select u.id, 'issue', '隐患已超时', '问题 '||i.code||' '||i.title||' 超过整改时限，请尽快处理', 'issue', i.id
+			from issue i join org_user u on u.id = coalesce(i.assignee_id, i.reporter_id)
+			where i.id = any($1::bigint[])`, ids); err != nil {
+			return ids, wrapErr("写入超时提醒", err)
+		}
+		if _, err := s.pool.Exec(ctx, `insert into message(user_id, kind, title, body, ref_type, ref_id)
+			select u.id, 'issue', '隐患超时（管理提醒）', '问题 '||i.code||' '||i.title||' 已超时，请督促整改', 'issue', i.id
+			from issue i join org_user u on u.role='dept_leader' and u.dept_id = i.dept_id
+			where i.id = any($1::bigint[])`, ids); err != nil {
+			return ids, wrapErr("写入超时管理提醒", err)
+		}
+		if _, err := s.pool.Exec(ctx, `insert into message(user_id, kind, title, body, ref_type, ref_id)
+			select u.id, 'issue', '隐患超时（安全科）', '问题 '||i.code||' '||i.title||' 已超时', 'issue', i.id
+			from issue i cross join org_user u
+			where u.role='safety' and u.status='active' and i.id = any($1::bigint[])`, ids); err != nil {
+			return ids, wrapErr("写入超时安全科提醒", err)
+		}
+	}
+	return ids, nil
 }
 
 // IssueStats 返回各状态计数与超时数。

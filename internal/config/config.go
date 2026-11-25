@@ -125,6 +125,7 @@ type Config struct {
 	JWTTTL     Duration  `json:"jwt_ttl"`
 	StorageDir string    `json:"storage_dir"`
 	LogLevel   string    `json:"log_level"`
+	LearnHours int       `json:"learn_target_hours"`
 	Bootstrap  bool      `json:"bootstrap"`
 	TunnelAddr string    `json:"tunnel_addr"`
 	WX         WeChat    `json:"wechat"`
@@ -147,6 +148,7 @@ func Default() *Config {
 		JWTTTL:     Duration(8 * time.Hour),
 		StorageDir: "storage",
 		LogLevel:   "info",
+		LearnHours: 72,
 		Bootstrap:  true,
 		LLM: LLM{
 			Provider:    "stub",
@@ -242,6 +244,7 @@ func applyEnv(c *Config) {
 	dur("COALRAG_JWT_TTL", &c.JWTTTL)
 	boolean("COALRAG_BOOTSTRAP", &c.Bootstrap)
 	str("COALRAG_TUNNEL_ADDR", &c.TunnelAddr)
+	integer("COALRAG_LEARN_TARGET_HOURS", &c.LearnHours)
 	c.WX.AppID = strings.TrimSpace(os.Getenv("COALRAG_WX_APPID"))
 	c.WX.Secret = strings.TrimSpace(os.Getenv("COALRAG_WX_SECRET"))
 	if v := strings.TrimSpace(os.Getenv("COALRAG_ALLOWED_CIDRS")); v != "" {

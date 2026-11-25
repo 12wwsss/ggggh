@@ -6,10 +6,11 @@ function buildMenus(best, wrongCount, quizCount, s, contact, manager, hasTrainin
   const sum = s || {}
   const hours = sum.hours || 0
   const pending = (sum.issue && sum.issue.pending) || 0
+  const target = sum.targetHours || 72
   const list = [
     { t: '考试与练习', ch: '考', sub: best > 0 ? `最好 ${best} 分 · 已考 ${quizCount} 次` : '在线考试 · 交卷锁定', c: '#E5484D', bg: '#FDECEC', path: '/pages/exam/exam' },
     { t: '错题集', ch: '错', sub: wrongCount ? `${wrongCount} 道待巩固 · 答对自动移出` : '答错自动收录 · 按岗位筛选', c: '#A97900', bg: '#FFF3C4', path: '/pages/wrong/wrong' },
-    { t: '学习档案', ch: '学', sub: `学时 ${hours} / 72`, c: '#2E6BE6', bg: '#EAF0FD', path: '/pages/study/study' },
+    { t: '学习档案', ch: '学', sub: `学时 ${hours} / ${target}` + (sum.qualified ? ' · 已达标' : ''), c: '#2E6BE6', bg: '#EAF0FD', path: '/pages/study/study' },
     { t: '我的上报', ch: '报', sub: pending ? pending + ' 条待闭环' : '上报隐患 · 查看进度', c: '#F79009', bg: '#FFF6E5', path: '/pages/issue/issue' },
     { t: '消息中心', ch: '信', sub: '待办与通知', c: '#2E6BE6', bg: '#EAF0FD', path: '/pages/messages/messages' },
     { t: '安全科电话', ch: '电', sub: contact || '后台「基础配置」里填写', c: '#A97900', bg: '#FFF3C4', contact: true },

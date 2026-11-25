@@ -315,7 +315,7 @@ func (s *Server) compatLearnItems(c *gin.Context) {
 		items = append(items, gin.H{
 			"id": it.ID, "title": it.Title, "category": it.Category, "post": it.Post,
 			"content": it.Content, "clause_refs": it.ClauseRefs,
-			"status": r.Status, "progress": r.Progress,
+			"status": r.Status, "progress": r.Progress, "required": it.Required,
 		})
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true, "items": items})

@@ -82,13 +82,22 @@ async function openQuiz(row) {
 
 async function loadQuestions(itemId) {
   try {
-    const data = await api.get('/api/v1/quiz/items/' + itemId + '/questions')
+    const data = await api.get('/api/v1/quiz/questions?item_id=' + itemId)
     questions.value = data.list || data || []
   } catch (e) {
     ElMessage.error(e.message)
   }
 }
 
+async function reviewQuestion(row, status) {
+  try {
+    await api.post(`/api/v1/quiz/questions/${row.id}/status`, { status })
+    row.status = status
+    ElMessage.success(status === 'published' ? '已通过' : '已驳回')
+  } catch (e) {
+    ElMessage.error(e.message)
+  }
+}
 async function addQuestion() {
   if (!qForm.stem.trim() || !qForm.options.trim()) {
     ElMessage.warning('题干与选项必填')
@@ -118,6 +127,15 @@ async function addQuestion() {
   }
 }
 
+async function toggleRequired(row, v) {
+  try {
+    await api.put(`/api/v1/learn/items/${row.id}`, { ...row, required: v })
+    row.required = v
+    ElMessage.success(v ? '已设为必修' : '已取消必修')
+  } catch (e) {
+    ElMessage.error(e.message)
+  }
+}
 async function removeItem(row) {
   try {
     await ElMessageBox.confirm('删除后学习记录保留但不再展示，确定？', '提示', { type: 'warning' })
@@ -154,6 +172,11 @@ async function removeItem(row) {
           <el-tag :type="row.status === 'published' ? 'success' : 'info'" size="small">
             {{ statusText[row.status] || row.status }}
           </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="必修" width="80">
+        <template #default="{ row }">
+          <el-switch :model-value="row.required" @change="(v) => toggleRequired(row, v)" />
         </template>
       </el-table-column>
       <el-table-column label="操作" width="210">
@@ -206,6 +229,19 @@ async function removeItem(row) {
         <el-table-column prop="id" label="ID" width="60" />
         <el-table-column prop="stem" label="题干" min-width="240" show-overflow-tooltip />
         <el-table-column prop="answer" label="答案" width="70" />
+        <el-table-column label="状态" width="90">
+          <template #default="{ row }">
+            <el-tag :type="row.status === 'published' ? 'success' : row.status === 'pending' ? 'warning' : 'danger'" size="small">
+              {{ row.status === 'published' ? '已通过' : row.status === 'pending' ? '待审核' : '已驳回' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="审核" width="130">
+          <template #default="{ row }">
+            <el-button v-if="row.status !== 'published'" link type="success" @click="reviewQuestion(row, 'published')">通过</el-button>
+            <el-button v-if="row.status !== 'rejected'" link type="danger" @click="reviewQuestion(row, 'rejected')">驳回</el-button>
+          </template>
+        </el-table-column>
       </el-table>
       <el-divider content-position="left">新增题目</el-divider>
       <el-form label-width="72px">

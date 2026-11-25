@@ -126,7 +126,7 @@ async function openRecords(row) {
 }
 
 function exportRecords() {
-  download('/api/v1/exam/export', 'exam-records.csv').catch((e) => ElMessage.error(e.message))
+  download('/api/v1/export/exam', '考试成绩.xlsx').catch((e) => ElMessage.error(e.message))
 }
 </script>
 

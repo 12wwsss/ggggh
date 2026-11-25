@@ -42,7 +42,10 @@
       <view class="sec-title">学规程</view>
       <view class="card learn-item" wx:for="{{learnItems}}" wx:key="id" data-id="{{item.id}}" bindtap="openLearn">
         <view class="between">
-          <text class="small bold">{{item.title}}</text>
+          <view class="row">
+            <text class="small bold">{{item.title}}</text>
+            <text wx:if="{{item.required}}" class="tag-req">必修</text>
+          </view>
           <text class="tiny {{item.status === 'completed' ? 'ok' : 'muted'}}">
             {{item.status === 'completed' ? '已完成' : (item.progress ? '已学 ' + item.progress + '%' : '未开始')}}
           </text>

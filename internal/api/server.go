@@ -150,6 +150,12 @@ func New(cfg *config.Config, st *store.Store, svc *service.Service, mgr *auth.Ma
 	authed.GET("/reports/wrong", s.wrongReport)
 	authed.GET("/reports/issues", s.issueReport)
 
+	// 导出
+	authed.GET("/export/issues", s.exportIssues)
+	authed.GET("/export/reports", s.exportReports)
+	authed.GET("/export/exam", s.exportExamSheet)
+	authed.GET("/export/audit", s.exportAuditSheet)
+
 	// 视频/资料库
 	authed.GET("/media", s.listMedia)
 	authed.POST("/media/upload", s.uploadMedia)
@@ -219,6 +225,7 @@ func New(cfg *config.Config, st *store.Store, svc *service.Service, mgr *auth.Ma
 	authed.GET("/quiz/items/:id/questions", s.require("learn", "read"), s.listQuizQuestions)
 	authed.GET("/quiz/questions", s.require("learn", "read"), s.listAllQuestions)
 	authed.POST("/quiz/questions", s.require("learn", "write"), s.createQuizQuestion)
+	authed.POST("/quiz/questions/:id/status", s.require("learn", "write"), s.setQuizQuestionStatus)
 	authed.POST("/quiz/items/:id/submit", s.require("learn", "write"), s.submitQuiz)
 
 	// 考试

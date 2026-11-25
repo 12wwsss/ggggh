@@ -22,6 +22,7 @@ const routes = [
   { path: '/exams', name: 'exams', component: () => import('./views/Exams.vue'), meta: { tab: true, title: '考试' } },
   { path: '/exams/:id/run', name: 'exam-run', component: () => import('./views/ExamRun.vue'), meta: { title: '在线考试' } },
   { path: '/broadcasts', name: 'broadcasts', component: () => import('./views/Broadcasts.vue'), meta: { title: '宣贯签收' } },
+  { path: '/media', name: 'media', component: () => import('./views/Media.vue'), meta: { title: '视频资料' } },
   { path: '/issues', name: 'issues', component: () => import('./views/Issues.vue'), meta: { title: '我的问题' } },
   { path: '/issues/new', name: 'issue-new', component: () => import('./views/IssueNew.vue'), meta: { title: '上报问题' } },
   { path: '/issues/:id', name: 'issue-detail', component: () => import('./views/IssueDetail.vue'), meta: { title: '问题详情' } },

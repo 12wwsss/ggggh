@@ -12,7 +12,7 @@ import (
 // ListLearnItems 分页查询学习条目。
 func (s *Store) ListLearnItems(ctx context.Context, status string, deptID *int64, limit, offset int) ([]model.LearnItem, int, error) {
 	rows, err := s.pool.Query(ctx, `select id, title, category, coalesce(post,''), dept_id, content,
-		clause_refs, doc_id, sort, status, created_at, count(*) over() as total
+		clause_refs, doc_id, sort, status, required, created_at, count(*) over() as total
 		from learn_item
 		where ($1='' or status=$1) and ($2::bigint is null or dept_id is null or dept_id=$2)
 		order by sort, id limit $3 offset $4`, status, deptID, limit, offset)
@@ -26,7 +26,7 @@ func (s *Store) ListLearnItems(ctx context.Context, status string, deptID *int64
 		var it model.LearnItem
 		var refs []byte
 		if err := rows.Scan(&it.ID, &it.Title, &it.Category, &it.Post, &it.DeptID, &it.Content,
-			&refs, &it.DocID, &it.Sort, &it.Status, &it.CreatedAt, &total); err != nil {
+			&refs, &it.DocID, &it.Sort, &it.Status, &it.Required, &it.CreatedAt, &total); err != nil {
 			return nil, 0, err
 		}
 		_ = json.Unmarshal(refs, &it.ClauseRefs)
@@ -43,9 +43,9 @@ func (s *Store) GetLearnItem(ctx context.Context, id int64) (*model.LearnItem, e
 	var it model.LearnItem
 	var refs []byte
 	err := s.pool.QueryRow(ctx, `select id, title, category, coalesce(post,''), dept_id, content,
-		clause_refs, doc_id, sort, status, created_at from learn_item where id=$1`, id).
+		clause_refs, doc_id, sort, status, required, created_at from learn_item where id=$1`, id).
 		Scan(&it.ID, &it.Title, &it.Category, &it.Post, &it.DeptID, &it.Content, &refs,
-			&it.DocID, &it.Sort, &it.Status, &it.CreatedAt)
+			&it.DocID, &it.Sort, &it.Status, &it.Required, &it.CreatedAt)
 	if isNoRows(err) {
 		return nil, ErrNotFound
 	}
@@ -64,9 +64,9 @@ func (s *Store) CreateLearnItem(ctx context.Context, it *model.LearnItem) (int64
 	refs, _ := json.Marshal(arrStr(it.ClauseRefs))
 	var id int64
 	err := s.pool.QueryRow(ctx, `insert into learn_item
-		(title, category, post, dept_id, content, clause_refs, doc_id, sort, status)
-		values ($1,$2,nullif($3,''),$4,$5,$6,$7,$8,$9) returning id`,
-		it.Title, it.Category, it.Post, it.DeptID, it.Content, refs, it.DocID, it.Sort, it.Status).Scan(&id)
+		(title, category, post, dept_id, content, clause_refs, doc_id, sort, status, required)
+		values ($1,$2,nullif($3,''),$4,$5,$6,$7,$8,$9,$10) returning id`,
+		it.Title, it.Category, it.Post, it.DeptID, it.Content, refs, it.DocID, it.Sort, it.Status, it.Required).Scan(&id)
 	return id, wrapErr("新建学习条目", err)
 }
 
@@ -74,9 +74,9 @@ func (s *Store) CreateLearnItem(ctx context.Context, it *model.LearnItem) (int64
 func (s *Store) UpdateLearnItem(ctx context.Context, it *model.LearnItem) error {
 	refs, _ := json.Marshal(it.ClauseRefs)
 	tag, err := s.pool.Exec(ctx, `update learn_item set title=$2, category=$3, post=nullif($4,''),
-		dept_id=$5, content=$6, clause_refs=$7, doc_id=$8, sort=$9, status=$10, updated_at=now()
+		dept_id=$5, content=$6, clause_refs=$7, doc_id=$8, sort=$9, status=$10, required=$11, updated_at=now()
 		where id=$1`, it.ID, it.Title, it.Category, it.Post, it.DeptID, it.Content, refs,
-		it.DocID, it.Sort, it.Status)
+		it.DocID, it.Sort, it.Status, it.Required)
 	if err != nil {
 		return wrapErr("更新学习条目", err)
 	}
@@ -159,10 +159,11 @@ func (s *Store) ListLearnRecords(ctx context.Context, deptID, userID *int64, ite
 
 // ListQuizQuestions 查询题目；itemID 为空时查全部。
 func (s *Store) ListQuizQuestions(ctx context.Context, itemID *int64, ids []int64) ([]model.QuizQuestion, error) {
-	q := `select id, item_id, stem, options, answer, coalesce(analysis,''), difficulty
+	q := `select id, item_id, stem, options, answer, coalesce(analysis,''), difficulty, status
 		from quiz_question
 		where ($1::bigint is null or item_id=$1)
 		  and (cardinality($2::bigint[]) = 0 or id = any($2))
+		  and status='published'
 		order by id`
 	rows, err := s.pool.Query(ctx, q, itemID, arr64(ids))
 	if err != nil {
@@ -173,7 +174,7 @@ func (s *Store) ListQuizQuestions(ctx context.Context, itemID *int64, ids []int6
 	for rows.Next() {
 		var qq model.QuizQuestion
 		var opts []byte
-		if err := rows.Scan(&qq.ID, &qq.ItemID, &qq.Stem, &opts, &qq.Answer, &qq.Analysis, &qq.Difficulty); err != nil {
+		if err := rows.Scan(&qq.ID, &qq.ItemID, &qq.Stem, &opts, &qq.Answer, &qq.Analysis, &qq.Difficulty, &qq.Status); err != nil {
 			return nil, err
 		}
 		_ = json.Unmarshal(opts, &qq.Options)
@@ -186,8 +187,43 @@ func (s *Store) ListQuizQuestions(ctx context.Context, itemID *int64, ids []int6
 func (s *Store) CreateQuizQuestion(ctx context.Context, q *model.QuizQuestion) (int64, error) {
 	opts, _ := json.Marshal(q.Options)
 	var id int64
-	err := s.pool.QueryRow(ctx, `insert into quiz_question(item_id, stem, options, answer, analysis, difficulty)
-		values ($1,$2,$3,$4,nullif($5,''),$6) returning id`,
-		q.ItemID, q.Stem, opts, q.Answer, q.Analysis, q.Difficulty).Scan(&id)
+	err := s.pool.QueryRow(ctx, `insert into quiz_question(item_id, stem, options, answer, analysis, difficulty, status)
+		values ($1,$2,$3,$4,nullif($5,''),$6,coalesce(nullif($7,''),'pending')) returning id`,
+		q.ItemID, q.Stem, opts, q.Answer, q.Analysis, q.Difficulty, q.Status).Scan(&id)
 	return id, wrapErr("新建题目", err)
+}
+
+// ListQuizQuestionsAdmin 题库管理：按状态列出（空为全部）。
+func (s *Store) ListQuizQuestionsAdmin(ctx context.Context, itemID *int64, status string) ([]model.QuizQuestion, error) {
+	rows, err := s.pool.Query(ctx, `select id, item_id, stem, options, answer, coalesce(analysis,''), difficulty, status
+		from quiz_question
+		where ($1::bigint is null or item_id=$1) and ($2='' or status=$2)
+		order by id desc`, itemID, status)
+	if err != nil {
+		return nil, wrapErr("查询题库", err)
+	}
+	defer rows.Close()
+	out := []model.QuizQuestion{}
+	for rows.Next() {
+		var q model.QuizQuestion
+		var opts []byte
+		if err := rows.Scan(&q.ID, &q.ItemID, &q.Stem, &opts, &q.Answer, &q.Analysis, &q.Difficulty, &q.Status); err != nil {
+			return nil, err
+		}
+		_ = json.Unmarshal(opts, &q.Options)
+		out = append(out, q)
+	}
+	return out, rows.Err()
+}
+
+// SetQuizQuestionStatus 审核题目。
+func (s *Store) SetQuizQuestionStatus(ctx context.Context, id int64, status string) error {
+	tag, err := s.pool.Exec(ctx, `update quiz_question set status=$2 where id=$1`, id, status)
+	if err != nil {
+		return wrapErr("更新题目状态", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
 }

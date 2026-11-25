@@ -54,6 +54,7 @@ type learnItemReq struct {
 	ClauseRefs []string `json:"clause_refs"`
 	DocID      *int64   `json:"doc_id"`
 	Sort       int      `json:"sort"`
+	Required   bool     `json:"required"`
 	Status     string   `json:"status"`
 }
 
@@ -73,7 +74,7 @@ func (s *Server) createLearnItem(c *gin.Context) {
 	id, err := s.Store.CreateLearnItem(c.Request.Context(), &model.LearnItem{
 		Title: req.Title, Category: req.Category, Post: req.Post, DeptID: req.DeptID,
 		Content: req.Content, ClauseRefs: req.ClauseRefs, DocID: req.DocID,
-		Sort: req.Sort, Status: status,
+		Sort: req.Sort, Status: status, Required: req.Required,
 	})
 	if err != nil {
 		fail(c, http.StatusInternalServerError, "新建学习条目失败")
@@ -99,7 +100,7 @@ func (s *Server) updateLearnItem(c *gin.Context) {
 	err := s.Store.UpdateLearnItem(c.Request.Context(), &model.LearnItem{
 		ID: id, Title: req.Title, Category: req.Category, Post: req.Post, DeptID: req.DeptID,
 		Content: req.Content, ClauseRefs: req.ClauseRefs, DocID: req.DocID,
-		Sort: req.Sort, Status: status,
+		Sort: req.Sort, Status: status, Required: req.Required,
 	})
 	if err != nil {
 		fail(c, http.StatusNotFound, "学习条目不存在")
@@ -211,7 +212,7 @@ func (s *Server) listAllQuestions(c *gin.Context) {
 			itemID = &id
 		}
 	}
-	list, err := s.Store.ListQuizQuestions(c.Request.Context(), itemID, nil)
+	list, err := s.Store.ListQuizQuestionsAdmin(c.Request.Context(), itemID, c.Query("status"))
 	if err != nil {
 		fail(c, http.StatusInternalServerError, "查询题库失败")
 		return
@@ -248,6 +249,28 @@ type quizReq struct {
 	Difficulty string   `json:"difficulty"`
 }
 
+func (s *Server) setQuizQuestionStatus(c *gin.Context) {
+	id, okID := idParam(c)
+	if !okID {
+		return
+	}
+	var req struct {
+		Status string `json:"status" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		fail(c, http.StatusBadRequest, "参数不正确")
+		return
+	}
+	if req.Status != "published" && req.Status != "rejected" && req.Status != "pending" {
+		fail(c, http.StatusBadRequest, "状态不合法")
+		return
+	}
+	if err := s.Store.SetQuizQuestionStatus(c.Request.Context(), id, req.Status); err != nil {
+		fail(c, http.StatusNotFound, "题目不存在")
+		return
+	}
+	ok(c, gin.H{"id": id, "status": req.Status})
+}
 func (s *Server) createQuizQuestion(c *gin.Context) {
 	var req quizReq
 	if err := c.ShouldBindJSON(&req); err != nil || len(req.Options) < 2 {
@@ -264,7 +287,7 @@ func (s *Server) createQuizQuestion(c *gin.Context) {
 	}
 	id, err := s.Store.CreateQuizQuestion(c.Request.Context(), &model.QuizQuestion{
 		ItemID: ptr, Stem: req.Stem, Options: req.Options, Answer: req.Answer,
-		Analysis: req.Analysis, Difficulty: req.Difficulty,
+		Analysis: req.Analysis, Difficulty: req.Difficulty, Status: "pending",
 	})
 	if err != nil {
 		fail(c, http.StatusInternalServerError, "新建题目失败")

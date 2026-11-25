@@ -29,6 +29,7 @@ func (s *Store) ListCompatQuestions(ctx context.Context, job, cat string, all bo
 		from quiz_question q left join learn_item li on li.id=q.item_id
 		where ($1='' or q.job=$1 or li.post=$1 or coalesce(q.job,li.post,'')='' or coalesce(q.job,li.post,'')='通用')
 		  and ($2='' or q.category=$2 or li.category=$2)
+		  and q.status='published'
 		order by q.id`
 	args := []any{job, cat}
 	if !all {
@@ -180,6 +181,18 @@ func (s *Store) LearnCompletedCount(ctx context.Context, userID int64) (int, err
 	var n int
 	err := s.pool.QueryRow(ctx, `select count(*) from learn_record where user_id=$1 and status='completed'`, userID).Scan(&n)
 	return n, wrapErr("统计学习", err)
+}
+
+// LearnRequirementStats 必修条目完成情况。
+func (s *Store) LearnRequirementStats(ctx context.Context, userID int64) (total, done int, err error) {
+	err = s.pool.QueryRow(ctx, `select count(*),
+		count(*) filter (where exists (
+			select 1 from learn_record r where r.item_id=li.id and r.user_id=$1 and r.status='completed'))
+		from learn_item li where status='published' and required`, userID).Scan(&total, &done)
+	if err != nil {
+		return 0, 0, wrapErr("统计必修学习", err)
+	}
+	return total, done, nil
 }
 
 // LearnStats 学习完成数与时长达标情况。

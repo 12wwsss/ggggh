@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { api } from '../../shared/http'
+import { api, download } from '../../shared/http'
 
 const tab = ref('learning')
 const loading = ref(false)
@@ -41,6 +41,7 @@ onMounted(load)
           <div class="stat"><div class="n">{{ learning.items }}</div><div class="muted">学习条目</div></div>
           <div class="stat"><div class="n">{{ learning.completed }}</div><div class="muted">累计完成次数</div></div>
         </div>
+        <div style="margin-bottom:10px"><el-button size="small" @click="download('/api/v1/export/reports?type=learning', '学习档案.xlsx')">导出 Excel</el-button></div>
         <el-table :data="learning.rows" size="small" max-height="560">
           <el-table-column prop="name" label="姓名" width="100" />
           <el-table-column prop="dept" label="区队" width="120" />
@@ -56,6 +57,7 @@ onMounted(load)
           <div class="stat"><div class="n">{{ wrong.users }}</div><div class="muted">涉及员工</div></div>
           <div class="stat"><div class="n">{{ wrong.rows.length }}</div><div class="muted">题目数</div></div>
         </div>
+        <div style="margin-bottom:10px"><el-button size="small" @click="download('/api/v1/export/reports?type=wrong', '错题统计.xlsx')">导出 Excel</el-button></div>
         <el-table :data="wrong.rows" size="small" max-height="560">
           <el-table-column prop="stem" label="题目" min-width="320" show-overflow-tooltip />
           <el-table-column prop="job" label="岗位" width="100" />
@@ -71,6 +73,11 @@ onMounted(load)
           <div class="stat"><div class="n">{{ issues.closed }}</div><div class="muted">已闭环</div></div>
           <div class="stat"><div class="n">{{ issues.overdue }}</div><div class="muted">当前超时</div></div>
           <div class="stat"><div class="n">{{ Number(issues.avg_close_hours || 0).toFixed(1) }}</div><div class="muted">平均闭环小时</div></div>
+        </div>
+
+        <div style="margin-bottom: 10px">
+          <el-button size="small" @click="download('/api/v1/export/reports?type=issues', '隐患趋势.xlsx')">导出趋势</el-button>
+          <el-button size="small" @click="download('/api/v1/export/reports?type=dept', '区队隐患统计.xlsx')">导出区队统计</el-button>
         </div>
 
         <div class="panel">

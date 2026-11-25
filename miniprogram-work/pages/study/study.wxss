@@ -134,3 +134,4 @@
 .btn-mini { display: inline-block; background: #FFC400; color: #141A21; font-size: 26rpx; font-weight: 700; padding: 12rpx 32rpx; border-radius: 999rpx; margin-top: 14rpx; }
 .ok { color: #12B76A; }
 .lvl { color: #E5484D; font-weight: 700; }
+.tag-req { font-size: 20rpx; color: #E5484D; background: #FDECEC; border-radius: 8rpx; padding: 2rpx 10rpx; margin-left: 10rpx; }

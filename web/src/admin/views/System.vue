@@ -1,7 +1,7 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { api } from '../../shared/http'
+import { api, download } from '../../shared/http'
 import { fmtTime, taskStatus } from '../../shared/format'
 
 const tab = ref('tasks')
@@ -113,6 +113,7 @@ async function retry(row) {
           <el-input v-model="auditPage.resource" placeholder="资源，如 doc" clearable style="width: 160px" @change="(auditPage.page = 1), loadAudits()" />
           <el-input v-model="auditPage.action" placeholder="动作，如 post" clearable style="width: 160px" @change="(auditPage.page = 1), loadAudits()" />
           <el-button @click="loadAudits">刷新</el-button>
+          <el-button @click="download('/api/v1/export/audit', '审计日志.xlsx')">导出 Excel</el-button>
           <div style="flex: 1"></div>
           <span class="muted">共 {{ auditTotal }} 条</span>
         </div>

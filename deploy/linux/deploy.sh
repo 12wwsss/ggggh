@@ -14,9 +14,9 @@ install -m 0755 "$NEW" "$BIN"
 
 systemctl restart coalrag
 
-for _ in $(seq 1 10); do
+for _ in $(seq 1 15); do
   sleep 2
-  if curl -fsS -m 3 http://127.0.0.1:8080/healthz 2>/dev/null | grep -q '"db"'; then
+  if curl -s -m 3 http://127.0.0.1:8080/healthz 2>/dev/null | grep -q '"db":{"status":"up"'; then
     echo "[deploy] ok $TS"
     exit 0
   fi

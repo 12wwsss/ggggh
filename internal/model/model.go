@@ -136,6 +136,7 @@ type LearnItem struct {
 	DocID      *int64    `json:"doc_id,omitempty"`
 	Sort       int       `json:"sort"`
 	Status     string    `json:"status"`
+	Required   bool      `json:"required"`
 	CreatedAt  time.Time `json:"created_at"`
 }
 
@@ -161,6 +162,7 @@ type QuizQuestion struct {
 	Answer     string   `json:"answer,omitempty"`
 	Analysis   string   `json:"analysis,omitempty"`
 	Difficulty string   `json:"difficulty"`
+	Status     string   `json:"status"`
 }
 
 // ExamPaper 试卷。
