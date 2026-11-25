@@ -186,9 +186,6 @@ function learnRead(id, minutes) {
   return request('/api/learn/read', { id, minutes }).catch(() => null)
 }
 
-function risks(job) {
-  return request('/api/risks' + (job ? '?job=' + encodeURIComponent(job) : ''), {}, 'GET')
-}
 
 function learnItems() {
   return request('/api/learn/items', {}, 'GET')
@@ -288,7 +285,7 @@ module.exports = {
   wxLogin, login, me, media, absUrl, options, questionGroups, practiceGroups, jobQuestions, employeeSummary, learnRead, risks, learnItems, learnItemDetail, learnProgress, wrongList, wrongSet, examRecords, examReview, faq, examList, examStart, examSubmit,
   culture, profile, saveProfile,
   chat, submitQuiz, health,
-  content, article, risks, training,
+  content, article, training,
   createIssue, issues, handleIssue, issueFlow, issueRectify, issueResubmit, notifications, messages, messageRead, messageReadAll, users, issueStats, upload,
   notices, noticeRead, noticeAck, quizStats, questions,
 }
