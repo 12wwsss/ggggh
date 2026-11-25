@@ -26,6 +26,31 @@ func letterIndex(ans string) int {
 	return idx
 }
 
+// optionText 取选项文字（去前缀，越界返回空）。
+func optionText(opts []string, idx int) string {
+	clean := store.StripOptionPrefix(opts)
+	if idx < 0 || idx >= len(clean) {
+		return ""
+	}
+	return clean[idx]
+}
+
+// examDetail 交卷/回看用的逐题结果，带“你选”和“正确”的文字。
+func examDetail(q model.QuizQuestion, letter string) gin.H {
+	d := questionJSON(q, true)
+	ok := letter != "" && strings.EqualFold(letter, q.Answer)
+	d["ok"] = ok
+	d["your"] = letter
+	right := optionText(q.Options, letterIndex(q.Answer))
+	d["right"] = right
+	picked := ""
+	if letter != "" {
+		picked = optionText(q.Options, letterIndex(letter))
+	}
+	d["picked"] = picked
+	return d
+}
+
 func questionJSON(q model.QuizQuestion, withAnswer bool) gin.H {
 	h := gin.H{
 		"id": q.ID,
@@ -274,9 +299,7 @@ func (s *Server) compatExamReview(c *gin.Context) {
 	detail := make([]gin.H, 0, len(qs))
 	for _, q := range qs {
 		letter := rec.Answers[strconv.FormatInt(q.ID, 10)]
-		d := questionJSON(q, true)
-		d["your"] = letter
-		d["ok"] = letter != "" && strings.EqualFold(letter, q.Answer)
+		d := examDetail(q, letter)
 		detail = append(detail, d)
 	}
 	c.JSON(http.StatusOK, gin.H{
@@ -601,8 +624,7 @@ func (s *Server) compatExamSubmit(c *gin.Context) {
 				score++
 			}
 		}
-		d := questionJSON(q, true)
-		d["ok"] = ok
+		d := examDetail(q, letter)
 		detail = append(detail, d)
 	}
 	passed := score >= paper.PassScore
