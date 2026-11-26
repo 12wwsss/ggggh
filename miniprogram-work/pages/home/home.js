@@ -16,8 +16,9 @@ Page({
     err: '',
     quick: [
       { name: '问一句', icon: 'quick-mic', go: 'chat' },
-      { name: '答题闯关', icon: 'quick-quiz', go: 'quiz' },
-      { name: '上报问题', icon: 'quick-alert', go: 'issue' }
+      { name: '答题', icon: 'quick-quiz', go: 'quiz' },
+      { name: '报隐患', icon: 'quick-alert', go: 'issue' },
+      { name: '宣贯', icon: 'quick-doc', go: 'policy' }
     ]
   },
 
@@ -133,6 +134,7 @@ Page({
     if (go === 'chat') wx.navigateTo({ url: '/pages/chat/chat' })
     if (go === 'quiz') wx.navigateTo({ url: '/pages/quiz/quiz' })
     if (go === 'issue') wx.navigateTo({ url: '/pages/issue/issue' })
+    if (go === 'policy') wx.navigateTo({ url: '/pages/policy/policy' })
   },
 
   onTodo(e) {
