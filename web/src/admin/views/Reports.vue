@@ -8,6 +8,15 @@ const loading = ref(false)
 const learning = ref({ rows: [], users: 0, items: 0, completed: 0 })
 const wrong = ref({ rows: [], records: 0, users: 0 })
 const issues = ref({ daily: [], status: {}, overdue: 0, total: 0, closed: 0, avg_close_hours: 0, by_dept: [] })
+const issueDays = ref(14)
+
+async function loadIssues() {
+  try {
+    issues.value = await api.get('/api/v1/reports/issues', { days: issueDays.value })
+  } catch (e) {
+    ElMessage.error(e.message)
+  }
+}
 
 const maxDaily = computed(() => Math.max(1, ...issues.value.daily.map((d) => Math.max(d.reported, d.closed))))
 const curReported = computed(() => issues.value.daily.reduce((s, d) => s + (d.reported || 0), 0))
@@ -22,14 +31,13 @@ function delta(cur, prev) {
 async function load() {
   loading.value = true
   try {
-    const [l, w, i] = await Promise.all([
+    const [l, w] = await Promise.all([
       api.get('/api/v1/reports/learning'),
       api.get('/api/v1/reports/wrong', { limit: 30 }),
-      api.get('/api/v1/reports/issues', { days: 14 }),
     ])
     learning.value = l
     wrong.value = w
-    issues.value = i
+    await loadIssues()
   } catch (e) {
     ElMessage.error(e.message)
   } finally {
@@ -76,11 +84,20 @@ onMounted(load)
       </el-tab-pane>
 
       <el-tab-pane label="隐患趋势" name="issues">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px">
+          <span class="muted">统计周期</span>
+          <el-radio-group v-model="issueDays" size="small" @change="loadIssues">
+            <el-radio-button :value="7">近 7 天</el-radio-button>
+            <el-radio-button :value="14">近 14 天</el-radio-button>
+            <el-radio-button :value="30">近 30 天</el-radio-button>
+          </el-radio-group>
+        </div>
+
         <div class="cards">
-          <div class="stat"><div class="n">{{ issues.total }}</div><div class="muted">问题总数</div></div>
-          <div class="stat"><div class="n">{{ issues.closed }}</div><div class="muted">已闭环</div></div>
+          <div class="stat"><div class="n">{{ issues.total }}</div><div class="muted">累计问题总数</div></div>
+          <div class="stat"><div class="n">{{ issues.closed }}</div><div class="muted">累计已闭环</div></div>
           <div class="stat"><div class="n">{{ issues.overdue }}</div><div class="muted">当前超时</div></div>
-          <div class="stat"><div class="n">{{ Number(issues.avg_close_hours || 0).toFixed(1) }}</div><div class="muted">平均闭环小时</div></div>
+          <div class="stat"><div class="n">{{ Number(issues.avg_close_hours || 0).toFixed(1) }}</div><div class="muted">累计平均闭环小时</div></div>
         </div>
 
         <div class="muted" style="margin: 6px 0 12px">
@@ -89,12 +106,12 @@ onMounted(load)
         </div>
 
         <div style="margin-bottom: 10px">
-          <el-button size="small" @click="download('/api/v1/export/reports?type=issues', '隐患趋势.xlsx')">导出趋势</el-button>
+          <el-button size="small" @click="download(`/api/v1/export/reports?type=issues&days=${issueDays}`, '隐患趋势.xlsx')">导出趋势</el-button>
           <el-button size="small" @click="download('/api/v1/export/reports?type=dept', '区队隐患统计.xlsx')">导出区队统计</el-button>
         </div>
 
         <div class="panel">
-          <div class="panel-title">近 14 天</div>
+          <div class="panel-title">近 {{ issueDays }} 天</div>
           <div v-for="d in issues.daily" :key="d.date" class="bar-row">
             <span class="bar-date">{{ d.date }}</span>
             <div class="bar-track"><div class="bar-in report" :style="{ width: (d.reported / maxDaily) * 100 + '%' }"></div></div>
