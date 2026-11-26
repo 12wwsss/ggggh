@@ -311,7 +311,7 @@ async function saveRole() {
   const policies = []
   roleRows.value.forEach((r) => {
     if (r.read) policies.push({ role: role.value, resource: r.resource, action: 'read', scope: r.scope })
-    if (r.write) policies.push({ role: role.value, resource: r.resource, action: 'write', scope: r.scope })
+    if (r.write && r.writeAllowed) policies.push({ role: role.value, resource: r.resource, action: 'write', scope: r.scope })
   })
   try {
     await api.put(`/api/v1/roles/${role.value}`, { policies })

@@ -27,11 +27,33 @@ func (s *Server) compatProfile(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"ok": true, "name": "", "avatar": ""})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"ok": true, "name": u.Name, "role": u.Role, "post": u.Post, "avatar": ""})
+	name := u.Name
+	display, avatar, _ := s.Store.GetProfile(c.Request.Context(), u.ID)
+	if display != "" {
+		name = display
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true, "name": name, "role": u.Role, "post": u.Post, "avatar": avatar})
 }
 
-// compatSaveProfile 保存姓名/头像；当前不改库，返回成功避免页面报错。
+// compatSaveProfile 保存个人显示名/头像。
 func (s *Server) compatSaveProfile(c *gin.Context) {
+	u := s.compatCurrentUser(c)
+	if u == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"ok": false, "message": "请先登录"})
+		return
+	}
+	var req struct {
+		Name   string `json:"name"`
+		Avatar string `json:"avatar"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "message": "参数不正确"})
+		return
+	}
+	if err := s.Store.UpdateProfile(c.Request.Context(), u.ID, strings.TrimSpace(req.Name), strings.TrimSpace(req.Avatar)); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "message": "保存失败"})
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 

@@ -125,6 +125,27 @@ func (s *Store) UpdatePassword(ctx context.Context, userID int64, hash string) e
 	return nil
 }
 
+// GetProfile 读取个人显示名/头像。
+func (s *Store) GetProfile(ctx context.Context, userID int64) (name, avatar string, err error) {
+	err = s.pool.QueryRow(ctx, `select coalesce(display_name,''), coalesce(avatar,'') from org_user where id=$1`, userID).Scan(&name, &avatar)
+	return name, avatar, wrapErr("读取个人资料", err)
+}
+
+// UpdateProfile 保存个人显示名/头像，不改在册姓名。
+func (s *Store) UpdateProfile(ctx context.Context, userID int64, name, avatar string) error {
+	tag, err := s.pool.Exec(ctx, `update org_user set
+		display_name = case when $2='' then display_name else $2 end,
+		avatar = case when $3='' then avatar else $3 end,
+		updated_at=now() where id=$1`, userID, name, avatar)
+	if err != nil {
+		return wrapErr("保存个人资料", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
 // MustChangePassword 是否需要首次修改口令。
 func (s *Store) MustChangePassword(ctx context.Context, userID int64) (bool, error) {
 	var need bool
