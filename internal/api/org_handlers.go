@@ -117,6 +117,16 @@ func (s *Server) createUser(c *gin.Context) {
 		fail(c, http.StatusBadRequest, "初始口令至少 8 位")
 		return
 	}
+	if req.Role != model.RoleAdmin && req.DeptID == nil {
+		fail(c, http.StatusBadRequest, "员工/区队长/安全科必须选择部门")
+		return
+	}
+	if p := strings.TrimSpace(req.Post); p != "" {
+		if okPost, _ := s.Store.PostExists(c.Request.Context(), p); !okPost {
+			fail(c, http.StatusBadRequest, "岗位不存在，请先在岗位管理中添加")
+			return
+		}
+	}
 	hash, err := auth.HashPassword(req.Password)
 	if err != nil {
 		fail(c, http.StatusInternalServerError, "口令处理失败")
@@ -154,6 +164,12 @@ func (s *Server) updateUser(c *gin.Context) {
 	status := req.Status
 	if status == "" {
 		status = "active"
+	}
+	if p := strings.TrimSpace(req.Post); p != "" {
+		if okPost, _ := s.Store.PostExists(c.Request.Context(), p); !okPost {
+			fail(c, http.StatusBadRequest, "岗位不存在，请先在岗位管理中添加")
+			return
+		}
 	}
 	err := s.Store.UpdateUser(c.Request.Context(), &model.User{
 		ID: id, Name: req.Name, Phone: req.Phone, Post: req.Post,

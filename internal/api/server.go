@@ -179,6 +179,10 @@ func New(cfg *config.Config, st *store.Store, svc *service.Service, mgr *auth.Ma
 
 	// 组织与权限
 	authed.GET("/depts", s.require("dept", "read"), s.listDepts)
+	authed.GET("/posts", s.require("user", "read"), s.listPosts)
+	authed.POST("/posts", s.require("user", "write"), s.createPost)
+	authed.PUT("/posts/:id", s.require("user", "write"), s.updatePost)
+	authed.DELETE("/posts/:id", s.require("user", "write"), s.deletePost)
 	authed.POST("/depts", s.require("dept", "write"), s.createDept)
 	authed.PUT("/depts/:id", s.require("dept", "write"), s.updateDept)
 	authed.GET("/users", s.require("user", "read"), s.listUsers)

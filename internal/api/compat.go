@@ -955,11 +955,14 @@ func (s *Server) compatHealth(c *gin.Context) {
 
 // compatOptions 岗位/区队/资料分类选项。
 func (s *Server) compatOptions(c *gin.Context) {
-	jobs, err := s.Store.DistinctPosts(c.Request.Context())
-	if err != nil {
-		jobs = nil
+	jobs := []string{"通用"}
+	if posts, err := s.Store.ListPosts(c.Request.Context(), true); err == nil {
+		for _, p := range posts {
+			if p.Name != "通用" {
+				jobs = append(jobs, p.Name)
+			}
+		}
 	}
-	jobs = append([]string{"通用"}, jobs...)
 	teams, err := s.Store.ListDeptNames(c.Request.Context())
 	if err != nil {
 		teams = []string{}

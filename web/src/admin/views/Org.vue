@@ -17,6 +17,58 @@ const userForm = reactive({ id: 0, username: '', name: '', password: '', dept_id
 const deptDialog = ref(false)
 const deptForm = reactive({ id: 0, name: '', code: '', sort: 0 })
 
+const posts = ref([])
+const postDialog = ref(false)
+const postForm = reactive({ id: 0, name: '', sort: 0, status: 'active' })
+
+async function loadPosts() {
+  try {
+    const data = await api.get('/api/v1/posts', { all: 1 })
+    posts.value = data.list || []
+  } catch (e) {
+    posts.value = []
+  }
+}
+
+function openPost(row) {
+  if (row) {
+    Object.assign(postForm, { id: row.id, name: row.name, sort: row.sort, status: row.status })
+  } else {
+    Object.assign(postForm, { id: 0, name: '', sort: 0, status: 'active' })
+  }
+  postDialog.value = true
+}
+
+async function savePost() {
+  if (!postForm.name.trim()) return ElMessage.warning('岗位名称必填')
+  try {
+    if (postForm.id) await api.put(`/api/v1/posts/${postForm.id}`, postForm)
+    else await api.post('/api/v1/posts', postForm)
+    ElMessage.success('已保存')
+    postDialog.value = false
+    await loadPosts()
+    await loadJobs()
+  } catch (e) {
+    ElMessage.error(e.message)
+  }
+}
+
+async function removePost(row) {
+  try {
+    await ElMessageBox.confirm(`删除岗位「${row.name}」？`, '确认', { type: 'warning' })
+  } catch {
+    return
+  }
+  try {
+    await api.del(`/api/v1/posts/${row.id}`)
+    ElMessage.success('已删除')
+    await loadPosts()
+    await loadJobs()
+  } catch (e) {
+    ElMessage.error(e.message)
+  }
+}
+
 const roles = ref([])
 const role = ref('dept_leader')
 const resources = [
@@ -69,8 +121,8 @@ async function loadDepts() {
 
 async function loadJobs() {
   try {
-    const data = await api.get('/api/options')
-    jobs.value = data.jobs || (data.data && data.data.jobs) || []
+    const data = await api.get('/api/v1/posts')
+    jobs.value = (data.list || []).filter((p) => p.status === 'active').map((p) => p.name)
   } catch (e) {
     jobs.value = []
   }
@@ -149,6 +201,7 @@ async function doImport(preview) {
 onMounted(async () => {
   await loadUsers()
   await loadDepts()
+  await loadPosts()
   await loadJobs()
   await loadRoles()
 })
@@ -332,6 +385,32 @@ async function saveRole() {
         </el-table>
       </el-tab-pane>
 
+      <el-tab-pane label="岗位" name="posts">
+        <div style="display: flex; margin-bottom: 12px">
+          <el-button type="primary" @click="openPost(null)">新建岗位</el-button>
+          <div style="flex: 1"></div>
+          <span class="muted">共 {{ posts.length }} 个</span>
+        </div>
+        <el-table :data="posts" size="small">
+          <el-table-column prop="id" label="ID" width="64" />
+          <el-table-column prop="name" label="岗位名称" min-width="180" />
+          <el-table-column prop="sort" label="排序" width="90" />
+          <el-table-column label="状态" width="90">
+            <template #default="{ row }">
+              <el-tag :type="row.status === 'active' ? 'success' : 'info'" size="small">
+                {{ row.status === 'active' ? '启用' : '停用' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="140">
+            <template #default="{ row }">
+              <el-button link type="primary" @click="openPost(row)">编辑</el-button>
+              <el-button link type="danger" @click="removePost(row)">删除</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-tab-pane>
+
       <el-tab-pane label="角色权限" name="roles">
         <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 12px">
           <el-select v-model="role" style="width: 180px" @change="switchRole">
@@ -416,6 +495,26 @@ async function saveRole() {
       <template #footer>
         <el-button @click="deptDialog = false">取消</el-button>
         <el-button type="primary" @click="saveDept">保存</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="postDialog" :title="postForm.id ? '编辑岗位' : '新建岗位'" width="420px">
+      <el-form label-width="80px">
+        <el-form-item label="名称"><el-input v-model="postForm.name" placeholder="如：采煤机司机" /></el-form-item>
+        <el-form-item label="排序"><el-input-number v-model="postForm.sort" :min="0" /></el-form-item>
+        <el-form-item label="状态">
+          <el-radio-group v-model="postForm.status">
+            <el-radio value="active">启用</el-radio>
+            <el-radio value="disabled">停用</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <div class="muted" style="margin-left: 80px; line-height: 1.6">
+          改名会同步更新账号、学习条目、风险点里的岗位名称；停用后新账号不能再选，已用账号不受影响。
+        </div>
+      </el-form>
+      <template #footer>
+        <el-button @click="postDialog = false">取消</el-button>
+        <el-button type="primary" @click="savePost">保存</el-button>
       </template>
     </el-dialog>
 

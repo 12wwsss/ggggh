@@ -33,6 +33,14 @@ const (
 	IssueClosed    = "closed"
 )
 
+// Post 岗位。
+type Post struct {
+	ID     int64  `json:"id"`
+	Name   string `json:"name"`
+	Sort   int    `json:"sort"`
+	Status string `json:"status"`
+}
+
 // Dept 部门。
 type Dept struct {
 	ID        int64     `json:"id"`

@@ -75,10 +75,10 @@ func (s *Server) importUsers(c *gin.Context) {
 			deptByName[d.Code] = d.ID
 		}
 	}
-	posts, _ := s.Store.DistinctPosts(c.Request.Context())
+	postList, _ := s.Store.ListPosts(c.Request.Context(), true)
 	postSet := map[string]bool{}
-	for _, p := range posts {
-		postSet[p] = true
+	for _, p := range postList {
+		postSet[p.Name] = true
 	}
 
 	roleMap := map[string]string{

@@ -89,8 +89,20 @@ async function delAssign(row) {
   }
 }
 
+const posts = ref([])
+
+async function loadPosts() {
+  try {
+    const data = await api.get('/api/v1/posts')
+    posts.value = (data.list || []).filter((p) => p.status === 'active').map((p) => p.name)
+  } catch (e) {
+    posts.value = []
+  }
+}
+
 onMounted(load)
 onMounted(loadDepts)
+onMounted(loadPosts)
 
 function openCreate() {
   Object.assign(form, { id: 0, title: '', category: '规程', post: '', content: '', clause_refs: '', sort: 0, status: 'published' })
@@ -301,7 +313,9 @@ async function removeItem(row) {
       <el-divider content-position="left">新增分配</el-divider>
       <el-form label-width="80px">
         <el-form-item label="岗位">
-          <el-input v-model="assignForm.post" placeholder="留空表示全部岗位" />
+          <el-select v-model="assignForm.post" filterable allow-create clearable placeholder="留空表示全部岗位" style="width: 100%">
+            <el-option v-for="p in posts" :key="p" :label="p" :value="p" />
+          </el-select>
         </el-form-item>
         <el-form-item label="区队">
           <el-select v-model="assignForm.dept_id" clearable placeholder="留空表示全部区队" style="width: 100%">
@@ -336,7 +350,11 @@ async function removeItem(row) {
       <el-form label-width="88px">
         <el-form-item label="标题"><el-input v-model="form.title" /></el-form-item>
         <el-form-item label="分类"><el-input v-model="form.category" /></el-form-item>
-        <el-form-item label="适用岗位"><el-input v-model="form.post" placeholder="留空表示全部岗位" /></el-form-item>
+        <el-form-item label="适用岗位">
+          <el-select v-model="form.post" filterable allow-create clearable placeholder="留空表示全部岗位" style="width: 100%">
+            <el-option v-for="p in posts" :key="p" :label="p" :value="p" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="关联条款">
           <el-input v-model="form.clause_refs" placeholder="用顿号分隔，如：第五十五条、第五十六条" />
         </el-form-item>
