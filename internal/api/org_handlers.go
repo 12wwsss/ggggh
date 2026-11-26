@@ -232,6 +232,18 @@ func (s *Server) updateRole(c *gin.Context) {
 		fail(c, http.StatusBadRequest, "参数格式错误")
 		return
 	}
+	// 只读资源不允许配置写入；管理类资源只有管理员能写；部分资源限制数据范围。
+	readOnly := map[string]bool{"audit": true, "dashboard": true, "qa": true}
+	adminOnlyWrite := map[string]bool{"user": true, "dept": true, "task": true, "eval": true, "audit": true}
+	scopeAllowed := map[string][]string{
+		"audit":     {"all"},
+		"dashboard": {"all", "dept"},
+		"user":      {"all", "dept"},
+		"dept":      {"all", "dept"},
+		"task":      {"all"},
+		"eval":      {"all"},
+		"doc":       {"all"},
+	}
 	for _, p := range req.Policies {
 		if p.Action != "read" && p.Action != "write" {
 			fail(c, http.StatusBadRequest, "动作只能是 read 或 write")
@@ -240,6 +252,27 @@ func (s *Server) updateRole(c *gin.Context) {
 		if p.Scope != "all" && p.Scope != "dept" && p.Scope != "self" {
 			fail(c, http.StatusBadRequest, "数据范围只能是 all、dept、self")
 			return
+		}
+		if p.Action == "write" && readOnly[p.Resource] {
+			fail(c, http.StatusBadRequest, "该资源只读，不能配置写入")
+			return
+		}
+		if p.Action == "write" && adminOnlyWrite[p.Resource] && role != model.RoleAdmin {
+			fail(c, http.StatusBadRequest, "该资源只有平台管理员可以写入")
+			return
+		}
+		if allowed, ok := scopeAllowed[p.Resource]; ok {
+			okScope := false
+			for _, s := range allowed {
+				if s == p.Scope {
+					okScope = true
+					break
+				}
+			}
+			if !okScope {
+				fail(c, http.StatusBadRequest, "该资源的数据范围选择不合法")
+				return
+			}
 		}
 		p.Role = role
 	}

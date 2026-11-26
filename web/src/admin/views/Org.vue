@@ -8,6 +8,7 @@ const tab = ref('users')
 
 const users = ref([])
 const depts = ref([])
+const jobs = ref([])
 const total = ref(0)
 const page = reactive({ page: 1, page_size: 20 })
 const userDialog = ref(false)
@@ -26,11 +27,25 @@ const resourceText = {
   user: '用户', dept: '部门', audit: '审计日志', task: '后台任务', dashboard: '看板', eval: '评测',
 }
 const roleMatrix = ref({})
+const readOnlyRes = new Set(['audit', 'dashboard', 'qa'])
+const adminOnlyWrite = new Set(['user', 'dept', 'task', 'eval', 'audit'])
+const scopeMap = {
+  audit: ['all'],
+  dashboard: ['all', 'dept'],
+  user: ['all', 'dept'],
+  dept: ['all', 'dept'],
+  task: ['all'],
+  eval: ['all'],
+  doc: ['all'],
+}
 
 const roleRows = computed(() =>
   resources.map((r) => {
     const entry = roleMatrix.value[r] || { read: false, write: false, scope: 'self' }
-    return { resource: r, ...entry }
+    const writeAllowed = !readOnlyRes.has(r) && (!adminOnlyWrite.has(r) || role.value === 'admin')
+    const scopes = scopeMap[r] || ['all', 'dept', 'self']
+    const scope = scopes.includes(entry.scope) ? entry.scope : scopes[0]
+    return { resource: r, ...entry, scope, writeAllowed, scopes }
   }),
 )
 
@@ -49,6 +64,30 @@ async function loadDepts() {
     depts.value = await api.get('/api/v1/depts')
   } catch (e) {
     ElMessage.error(e.message)
+  }
+}
+
+async function loadJobs() {
+  try {
+    const data = await api.get('/api/options')
+    jobs.value = data.jobs || (data.data && data.data.jobs) || []
+  } catch (e) {
+    jobs.value = []
+  }
+}
+
+function genPassword() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789'
+  let s = ''
+  for (let i = 0; i < 9; i++) s += chars[Math.floor(Math.random() * chars.length)]
+  userForm.password = s + '@1'
+  ElMessage.success('已生成初始口令，请复制给员工')
+}
+
+function onUserRole() {
+  if (userForm.role === 'safety') {
+    const d = depts.value.find((x) => x.name === '安全科')
+    if (d) userForm.dept_id = d.id
   }
 }
 
@@ -79,7 +118,7 @@ function onImportFile(f) {
 
 function downloadUserTemplate() {
   const csv = '\ufeff工号,姓名,部门,岗位,初始口令,手机号,角色\n' +
-    'w1001,张三,综采一队,采煤机司机,Coal@123456,13800000000,employee\n'
+    'w1001,张三,综采一队,采煤机司机,Coal@123456,13800000000,员工\n'
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
   const a = document.createElement('a')
   a.href = URL.createObjectURL(blob)
@@ -88,14 +127,19 @@ function downloadUserTemplate() {
   URL.revokeObjectURL(a.href)
 }
 
-async function doImport() {
+async function doImport(preview) {
   if (!importFile.value) return ElMessage.warning('请选择 CSV 文件')
   importBusy.value = true
   try {
-    const res = await api.upload('/api/v1/users/import', importFile.value)
+    const url = preview ? '/api/v1/users/import?preview=1' : '/api/v1/users/import'
+    const res = await api.upload(url, importFile.value)
     importResult.value = res
-    ElMessage.success('导入完成：成功 ' + (res.created || 0) + ' 条')
-    loadUsers()
+    if (preview) {
+      ElMessage.success('校验完成：可导入 ' + (res.valid || 0) + ' 条，有问题 ' + (res.invalid || 0) + ' 条')
+    } else {
+      ElMessage.success('导入完成：成功 ' + (res.created || 0) + ' 条')
+      loadUsers()
+    }
   } catch (e) {
     ElMessage.error(e.message)
   } finally {
@@ -105,6 +149,7 @@ async function doImport() {
 onMounted(async () => {
   await loadUsers()
   await loadDepts()
+  await loadJobs()
   await loadRoles()
 })
 
@@ -118,11 +163,24 @@ function openUser(row) {
   } else {
     Object.assign(userForm, { id: 0, username: '', name: '', password: '', dept_id: null, post: '', phone: '', role: 'employee', status: 'active' })
   }
+  if (userForm.role === 'safety' && !userForm.dept_id) onUserRole()
   userDialog.value = true
 }
 
 async function saveUser() {
   try {
+    if (!userForm.name) {
+      ElMessage.warning('请填写姓名')
+      return
+    }
+    if (userForm.role !== 'admin' && !userForm.dept_id) {
+      ElMessage.warning('员工/区队长/安全科必须选择部门')
+      return
+    }
+    if (userForm.phone && !/^1\d{10}$/.test(userForm.phone)) {
+      ElMessage.warning('手机号格式不正确')
+      return
+    }
     if (userForm.id) {
       await api.put(`/api/v1/users/${userForm.id}`, {
         name: userForm.name,
@@ -133,8 +191,12 @@ async function saveUser() {
         status: userForm.status,
       })
     } else {
-      if (!userForm.username || !userForm.password) {
-        ElMessage.warning('账号与初始口令必填')
+      if (!/^[A-Za-z0-9_]{4,12}$/.test(userForm.username || '')) {
+        ElMessage.warning('工号需 4-12 位字母/数字/下划线')
+        return
+      }
+      if (!userForm.password || userForm.password.length < 8 || !/[A-Za-z]/.test(userForm.password) || !/\d/.test(userForm.password)) {
+        ElMessage.warning('初始口令至少 8 位，且包含字母和数字')
         return
       }
       await api.post('/api/v1/users', userForm)
@@ -286,14 +348,14 @@ async function saveRole() {
             <template #default="{ row }"><el-switch v-model="row.read" /></template>
           </el-table-column>
           <el-table-column label="写入" width="90">
-            <template #default="{ row }"><el-switch v-model="row.write" /></template>
+            <template #default="{ row }">
+              <el-switch v-model="row.write" :disabled="!row.writeAllowed" />
+            </template>
           </el-table-column>
           <el-table-column label="数据范围" width="180">
             <template #default="{ row }">
               <el-select v-model="row.scope" style="width: 140px">
-                <el-option label="全部" value="all" />
-                <el-option label="本部门" value="dept" />
-                <el-option label="本人" value="self" />
+                <el-option v-for="s in row.scopes" :key="s" :label="{ all: '全部', dept: '本部门', self: '本人' }[s]" :value="s" />
               </el-select>
             </template>
           </el-table-column>
@@ -303,22 +365,28 @@ async function saveRole() {
 
     <el-dialog v-model="userDialog" :title="userForm.id ? '编辑账号' : '新建账号'" width="520px">
       <el-form label-width="88px">
-        <el-form-item label="账号">
-          <el-input v-model="userForm.username" :disabled="Boolean(userForm.id)" />
+        <el-form-item label="工号">
+          <el-input v-model="userForm.username" :disabled="Boolean(userForm.id)" maxlength="12" placeholder="4-12 位字母/数字/下划线" />
         </el-form-item>
         <el-form-item v-if="!userForm.id" label="初始口令">
-          <el-input v-model="userForm.password" placeholder="至少 8 位" show-password />
+          <el-input v-model="userForm.password" placeholder="至少 8 位，含字母和数字" show-password>
+            <template #append><el-button @click="genPassword">生成</el-button></template>
+          </el-input>
         </el-form-item>
         <el-form-item label="姓名"><el-input v-model="userForm.name" /></el-form-item>
-        <el-form-item label="部门">
-          <el-select v-model="userForm.dept_id" style="width: 100%">
+        <el-form-item label="部门" :required="userForm.role !== 'admin'">
+          <el-select v-model="userForm.dept_id" placeholder="请选择部门" style="width: 100%">
             <el-option v-for="d in depts" :key="d.id" :label="d.name" :value="d.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="岗位"><el-input v-model="userForm.post" /></el-form-item>
-        <el-form-item label="手机"><el-input v-model="userForm.phone" /></el-form-item>
+        <el-form-item label="岗位">
+          <el-select v-model="userForm.post" filterable allow-create placeholder="选择或输入岗位" style="width: 100%">
+            <el-option v-for="j in jobs" :key="j" :label="j" :value="j" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="手机"><el-input v-model="userForm.phone" maxlength="11" placeholder="11 位手机号" /></el-form-item>
         <el-form-item label="角色">
-          <el-select v-model="userForm.role" style="width: 100%">
+          <el-select v-model="userForm.role" style="width: 100%" @change="onUserRole">
             <el-option label="平台管理员" value="admin" />
             <el-option label="区队长" value="dept_leader" />
             <el-option label="安全科" value="safety" />
@@ -331,6 +399,7 @@ async function saveRole() {
             <el-radio value="disabled">停用</el-radio>
           </el-radio-group>
         </el-form-item>
+        <div class="muted" style="margin-left: 88px">新账号首次登录需要修改初始口令。</div>
       </el-form>
       <template #footer>
         <el-button @click="userDialog = false">取消</el-button>
@@ -353,7 +422,7 @@ async function saveRole() {
     <el-dialog v-model="importVisible" title="批量导入员工" width="640px">
       <div class="muted" style="line-height: 1.8">
         表头：工号、姓名、部门、岗位、初始口令、手机号、角色。<br />
-        部门必须与后台区队名称完全一致；角色可选 admin/dept_leader/safety/employee，留空为 employee；初始口令留空默认 Coal@123456。
+        部门可填名称或编码；岗位需与后台岗位配置一致；角色可填 员工/区队长/安全科/平台管理员，留空为员工；口令留空默认 Coal@123456，首次登录必须改密。
       </div>
       <div style="margin: 10px 0">
         <el-button size="small" @click="downloadUserTemplate">下载模板</el-button>
@@ -363,7 +432,9 @@ async function saveRole() {
       </el-upload>
       <div v-if="importResult" style="margin-top: 12px">
         <el-alert
-          :title="`导入完成：成功 ${importResult.created} 条，跳过 ${importResult.skipped} 条`"
+          :title="importResult.preview
+            ? `校验完成：可导入 ${importResult.valid} 条，有问题 ${importResult.invalid} 条`
+            : `导入完成：成功 ${importResult.created} 条，跳过 ${importResult.skipped} 条`"
           type="success"
           :closable="false"
         />
@@ -375,7 +446,8 @@ async function saveRole() {
       </div>
       <template #footer>
         <el-button @click="importVisible = false">关闭</el-button>
-        <el-button type="primary" :loading="importBusy" @click="doImport">开始导入</el-button>
+        <el-button :loading="importBusy" @click="doImport(true)">预览校验</el-button>
+        <el-button type="primary" :loading="importBusy" @click="doImport(false)">开始导入</el-button>
       </template>
     </el-dialog>
   </div>
