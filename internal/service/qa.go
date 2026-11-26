@@ -20,6 +20,9 @@ const FallbackAnswer = "资料中未找到明确依据，建议查阅《煤矿�
 
 var reCitation = regexp.MustCompile(`第[一二三四五六七八九十百千零〇两0-9]+条`)
 
+// DegradedAnswer 是模型不可用但检索到条款时的回答，引用仍然可点开原文。
+const DegradedAnswer = "模型服务暂不可用，先列出检索到的条款，请核对原文或联系安全科。"
+
 // AskResult 是一次问答的结果。
 type AskResult struct {
 	Answered  bool             `json:"answered"`
@@ -257,7 +260,17 @@ func (s *Service) Ask(ctx context.Context, user *model.User, question, ip string
 		{Role: "user", Content: prompt},
 	})
 	if err != nil {
-		return nil, fmt.Errorf("模型调用失败: %w", err)
+		// 矿上 GPU 未起/模型重启时，不让整个问答变成 500：
+		// 把检索到的条款直接给出来，员工至少能看到依据，比空白或报错有用。
+		s.Log.Warn("模型调用失败，降级返回检索条款", "err", err, "hits", len(hits))
+		res.Answered = false
+		res.Fallback = true
+		res.Answer = DegradedAnswer
+		res.Citations = degradedCitations(hits, 3)
+		res.Actions = nil
+		res.LatencyMS = int(time.Since(start).Milliseconds())
+		s.persistLog(ctx, user, question, res, ip)
+		return res, nil
 	}
 
 	answer, cites, ok := verifyCitations(raw, hits)
@@ -278,6 +291,22 @@ func (s *Service) Ask(ctx context.Context, user *model.User, question, ip string
 	res.LatencyMS = int(time.Since(start).Milliseconds())
 	s.persistLog(ctx, user, question, res, ip)
 	return res, nil
+}
+
+// degradedCitations 取前 n 条检索结果作为引用，供前端展示与打开原文。
+func degradedCitations(hits []Retrieved, n int) []model.Citation {
+	if n <= 0 || n > len(hits) {
+		n = len(hits)
+	}
+	out := make([]model.Citation, 0, n)
+	for i := 0; i < n; i++ {
+		h := hits[i]
+		out = append(out, model.Citation{
+			DocID: h.DocID, DocTitle: h.DocTitle, ChunkID: h.ChunkID,
+			ClauseNo: h.ClauseNo, Snippet: snippetOf(h.Content, 120), Score: h.Score,
+		})
+	}
+	return out
 }
 
 // reActionLine 匹配“1.”“1、”“1)”“①”开头的动作行。

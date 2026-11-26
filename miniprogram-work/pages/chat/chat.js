@@ -1,5 +1,20 @@
 const api = require('../../utils/api.js')
 
+// 多次解码，兼容“已经解码过”的调用方；解码失败就原样返回。
+function safeDecode(raw) {
+  let v = String(raw || '')
+  for (let i = 0; i < 2 && v.indexOf('%') >= 0; i++) {
+    try {
+      const d = decodeURIComponent(v)
+      if (d === v) break
+      v = d
+    } catch (e) {
+      break
+    }
+  }
+  return v
+}
+
 Page({
   data: {
     msgs: [],
@@ -21,8 +36,9 @@ Page({
     this.setData({
       msgs: [{ id: 0, role: 'ai', text: this.data.greet, cites: [], typing: false, greet: true }]
     }, () => {
-      // 从文章/风险点带问题进来，直接提问
-      if (options && options.q) this.send(options.q)
+      // 从文章/风险点带问题进来，直接提问。
+      // navigateTo 的 query 不会自动解码，这里要还原，否则会把 %E8%8F%9C… 原样发出去。
+      if (options && options.q) this.send(safeDecode(options.q))
     })
   },
 
