@@ -191,6 +191,23 @@ func (s *Store) CreateTrainingPlan(ctx context.Context, userID, mentorUserID int
 	return id, nil
 }
 
+// UpdatePlanMentor 更换带培师傅。
+func (s *Store) UpdatePlanMentor(ctx context.Context, planID, mentorUserID int64) error {
+	var name string
+	if err := s.pool.QueryRow(ctx, `select name from org_user where id=$1 and status='active'`, mentorUserID).Scan(&name); err != nil {
+		return wrapErr("查询师傅", err)
+	}
+	tag, err := s.pool.Exec(ctx, `update training_plan set mentor=$2, mentor_user_id=$3 where id=$1`,
+		planID, name, mentorUserID)
+	if err != nil {
+		return wrapErr("更换师傅", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
 // SetTrainingStageDone 标记阶段完成/未完成。
 func (s *Store) SetTrainingStageDone(ctx context.Context, planID, stageID int64, done bool) error {
 	_, err := s.pool.Exec(ctx, `update training_stage set done=$3,

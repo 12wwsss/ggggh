@@ -73,6 +73,56 @@ func (s *Store) GetIssue(ctx context.Context, id int64) (*model.Issue, error) {
 	return i, wrapErr("查询问题", err)
 }
 
+// ReassignIssue 更换整改负责人（仅限已受理状态），写流转和消息。
+func (s *Store) ReassignIssue(ctx context.Context, issueID, actorID, assigneeID int64, comment string) (*model.Issue, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+
+	var status string
+	var oldAssignee *int64
+	var code, title string
+	if err := tx.QueryRow(ctx, `select status, assignee_id, code, title from issue where id=$1 for update`, issueID).
+		Scan(&status, &oldAssignee, &code, &title); err != nil {
+		if isNoRows(err) {
+			return nil, ErrNotFound
+		}
+		return nil, wrapErr("锁定问题", err)
+	}
+	if status != model.IssueAccepted {
+		return nil, ErrConflict
+	}
+	tag, err := tx.Exec(ctx, `update issue set assignee_id=$2, updated_at=now() where id=$1 and status=$3`,
+		issueID, assigneeID, model.IssueAccepted)
+	if err != nil {
+		return nil, wrapErr("更换负责人", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return nil, ErrConflict
+	}
+	if _, err := tx.Exec(ctx, `insert into issue_flow(issue_id, action, from_status, to_status, actor_id, comment)
+		values ($1,'reassign',$2,$2,$3,$4)`, issueID, model.IssueAccepted, actorID, comment); err != nil {
+		return nil, wrapErr("写入流转记录", err)
+	}
+	label := code + " " + title
+	if _, err := tx.Exec(ctx, `insert into message(user_id, kind, title, body, ref_type, ref_id)
+		values ($1,'issue','你被指定为整改负责人',$2,'issue',$3)`, assigneeID, label, issueID); err != nil {
+		return nil, wrapErr("写入消息", err)
+	}
+	if oldAssignee != nil && *oldAssignee != assigneeID {
+		if _, err := tx.Exec(ctx, `insert into message(user_id, kind, title, body, ref_type, ref_id)
+			values ($1,'issue','整改任务已转交',$2,'issue',$3)`, *oldAssignee, label, issueID); err != nil {
+			return nil, wrapErr("写入消息", err)
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+	return s.GetIssue(ctx, issueID)
+}
+
 // ListIssuesByUser 列出“我上报的 + 指派给我的”问题。
 func (s *Store) ListIssuesByUser(ctx context.Context, userID int64, limit, offset int) ([]model.Issue, int, error) {
 	rows, err := s.pool.Query(ctx, `select `+sqlIssueCols+`, count(*) over() as total`+sqlIssueFrom+`

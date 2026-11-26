@@ -15,6 +15,38 @@ const createVisible = ref(false)
 const saving = ref(false)
 const users = ref([])
 const form = ref({ user_id: null, user_ids: [], mentor_user_id: null, title: '新员工入矿带培计划', total_weeks: 4, target: '' })
+const mentorVisible = ref(false)
+const mentorForm = ref({ plan_id: 0, user_name: '', mentor_user_id: null })
+
+async function loadUsers() {
+  if (users.value.length) return
+  try {
+    const data = await api.get('/api/v1/users', { page_size: 200 })
+    users.value = data.list || []
+  } catch (e) {
+    ElMessage.error(e.message)
+  }
+}
+
+async function openMentor(row) {
+  await loadUsers()
+  mentorForm.value = { plan_id: row.id, user_name: row.user_name, mentor_user_id: row.mentor_user_id }
+  mentorVisible.value = true
+}
+
+async function saveMentor() {
+  if (!mentorForm.value.mentor_user_id) return ElMessage.warning('请选择新师傅')
+  try {
+    await api.post(`/api/v1/training/plans/${mentorForm.value.plan_id}/mentor`, {
+      mentor_user_id: mentorForm.value.mentor_user_id,
+    })
+    ElMessage.success('已更换师傅')
+    mentorVisible.value = false
+    load()
+  } catch (e) {
+    ElMessage.error(e.message)
+  }
+}
 
 async function load() {
   loading.value = true
@@ -133,6 +165,11 @@ onMounted(load)
         </template>
       </el-table-column>
       <el-table-column prop="status" label="状态" width="90" />
+      <el-table-column label="操作" width="110">
+        <template #default="{ row }">
+          <el-button link type="primary" @click="openMentor(row)">换师傅</el-button>
+        </template>
+      </el-table-column>
     </el-table>
 
     <el-dialog v-model="createVisible" title="新建带培计划" width="520px">
@@ -183,6 +220,21 @@ onMounted(load)
       <template #footer>
         <el-button @click="createVisible = false">取消</el-button>
         <el-button type="primary" :loading="saving" @click="submitCreate">创建</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="mentorVisible" title="更换带培师傅" width="460px">
+      <el-form label-width="80px">
+        <el-form-item label="员工">{{ mentorForm.user_name }}</el-form-item>
+        <el-form-item label="新师傅">
+          <el-select v-model="mentorForm.mentor_user_id" filterable style="width: 100%" placeholder="选择师傅">
+            <el-option v-for="u in users" :key="u.id" :label="u.name + '（' + u.username + '）'" :value="u.id" />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="mentorVisible = false">取消</el-button>
+        <el-button type="primary" @click="saveMentor">保存</el-button>
       </template>
     </el-dialog>
   </div>

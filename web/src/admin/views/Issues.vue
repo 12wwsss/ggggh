@@ -31,6 +31,7 @@ const actionText = {
   verify: '验收通过',
   verify_reject: '验收不合格',
   close: '闭环',
+  reassign: '更换负责人',
   admin_force_rectify: '管理员代整改',
   admin_force_verify: '管理员强制验收',
   admin_force_close: '管理员强制闭环',
@@ -121,6 +122,38 @@ async function open(row) {
   ])
   flow.value = f || []
   attachments.value = a || []
+}
+
+const reassignVisible = ref(false)
+const reassignForm = reactive({ assignee_id: null, reason: '' })
+const reassignStaff = ref([])
+
+async function openReassign() {
+  reassignForm.assignee_id = null
+  reassignForm.reason = ''
+  reassignStaff.value = []
+  reassignVisible.value = true
+  try {
+    const params = { page_size: 200 }
+    if (current.value && current.value.dept_id) params.dept_id = current.value.dept_id
+    const data = await api.get('/api/v1/users', params)
+    reassignStaff.value = (data.list || []).filter((u) => u.status === 'active')
+  } catch (e) {
+    ElMessage.error(e.message)
+  }
+}
+
+async function submitReassign() {
+  if (!reassignForm.assignee_id) return ElMessage.warning('请选择新的负责人')
+  try {
+    await api.post(`/api/v1/issues/${current.value.id}/reassign`, reassignForm)
+    ElMessage.success('已更换负责人')
+    reassignVisible.value = false
+    await open(current.value)
+    await load()
+  } catch (e) {
+    ElMessage.error(e.message)
+  }
 }
 
 async function downloadAttachment(a) {
@@ -240,6 +273,7 @@ async function act(kind) {
           <el-button v-if="current.status === 'rectified'" type="success" size="small" @click="act('verify')">验收通过</el-button>
           <el-button v-if="current.status === 'rectified'" type="warning" size="small" @click="act('verify_reject')">验收不合格</el-button>
           <el-button v-if="current.status === 'verified'" size="small" @click="act('close')">闭环</el-button>
+          <el-button v-if="current.status === 'accepted'" size="small" plain @click="openReassign">更换负责人</el-button>
         </div>
 
         <el-divider content-position="left">流转记录</el-divider>
@@ -274,6 +308,24 @@ async function act(kind) {
       <template #footer>
         <el-button @click="acceptDialog = false">取消</el-button>
         <el-button type="primary" @click="confirmAccept">确认受理</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="reassignVisible" title="更换整改负责人" width="460px">
+      <el-form label-width="90px">
+        <el-form-item label="新负责人">
+          <el-select v-model="reassignForm.assignee_id" filterable style="width: 100%" placeholder="选择本队人员">
+            <el-option v-for="u in reassignStaff" :key="u.id" :label="`${u.name}（${u.username}）`" :value="u.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="更换原因">
+          <el-input v-model="reassignForm.reason" type="textarea" :rows="2" placeholder="如：原负责人已调岗" />
+        </el-form-item>
+        <div class="muted">更换后会通知原负责人和新负责人，并记录一条流转。</div>
+      </el-form>
+      <template #footer>
+        <el-button @click="reassignVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitReassign">确认更换</el-button>
       </template>
     </el-dialog>
   </div>
