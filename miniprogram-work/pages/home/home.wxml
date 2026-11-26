@@ -1,126 +1,108 @@
 <view class="page">
-  <view class="hero" style="padding-top: {{statusTop + 8}}px">
-    <view class="hero-top">
-      <view class="hero-kicker"><text class="hk-dot"></text>{{meName}}</view>
-      <view class="hero-date">
-        <text class="hd-n">{{today}}</text>
-        <text class="hd-w">{{week}}</text>
-      </view>
+  <view class="topbar" style="padding-top: {{statusTop}}px">
+    <view class="tb-left">
+      <text class="tb-dot"></text>
+      <text class="tb-name">{{meName}}</text>
     </view>
-    <view class="hero-title">上岗前看一眼</view>
-    <view class="hero-bar"></view>
-    <view class="hero-sub">安全科最新发布 · 本岗位必知</view>
+    <text class="tb-date">{{today}} {{week}}</text>
   </view>
 
-  <view class="wrap">
-    <view wx:if="{{latest}}" class="card hero-card" bindtap="openLatest">
-      <view class="row">
-        <view class="mf-cover {{latest.type === 'video' ? 'mf-cover-video' : (latest.type === 'image' ? 'mf-cover-img' : 'mf-cover-doc')}}">
-          <image wx:if="{{latest.type === 'image'}}" class="mf-img" src="{{latest.url}}" mode="aspectFill" />
-          <text wx:elif="{{latest.type === 'video'}}" class="mf-play">▶</text>
-          <text wx:else class="mf-word">文</text>
+  <view class="body">
+    <!-- 今天要做：一屏唯一主角 -->
+    <view class="card todo">
+      <view class="todo-head">
+        <text class="todo-title">今天要做</text>
+        <text wx:if="{{todo.length}}" class="todo-count">{{todo.length}} 件</text>
+      </view>
+
+      <view wx:for="{{todo}}" wx:key="key" class="todo-row" data-i="{{index}}" bindtap="onTodo">
+        <text class="tone tone-{{item.tone}}"></text>
+        <view class="grow todo-text">
+          <text class="todo-main">{{item.title}}</text>
+          <text class="todo-sub">{{item.sub}}</text>
         </view>
-        <view class="grow mf-body">
-          <view class="between">
-            <text class="tag">{{latest.typeText}}</text>
-            <text class="tiny muted">{{latest.dateText}}</text>
-          </view>
-          <view class="mf-title">{{latest.title}}</view>
-          <view class="between mf-foot">
-            <text class="tiny muted">{{latest.cat}}{{latest.sizeText ? ' · ' + latest.sizeText : ''}}</text>
-            <text class="tiny accent bold">{{latest.actionText}} ›</text>
-          </view>
-        </view>
+        <text class="todo-num num-{{item.tone}}">{{item.num}}</text>
+      </view>
+
+      <view wx:if="{{!todo.length && !loading}}" class="todo-empty">
+        <text class="todo-main">今天没有待办</text>
+        <text class="todo-sub">暂没有待办和到期学习任务</text>
+        <view class="cta" bindtap="goLearn">去学一条规程</view>
+      </view>
+      <view wx:if="{{loading}}" class="todo-empty">
+        <text class="todo-sub">正在加载…</text>
       </view>
     </view>
 
-    <view wx:if="{{!loading && !latest}}" class="card hero-card empty-box">
-      <view class="small bold">还没有操作视频与资料</view>
-      <view class="tiny muted" style="margin-top: 8rpx">等安全科在后台「视频资料」上传后，这里会第一时间出现</view>
-    </view>
-
+    <!-- 三个入口：统一样式，不抢主角 -->
     <view class="quick">
       <view class="quick-item" wx:for="{{quick}}" wx:key="name" data-i="{{index}}" bindtap="onQuick">
-        <view class="quick-ico {{index === 0 ? 'quick-ico-on' : ''}}">
+        <view class="quick-ico">
           <image class="quick-img" src="/images/{{item.icon}}.png" />
         </view>
-        <text class="quick-label {{index === 0 ? 'accent bold' : ''}}">{{item.name}}</text>
+        <text class="quick-label">{{item.name}}</text>
       </view>
     </view>
 
-    <view wx:if="{{unread}}" class="card msg-card" bindtap="goMessages">
-      <view class="between">
-        <view>
-          <view class="small bold">有 {{unread}} 条未读消息</view>
-          <view class="tiny muted" style="margin-top:6rpx">工单进度、宣贯、带培通知</view>
-        </view>
-        <text class="arrow">›</text>
-      </view>
-    </view>
-
+    <!-- 本岗位必知 -->
     <block wx:if="{{medias.length}}">
-      <view class="between section">
-        <view class="row">
-          <text class="sec-num">01</text>
-          <text class="section-title">操作视频与资料</text>
-        </view>
-        <text class="tiny muted" bindtap="toMedia">全部 ›</text>
+      <view class="sec">
+        <text class="sec-title">本岗位必知</text>
+        <text class="sec-more" bindtap="toMedia">全部 ›</text>
       </view>
-
-      <view class="card ml-box">
-        <view class="ml-item {{index === medias.length - 1 ? 'ml-last' : ''}}" wx:for="{{medias}}" wx:key="id"
-              data-id="{{item.id}}" bindtap="openMedia">
-          <view class="ml-ico {{item.type === 'video' ? 'ml-ico-video' : (item.type === 'image' ? 'ml-ico-img' : '')}}">
-            {{item.type === 'video' ? '▶' : (item.type === 'image' ? '图' : '文')}}
-          </view>
-          <view class="grow">
-            <view class="ml-title">{{item.title}}</view>
-            <view class="tiny muted" style="margin-top: 6rpx">{{item.typeText}} · {{item.cat}} · {{item.dateText}}</view>
+      <view class="card list">
+        <view
+          wx:for="{{medias}}"
+          wx:key="id"
+          class="li {{index === medias.length - 1 ? 'li-last' : ''}}"
+          data-id="{{item.id}}"
+          bindtap="openMedia"
+        >
+          <view class="li-ico">{{item.icon}}</view>
+          <view class="grow li-text">
+            <text class="li-title">{{item.title}}</text>
+            <text class="li-meta">{{item.cat}}{{item.dateText ? ' · ' + item.dateText : ''}}</text>
           </view>
           <text class="arrow">›</text>
         </view>
       </view>
     </block>
 
-    <view class="between section">
-      <view class="row">
-        <text class="sec-num">02</text>
-        <text class="section-title">制度宣贯</text>
+    <!-- 安全文化 -->
+    <block wx:if="{{cultures.length}}">
+      <view class="sec">
+        <text class="sec-title">安全文化</text>
+        <text class="sec-more" bindtap="toCulture">更多 ›</text>
       </view>
-    </view>
-
-    <view class="card culture-card" wx:for="{{cultures}}" wx:key="id">
-      <view wx:if="{{item.tag}}" class="culture-tag">{{item.tag}}</view>
-      <view class="culture-title">{{item.title}}</view>
-      <view wx:if="{{item.body}}" class="culture-body">{{item.body}}</view>
-    </view>
-
-    <view wx:if="{{!loading && !cultures.length}}" class="card empty-box">
-      <view class="small bold">还没有宣贯内容</view>
-      <view class="tiny muted" style="margin-top: 8rpx">等安全科在后台「制度宣贯」发布后，这里会显示</view>
-    </view>
-
-    <view class="card learn-card" bindtap="toStudy">
-      <view class="between">
-        <text class="tiny muted bold">我的学习进度</text>
-        <text class="tiny accent bold">去学习 ›</text>
+      <view wx:for="{{cultures}}" wx:key="id" class="card culture" data-id="{{item.id}}" bindtap="openCulture">
+        <text wx:if="{{item.tag}}" class="c-tag">{{item.tag}}</text>
+        <text class="c-title">{{item.title}}</text>
+        <text wx:if="{{item.body}}" class="c-body">{{item.body}}</text>
       </view>
-      <view class="row learn-row">
-        <view class="s-item">
-          <text class="s-num">{{summary.hours || 0}}</text>
-          <text class="s-lb">学时</text>
+    </block>
+
+    <!-- 学习进度：一行看完，点击进学习页 -->
+    <view class="card stats" bindtap="goLearn">
+      <view class="st-head">
+        <text class="st-title">我的学习</text>
+        <text class="st-more">去学习 ›</text>
+      </view>
+      <view class="st-row">
+        <view class="st-item">
+          <text class="st-num">{{summary.hours || 0}}</text>
+          <text class="st-lb">学时 / {{summary.targetHours || 72}}</text>
         </view>
-        <view class="s-item">
-          <text class="s-num">{{summary.readCount || 0}}</text>
-          <text class="s-lb">已学内容</text>
+        <view class="st-item">
+          <text class="st-num">{{summary.readCount || 0}}</text>
+          <text class="st-lb">已学内容</text>
         </view>
-        <view class="s-item">
-          <text class="s-num">{{summary.quiz.attempts || 0}}</text>
-          <text class="s-lb">答题次数</text>
+        <view class="st-item">
+          <text class="st-num">{{summary.quiz.attempts || 0}}</text>
+          <text class="st-lb">答题次数</text>
         </view>
-        <view class="s-item">
-          <text class="s-num">{{summary.issue.total || 0}}</text>
-          <text class="s-lb">上报问题</text>
+        <view class="st-item">
+          <text class="st-num">{{summary.issue.pending || 0}}</text>
+          <text class="st-lb">待办问题</text>
         </view>
       </view>
     </view>

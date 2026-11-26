@@ -8,17 +8,16 @@ Page({
     meName: '工友',
     today: '',
     week: '',
-    latest: null,
+    todo: [],
     medias: [],
     cultures: [],
     summary: null,
-    unread: 0,
     loading: true,
     err: '',
     quick: [
-      { name: '问一句', icon: 'quick-mic' },
-      { name: '答题闯关', icon: 'quick-quiz' },
-      { name: '上报问题', icon: 'quick-alert' }
+      { name: '问一句', icon: 'quick-mic', go: 'chat' },
+      { name: '答题闯关', icon: 'quick-quiz', go: 'quiz' },
+      { name: '上报问题', icon: 'quick-alert', go: 'issue' }
     ]
   },
 
@@ -70,32 +69,27 @@ Page({
       api.culture().catch(() => ({ items: [] })),
       api.employeeSummary().catch(() => null)
     ]).then(([m, c, s]) => {
-      const cultures = (c.items || []).slice(0, 3).map(it => ({
+      const cultures = (c.items || []).slice(0, 2).map(it => ({
         id: it.id,
-        tag: it.tag || '',
+        tag: it.tag || it.cat || '',
         title: it.title || '',
-        body: it.body || ''
+        body: Array.isArray(it.body) ? it.body.join(' ') : (it.body || '')
       }))
-      const medias = (m.items || []).map(it => ({
+      const medias = (m.items || []).slice(0, 3).map(it => ({
         id: it.id,
         title: it.title,
         cat: it.cat || '资料',
         type: it.type || 'doc',
         url: it.url,
         desc: it.desc || '',
-        typeText: it.type === 'video' ? '视频' : (it.type === 'image' ? '图片' : '资料'),
-        actionText: it.type === 'video' ? '点击播放' : (it.type === 'image' ? '查看大图' : '打开文档'),
-        dateText: String(it.at || '').slice(0, 10),
-        sizeText: it.size
-          ? (it.size > 1048576 ? (it.size / 1048576).toFixed(1) + ' MB' : Math.round(it.size / 1024) + ' KB')
-          : ''
+        icon: it.type === 'video' ? '▶' : (it.type === 'image' ? '图' : '文'),
+        dateText: String(it.at || '').slice(0, 10)
       }))
       this.setData({
-        latest: medias[0] || null,
-        medias: medias.slice(1, 4),
+        medias,
         cultures,
         summary: s,
-      unread: (s && s.unreadMessages) || 0,
+        todo: this.buildTodo(s),
         loading: false
       })
       done && done()
@@ -105,17 +99,48 @@ Page({
     })
   },
 
-  onQuick(e) {
-    const i = Number(e.currentTarget.dataset.i)
-    if (i === 0) wx.navigateTo({ url: '/pages/chat/chat' })
-    if (i === 1) wx.navigateTo({ url: '/pages/quiz/quiz' })
-    if (i === 2) wx.navigateTo({ url: '/pages/issue/issue' })
+  // 上岗前先看“有没有事要办”：未读消息 / 必修没学完 / 学时没达标。
+  // 标题只说干什么，具体数量放右边大号数字，扫一眼就知道差多少。
+  buildTodo(s) {
+    const todo = []
+    if (!s) return todo
+    const unread = Number(s.unreadMessages || 0)
+    if (unread > 0) {
+      todo.push({ key: 'msg', tone: 'warn', num: unread, title: '未读消息', sub: '工单进度、宣贯、带培通知' })
+    }
+    const reqTotal = Number(s.requiredTotal || 0)
+    const reqDone = Number(s.requiredDone || 0)
+    if (reqTotal > reqDone) {
+      todo.push({
+        key: 'required', tone: 'danger', num: reqTotal - reqDone,
+        title: '必修没学完', sub: '共 ' + reqTotal + ' 条，已完成 ' + reqDone + ' 条'
+      })
+    }
+    const hours = Number(s.hours || 0)
+    const target = Number(s.targetHours || 0)
+    if (target > 0 && hours < target) {
+      todo.push({
+        key: 'hours', tone: 'info', num: target - hours,
+        title: '学时没达标', sub: '已学 ' + hours + ' / ' + target + ' 学时'
+      })
+    }
+    return todo.slice(0, 3)
   },
 
-  openLatest() {
-    const l = this.data.latest
-    if (l) wx.navigateTo({ url: '/pages/media/media?id=' + l.id })
-    else wx.navigateTo({ url: '/pages/media/media' })
+  onQuick(e) {
+    const i = Number(e.currentTarget.dataset.i)
+    const go = this.data.quick[i] && this.data.quick[i].go
+    if (go === 'chat') wx.navigateTo({ url: '/pages/chat/chat' })
+    if (go === 'quiz') wx.navigateTo({ url: '/pages/quiz/quiz' })
+    if (go === 'issue') wx.navigateTo({ url: '/pages/issue/issue' })
+  },
+
+  onTodo(e) {
+    const i = Number(e.currentTarget.dataset.i)
+    const item = this.data.todo[i]
+    if (!item) return
+    if (item.key === 'msg') return wx.navigateTo({ url: '/pages/messages/messages' })
+    wx.navigateTo({ url: '/pages/study/study' })
   },
 
   openMedia(e) {
@@ -124,8 +149,11 @@ Page({
   },
 
   toMedia() { wx.navigateTo({ url: '/pages/media/media' }) },
+  toCulture() { wx.navigateTo({ url: '/pages/culture/culture' }) },
+  goLearn() { wx.navigateTo({ url: '/pages/study/study' }) },
 
-  goMessages() { wx.navigateTo({ url: '/pages/messages/messages' }) },
-
-  toStudy() { wx.navigateTo({ url: '/pages/study/study' }) }
+  openCulture(e) {
+    const id = e.currentTarget.dataset.id
+    wx.navigateTo({ url: '/pages/article/article?id=' + id })
+  }
 })
