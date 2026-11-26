@@ -143,6 +143,10 @@
         <view class="tiny muted bold" style="margin-top:16rpx">管控措施</view>
         <view wx:for="{{riskCur.measures}}" wx:key="*this" class="tiny" style="margin-top:6rpx;line-height:1.7">· {{item}}</view>
         <view wx:if="{{riskCur.clauses.length}}" class="tiny muted" style="margin-top:12rpx">依据：{{riskCur.clauses}}</view>
+        <block wx:if="{{riskCur.case}}">
+          <view class="tiny muted bold" style="margin-top:16rpx">典型案例</view>
+          <view class="tiny" style="margin-top:6rpx;line-height:1.8;white-space:pre-wrap">{{riskCur.case}}</view>
+        </block>
       </scroll-view>
       <view class="sheet-cancel" bindtap="closeRisk">关闭</view>
     </view>

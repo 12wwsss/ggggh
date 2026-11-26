@@ -5,5 +5,11 @@
 module.exports = {
   baseUrl: 'http://192.168.134.103:8080',
   timeout: 40000,
-  appName: '煤矿安全员 AI 智能体'
+  appName: '煤矿安全员 AI 智能体',
+  // 语音转文字（微信同声传译插件）：
+  // 测试号没有「插件管理」，加不了插件，保持 false —— 长按「语音」录一段上传成附件。
+  // 换成正式小程序后：① 后台添加「同声传译」插件并经审核；
+  //                ② app.json 顶层加回 plugins.WechatSI（见 README）；
+  //                ③ 这里改 true，语音就能边说边转文字、回答也能朗读。
+  enableWechatSI: false
 }

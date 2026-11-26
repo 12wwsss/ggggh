@@ -58,7 +58,13 @@ Page({
 
   /** 初始化语音识别（微信同声传译插件），不可用时退回录音模式 */
   initVoice() {
-    // 插件需在小程序后台添加后才可用；未添加时直接走录音模式
+    const cfg = require('../../utils/config.js')
+    // 测试号没有插件管理，app.json 声明插件会编译失败；未开启时只用录音。
+    if (!cfg.enableWechatSI) {
+      this.voiceReady = false
+      this.setData({ voiceHint: '长按录音发送；语音转文字需正式小程序添加同声传译插件' })
+      return
+    }
     let canUsePlugin = false
     try { canUsePlugin = typeof requirePlugin === 'function' && !!wx.getSystemInfoSync().SDKVersion } catch (e) { canUsePlugin = false }
     if (!canUsePlugin) {
@@ -340,9 +346,12 @@ Page({
     const ai = (this.data.msgs || []).filter(m => m.role === 'ai' && m.full).pop()
     if (!ai) return wx.showToast({ title: '还没有可朗读的回答', icon: 'none' })
     if (!this.siPlugin || !this.siPlugin.textToSpeech) {
+      const cfg = require('../../utils/config.js')
       return wx.showModal({
         title: '朗读不可用',
-        content: '需要在微信公众平台「设置 → 第三方设置 → 插件管理」添加「微信同声传译」插件，然后再编译一次。',
+        content: cfg.enableWechatSI
+          ? '插件还没加载成功：确认已在正式小程序后台添加「微信同声传译」并通过审核，然后重新编译。'
+          : '当前是测试号，微信不提供插件管理，朗读需要换成正式小程序：后台添加「微信同声传译」插件，再把 utils/config.js 的 enableWechatSI 改成 true。',
         showCancel: false
       })
     }
