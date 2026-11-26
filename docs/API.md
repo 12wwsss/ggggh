@@ -42,7 +42,7 @@
 | 方法 | 路径 | 权限 | 说明 |
 | --- | --- | --- | --- |
 | GET | `/docs` | doc:read | 管理员可见全部状态，其他角色只看已发布 |
-| POST | `/docs` | doc:write | multipart：`file`（≤64MB）、`title`、`category`；入库后异步解析 |
+| POST | `/docs` | doc:write | multipart：`file`（≤64MB）、`title`、`category`；入库后异步解析。支持 docx/doc/pdf/txt/md/csv/json：规程按「第X条」切分，制度/操作规程/事故案例等无条款号文档按小标题与段落切分，FAQ 用 CSV（问题,答案）或 JSON（`[{"q","a"}]`），一条问答一个切片（`FAQ-1`…） |
 | GET | `/docs/:id` | doc:read | 文档详情（状态、错误信息、切片数） |
 | GET | `/docs/:id/chunks` | doc:read | 切片列表；非管理员只看已发布切片 |
 | POST | `/docs/:id/publish` | doc:write | 仅 `pending_review` 可发布，重复发布 409 |
@@ -56,11 +56,11 @@
 
 | 方法 | 路径 | 权限 | 说明 |
 | --- | --- | --- | --- |
-| POST | `/qa/ask` | qa:write | `{question}`；返回回答、处置动作 `actions[]`（编号行解析结果）、引用（含 chunk_id）、是否兜底、耗时、留痕 id |
+| POST | `/qa/ask` | 登录 | `{question}`；返回回答、处置动作 `actions[]`（编号行解析结果）、引用（含 chunk_id）、是否兜底、耗时、留痕 id。提问不设 RBAC 写入门槛（员工日常动作） |
 | POST | `/qa/search` | qa:read | `{question,top_k,min_score}` 只检索不生成，用于排障 |
 | GET | `/qa/logs` | qa:read | 按数据范围查询留痕，可按 `answered=true/false` 过滤 |
 | GET | `/qa/logs/:id` | qa:read | 单条留痕（越范围 403） |
-| POST | `/qa/logs/:id/feedback` | qa:write | `useful|useless|wrong_clause` |
+| POST | `/qa/logs/:id/feedback` | 登录 | `useful|useless|wrong_clause`；员工只能反馈自己的提问 |
 
 ## 评测
 
@@ -91,7 +91,8 @@
 | POST | `/exam/papers/:id/submit` | exam:write | 判分；重复交卷 409 |
 | GET | `/exam/records` | exam:read | 成绩明细（按范围） |
 | GET | `/exam/export` | exam:read | CSV 导出 |
-| GET/POST | `/broadcast/tasks` | broadcast:read / write | 宣贯任务；`publish:true` 时按部门生成签收记录 |
+| GET/POST | `/broadcast/tasks` | broadcast:read / write | 宣贯任务；`dept_ids`（区队）与 `post_ids`（岗位）都不填表示全员；`publish:true` 时按范围生成签收记录与站内消息 |
+| POST | `/broadcast/draft` | broadcast:write | `{title,content}` 生成「解读要点」初稿：`{points[],content,source,model}`；模型不可用时按正文规则提炼并标记 `source=rule` |
 | POST | `/broadcast/tasks/:id/publish` | broadcast:write | 草稿发布 |
 | GET | `/broadcast/tasks/:id/records` | broadcast:read | 签收明细 |
 | POST | `/broadcast/tasks/:id/ack` | broadcast:write | `{ack:true}` 签收 |
@@ -114,6 +115,16 @@
 | GET/POST | `/issues/:id/attachments` | issue:read / write | 附件列表 / 上传（≤32MB） |
 | GET | `/issues/:id/attachments/:aid` | issue:read | 下载附件原文件（按数据范围校验） |
 | GET | `/issues/stats` | issue:read | 各状态计数与超时数 |
+
+## 安全文化内容
+
+| 方法 | 路径 | 权限 | 说明 |
+| --- | --- | --- | --- |
+| GET | `/content` | content:read | 管理端列表，含草稿/下架；可按 `kind=article|culture|notice`、`status=draft|published|archived` 过滤 |
+| POST | `/content` | content:write | 新建或修改内容；`{id,kind,cat,title,tag,summary,body,date,minutes,ask,sort,status}`，`body` 一行一段 |
+| DELETE | `/content/:id` | content:write | 删除内容 |
+| GET | `/culture` | content:read | 员工端列表，仅已发布；`kind` 默认 `article`，可带 `cat` |
+| GET | `/culture/:id` | content:read | 员工端详情，仅已发布 |
 
 ## 运维
 

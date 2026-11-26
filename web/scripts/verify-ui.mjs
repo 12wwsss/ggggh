@@ -238,6 +238,24 @@ async function main() {
   let shot = await cdp.send('Page.captureScreenshot', { format: 'png' })
   writeFileSync(join(shotDir, 'employee-home.png'), Buffer.from(shot.data, 'base64'))
 
+  // 建设方案六（1）：首页主动推送安全文化，电脑端也要能看到
+  text = await cdp.evaluate('document.body.innerText')
+  check(text.includes('安全文化'), '员工首页有安全文化入口')
+  await cdp.send('Page.navigate', { url: `${base}/culture` })
+  await sleep(1800)
+  text = await cdp.evaluate('document.body.innerText')
+  check(text.includes('安全文化') && !text.includes('暂时还没有内容'), '安全文化列表有已发布内容')
+  shot = await cdp.send('Page.captureScreenshot', { format: 'png' })
+  writeFileSync(join(shotDir, 'employee-culture.png'), Buffer.from(shot.data, 'base64'))
+  const openedCulture = await cdp.evaluate(
+    `(() => { const c = document.querySelector('.card'); if (c) { c.click(); return true } return false })()`,
+  )
+  await sleep(1600)
+  text = await cdp.evaluate('document.body.innerText')
+  check(openedCulture === true && text.includes('问问 AI'), '文化详情可打开并跳转提问')
+  shot = await cdp.send('Page.captureScreenshot', { format: 'png' })
+  writeFileSync(join(shotDir, 'employee-culture-detail.png'), Buffer.from(shot.data, 'base64'))
+
   await cdp.send('Page.navigate', { url: `${base}/ask` })
   await sleep(1800)
   text = await cdp.evaluate('document.body.innerText')
@@ -352,7 +370,7 @@ async function main() {
   await cdp.send('Page.navigate', { url: `${base}/admin/issues` })
   await sleep(2200)
   text = await cdp.evaluate('document.body.innerText')
-  check(text.includes('问题闭环'), '问题闭环页加载')
+  check(text.includes('问题受理与闭环'), '问题闭环页加载')
   check(text.includes('处理') && text.includes('查看'), '闭环单据显示“查看”、待办显示“处理”')
   shot = await cdp.send('Page.captureScreenshot', { format: 'png' })
   writeFileSync(join(shotDir, 'admin-issues.png'), Buffer.from(shot.data, 'base64'))
@@ -380,7 +398,13 @@ async function main() {
   await sleep(700)
   // 只看抽屉内容：列表里可能有“并发受理用例”这类标题，不能拿整页判断
   const drawerText = await cdp.evaluate(`document.querySelector('.el-drawer')?.innerText || ''`)
-  check(drawerText.includes('流转记录') && !drawerText.includes('受理'), '闭环单据打开后为只读查看')
+  const drawerButtons = await cdp.evaluate(
+    `[...document.querySelectorAll('.el-drawer button')].map((b) => b.textContent.trim()).join('|')`,
+  )
+  check(
+    drawerText.includes('流转记录') && !/受理|驳回|验收通过|闭环/.test(drawerButtons),
+    '闭环单据打开后为只读查看',
+  )
   await cdp.evaluate(`(() => { const b = document.querySelector('.el-drawer__close-btn'); if (b) { b.click(); return true } return false })()`)
   await sleep(900)
 
@@ -389,6 +413,25 @@ async function main() {
   const actionText = await cdp.evaluate(`document.querySelector('.el-drawer')?.innerText || ''`)
   check(actionText.includes('受理') && actionText.includes('驳回'), '待办单据可受理或驳回')
   check((await cdp.evaluate('document.title')) !== '', '页面标题可读')
+
+  // 建设方案六（1）后台内容运营；六（6）宣贯按岗位下发 + 自动生成解读要点
+  await cdp.send('Page.navigate', { url: `${base}/admin/content` })
+  await sleep(2200)
+  text = await cdp.evaluate('document.body.innerText')
+  check(text.includes('安全文化内容') && text.includes('新建内容'), '后台内容管理页加载')
+  shot = await cdp.send('Page.captureScreenshot', { format: 'png' })
+  writeFileSync(join(shotDir, 'admin-content.png'), Buffer.from(shot.data, 'base64'))
+
+  await cdp.send('Page.navigate', { url: `${base}/admin/broadcasts` })
+  await sleep(1900)
+  await cdp.evaluate(
+    `(() => { const b = [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === '新建宣贯'); if (b) { b.click(); return true } return false })()`,
+  )
+  await sleep(900)
+  text = await cdp.evaluate('document.body.innerText')
+  check(text.includes('AI 生成要点') && text.includes('岗位'), '宣贯可按岗位下发并生成解读要点')
+  shot = await cdp.send('Page.captureScreenshot', { format: 'png' })
+  writeFileSync(join(shotDir, 'admin-broadcast-draft.png'), Buffer.from(shot.data, 'base64'))
 
   cdp.close()
   child.kill()

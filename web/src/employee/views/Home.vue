@@ -8,6 +8,7 @@ const user = ref(getUser() || {})
 const pendingAck = ref(0)
 const papers = ref(0)
 const recent = ref([])
+const culture = ref([])
 const loading = ref(true)
 
 // 头部说的是“几件事要办”，不是场次：考试 5 场也只是 1 件事。
@@ -22,14 +23,23 @@ const presets = [
 
 onMounted(async () => {
   try {
-    const [mine, examList, logs] = await Promise.all([
+    const [mine, examList, logs, cultureArticles, cultureCards] = await Promise.all([
       api.get('/api/v1/broadcast/mine', { pending: true }),
       api.get('/api/v1/exam/papers', { page_size: 5 }),
       api.get('/api/v1/qa/logs', { page_size: 3 }),
+      api.get('/api/v1/culture', { kind: 'article' }).catch(() => ({ items: [] })),
+      api.get('/api/v1/culture', { kind: 'culture' }).catch(() => ({ items: [] })),
     ])
     pendingAck.value = (mine || []).length
     papers.value = (examList.list || []).length
     recent.value = (logs.list || []).slice(0, 3)
+    // 六（1）：首页主动推送安全文化——寄语/光荣榜/案例各取前几条
+    culture.value = [...((cultureCards.items) || []), ...((cultureArticles.items) || [])]
+      .map((it) => ({
+        ...it,
+        summary: it.summary || (Array.isArray(it.body) ? it.body[0] : it.body) || '',
+      }))
+      .slice(0, 3)
   } catch (e) {
     console.warn(e.message)
   } finally {
@@ -86,8 +96,22 @@ function ask(q) {
         </div>
       </div>
 
-      <div class="lt-sec">常问的（点一下就行）</div>
-      <div class="lt-chips">
+      <div class="lt-culture">
+        <div class="row-between">
+          <div class="lt-sec" style="margin: 0">安全文化</div>
+          <button class="lt-more" @click="router.push('/culture')">全部 →</button>
+        </div>
+        <button v-for="it in culture" :key="it.id" class="lt-culture-row" @click="router.push(`/culture/${it.id}`)">
+          <span class="lt-culture-tag">{{ it.tag || it.cat }}</span>
+          <span class="lt-culture-main">
+            <span class="lt-culture-title">{{ it.title }}</span>
+            <span v-if="it.summary" class="lt-culture-sum">{{ it.summary }}</span>
+          </span>
+        </button>
+        <div v-if="!culture.length && !loading" class="lt-empty">还没有文化内容，等管理员在后台发布</div>
+      </div>
+
+      <div class="lt-sec">常问的（点一下就行）</div>      <div class="lt-chips">
         <button v-for="p in presets" :key="p.label" class="lt-chip" @click="ask(p.q)">
           {{ p.label }}
         </button>
@@ -249,8 +273,7 @@ function ask(q) {
 
 .lt-recent {
   margin-top: 24px;
-}
-.lt-recent-row {
+}.lt-recent-row {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -263,8 +286,7 @@ function ask(q) {
   text-align: left;
   color: var(--ink);
 }
-.lt-recent-q {
-  flex: 1;
+.lt-recent-q {  flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -275,5 +297,59 @@ function ask(q) {
   flex: 0 0 auto;
   font-size: 17px;
   color: var(--seal);
+}
+.lt-culture {
+  margin-bottom: 24px;
+}
+.lt-more {
+  border: 0;
+  background: transparent;
+  color: var(--seal);
+  font-size: 17px;
+  padding: 4px 0;
+}
+.lt-culture-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  min-height: 64px;
+  padding: 12px 2px;
+  border: 0;
+  border-top: 1px solid var(--rule);
+  background: transparent;
+  text-align: left;
+  color: var(--ink);
+}
+.lt-culture-tag {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  padding: 2px 8px;
+  border: 2px solid var(--seal);
+  color: var(--seal);
+  font-size: 14px;
+  letter-spacing: 0.08em;
+}
+.lt-culture-main {
+  flex: 1;
+  min-width: 0;
+}
+.lt-culture-title {
+  display: block;
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.lt-culture-sum {
+  display: block;
+  margin-top: 4px;
+  font-size: 16px;
+  color: var(--ink-3);
+  line-height: 1.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 </style>

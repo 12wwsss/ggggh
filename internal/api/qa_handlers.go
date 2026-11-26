@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"coalrag/internal/auth"
 	"coalrag/internal/model"
 )
 
@@ -130,9 +131,34 @@ func (s *Server) qaFeedback(c *gin.Context) {
 		fail(c, http.StatusBadRequest, "反馈只能是 useful、useless、wrong_clause")
 		return
 	}
+	log, err := s.Store.GetQALog(c.Request.Context(), id)
+	if err != nil {
+		fail(c, http.StatusNotFound, "记录不存在")
+		return
+	}
+	if !canTouchQALog(claims(c), log) {
+		fail(c, http.StatusForbidden, "无权反馈这条记录")
+		return
+	}
 	if err := s.Store.SetQALogFeedback(c.Request.Context(), id, req.Feedback); err != nil {
 		fail(c, http.StatusNotFound, "记录不存在")
 		return
 	}
 	ok(c, gin.H{"updated": true})
+}
+
+// canTouchQALog 判断当前用户能否对该条问答留痕做反馈：
+// 员工只能反馈自己的提问，管理/安全科/区队长按原有数据范围。
+func canTouchQALog(cl *auth.Claims, log *model.QALog) bool {
+	if cl == nil || log == nil {
+		return false
+	}
+	switch cl.Role {
+	case model.RoleAdmin, model.RoleSafety, model.RoleTrainer:
+		return true
+	case model.RoleDeptLeader:
+		return log.DeptID != nil && *log.DeptID == cl.DeptID
+	default:
+		return log.UserID != nil && *log.UserID == cl.UserID
+	}
 }

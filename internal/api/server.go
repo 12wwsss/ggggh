@@ -165,6 +165,13 @@ func New(cfg *config.Config, st *store.Store, svc *service.Service, mgr *auth.Ma
 	authed.POST("/media/link", s.createMediaLink)
 	authed.DELETE("/media/:id", s.deleteMedia)
 
+	// 安全文化内容：管理端 CRUD + 员工端只读（六（1）首页主动推送）
+	authed.GET("/content", s.require("content", "read"), s.listContent)
+	authed.POST("/content", s.require("content", "write"), s.saveContent)
+	authed.DELETE("/content/:id", s.require("content", "write"), s.deleteContent)
+	authed.GET("/culture", s.require("content", "read"), s.listCulture)
+	authed.GET("/culture/:id", s.require("content", "read"), s.getCultureItem)
+
 	// 岗位风险点
 	authed.GET("/risks", s.listRisks)
 	authed.POST("/risks", s.createRisk)
@@ -213,11 +220,13 @@ func New(cfg *config.Config, st *store.Store, svc *service.Service, mgr *auth.Ma
 	authed.GET("/chunks/:id/text", s.require("doc", "read"), s.getChunkText)
 
 	// 问答
-	authed.POST("/qa/ask", s.require("qa", "write"), s.ask)
+	// 问答：提问是所有员工的日常动作，不再用 RBAC 写入权限拦截
+	// （qa 在权限矩阵里是只读资源，之前 qa:write 被清理后全员提问返回 403）。
+	authed.POST("/qa/ask", s.ask)
 	authed.POST("/qa/search", s.require("qa", "read"), s.search)
 	authed.GET("/qa/logs", s.require("qa", "read"), s.listQALogs)
 	authed.GET("/qa/logs/:id", s.require("qa", "read"), s.getQALog)
-	authed.POST("/qa/logs/:id/feedback", s.require("qa", "write"), s.qaFeedback)
+	authed.POST("/qa/logs/:id/feedback", s.qaFeedback)
 
 	// 评测
 	authed.POST("/eval/retrieval", s.require("eval", "write"), s.evalRetrieval)
@@ -256,6 +265,7 @@ func New(cfg *config.Config, st *store.Store, svc *service.Service, mgr *auth.Ma
 	// 宣贯
 	authed.GET("/broadcast/tasks", s.require("broadcast", "read"), s.listBroadcastTasks)
 	authed.POST("/broadcast/tasks", s.require("broadcast", "write"), s.createBroadcast)
+	authed.POST("/broadcast/draft", s.require("broadcast", "write"), s.draftBroadcast)
 	authed.POST("/broadcast/tasks/:id/publish", s.require("broadcast", "write"), s.publishBroadcast)
 	authed.GET("/broadcast/tasks/:id/records", s.require("broadcast", "read"), s.listBroadcastRecords)
 	authed.GET("/broadcast/tasks/:id/quiz-stats", s.require("broadcast", "read"), s.broadcastQuizStats)

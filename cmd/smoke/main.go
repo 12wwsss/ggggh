@@ -154,28 +154,60 @@ func main() {
 	text := mustText(fmt.Sprintf("/api/v1/chunks/%d/text", chunkID), worker.token)
 	check(chunkID > 0 && strings.Contains(text, "第"), "切片原文可直接打开")
 
-	// 解析失败不能留下脏切片（方案 S3 判据）
+	// 非条文类文档（制度、操作规程、事故案例）：按段落切分入库，不再整体拒收
+	// 建设方案七（二）：这几类文档也要能进知识库。
+	section("S3 非条文文档按段落切分")
+	freeDoc := []byte("某某煤矿安全管理制度\n一、入井管理\n所有入井人员必须佩戴安全帽、矿灯和自救器，入井前接受检身。\n二、交接班管理\n交接班必须现场进行，交清设备运行、隐患处理和注意事项。")
+	code, freeBody := uploadBytes("/api/v1/docs", "安全管理制度.txt", admin.token, freeDoc)
+	freeID := int64(0)
+	if code == http.StatusOK {
+		freeID = uploadedDocID(freeBody)
+	}
+	check(freeID > 0, "上传无条款结构的制度文档")
+	if freeID > 0 {
+		waitDoc(freeID, admin, "pending_review", 60*time.Second)
+		_, freeChunks := admin.call("GET", fmt.Sprintf("/api/v1/docs/%d/chunks", freeID), nil)
+		fl := asList(freeChunks)
+		check(len(fl) >= 2, fmt.Sprintf("按段落切出 %d 个切片", len(fl)))
+		fakeClause := 0
+		for _, c := range fl {
+			if s := str(c.(map[string]any)["clause_no"]); s != "" {
+				fakeClause++
+			}
+		}
+		check(fakeClause == 0, "段落切片不编造条款号")
+		_, _ = admin.call("DELETE", fmt.Sprintf("/api/v1/docs/%d", freeID), nil)
+	}
+
+	// FAQ 导入：CSV 一问一答，一条一片
+	section("S3 FAQ 导入")
+	faqCSV := []byte("\ufeff问题,答案\n瓦斯超限怎么办？,立即停电撤人并汇报调度。\n停风了怎么办？,立即撤人、断电、设栅栏。\n")
+	code, faqBody := uploadBytes("/api/v1/docs", "高频问题.csv", admin.token, faqCSV)
+	faqID := int64(0)
+	if code == http.StatusOK {
+		faqID = uploadedDocID(faqBody)
+	}
+	check(faqID > 0, "上传 FAQ 文档")
+	if faqID > 0 {
+		waitDoc(faqID, admin, "pending_review", 60*time.Second)
+		_, faqChunks := admin.call("GET", fmt.Sprintf("/api/v1/docs/%d/chunks", faqID), nil)
+		ql := asList(faqChunks)
+		check(len(ql) == 2, fmt.Sprintf("FAQ 切出 %d 个问答切片", len(ql)))
+		if len(ql) > 0 {
+			check(str(ql[0].(map[string]any)["clause_no"]) == "FAQ-1", "FAQ 条款号按问答编号")
+		}
+		_, _ = admin.call("DELETE", fmt.Sprintf("/api/v1/docs/%d", faqID), nil)
+	}
+
+	// 真正没有可切分内容的文档仍然失败，且不留脏切片
 	section("S3 解析失败不写脏数据")
-	badDoc := []byte("这是一份没有条款结构的说明文档。\n第二段内容，也没有第X条。")
-	code, badBody := uploadBytes("/api/v1/docs", "无条款结构.txt", admin.token, badDoc)
+	badDoc := []byte("   \n\n \n")
+	code, badBody := uploadBytes("/api/v1/docs", "空白文档.txt", admin.token, badDoc)
 	badID := int64(0)
 	if code == http.StatusOK {
-		var env struct {
-			Data struct {
-				Doc struct {
-					ID int64 `json:"id"`
-				} `json:"doc"`
-				Duplicate bool `json:"duplicate"`
-			} `json:"data"`
-		}
-		_ = json.Unmarshal([]byte(badBody), &env)
-		badID = env.Data.Doc.ID
-		if env.Data.Duplicate {
-			// 上一轮已上传过同样的坏文件，复用它继续验证“失败不留脏切片”
-			badID = env.Data.Doc.ID
-		}
+		badID = uploadedDocID(badBody)
 	}
-	check(badID > 0, "上传无条款结构文档")
+	check(badID > 0, "上传空内容文档")
 	if badID > 0 {
 		status := ""
 		for i := 0; i < 60; i++ {
@@ -186,7 +218,7 @@ func main() {
 			}
 			time.Sleep(time.Second)
 		}
-		check(status == "failed", "无条款结构文档解析失败")
+		check(status == "failed", "空内容文档解析失败")
 		_, badChunks := admin.call("GET", fmt.Sprintf("/api/v1/docs/%d/chunks", badID), nil)
 		check(len(asList(badChunks)) == 0, "解析失败不留切片")
 		_, _ = admin.call("DELETE", fmt.Sprintf("/api/v1/docs/%d", badID), nil)
@@ -265,6 +297,73 @@ func main() {
 
 	_, logs := admin.call("GET", "/api/v1/qa/logs?page_size=50", nil)
 	check(len(asList(logs)) >= 2, fmt.Sprintf("问答留痕 %d 条", len(asList(logs))))
+
+	// 建设方案第一批：安全文化内容运营、宣贯解读要点、培训员角色、风险点案例
+	section("建设方案第一批：内容/宣贯/角色")
+	code, made := admin.call("POST", "/api/v1/content", map[string]any{
+		"kind": "culture", "cat": "寄语", "title": "自测寄语",
+		"body": "第一段内容。\n第二段内容。", "status": "draft",
+	})
+	check(code == http.StatusOK, "后台可新建内容草稿")
+	contentID := str(made["id"])
+	if contentID != "" {
+		code, _ = admin.call("POST", "/api/v1/content", map[string]any{
+			"id": contentID, "kind": "culture", "cat": "寄语", "title": "自测寄语",
+			"body": "第一段内容。", "status": "published",
+		})
+		check(code == http.StatusOK, "内容可发布")
+		_, cult := worker.call("GET", "/api/v1/culture?kind=culture", nil)
+		visible := false
+		for _, it := range asList(map[string]any{"list": cult["items"]}) {
+			if str(it.(map[string]any)["id"]) == contentID {
+				visible = true
+			}
+		}
+		check(visible, "发布后的内容员工端可见")
+		_, detail := worker.call("GET", "/api/v1/culture/"+contentID, nil)
+		check(detail["item"] != nil, "员工端可打开内容详情")
+		code, _ = worker.call("POST", "/api/v1/content", map[string]any{
+			"kind": "culture", "title": "员工越权", "body": "x",
+		})
+		check(code == http.StatusForbidden, "员工无权管理内容")
+		code, _ = admin.call("DELETE", "/api/v1/content/"+contentID, nil)
+		check(code == http.StatusOK, "内容可删除")
+	}
+
+	code, draft := admin.call("POST", "/api/v1/broadcast/draft", map[string]any{
+		"title":   "新版规程宣贯",
+		"content": "入井必须佩戴安全帽。严禁酒后入井。瓦斯超限必须停电撤人。",
+	})
+	draftPts := asList(map[string]any{"list": draft["points"]})
+	check(code == http.StatusOK && len(draftPts) >= 2,
+		fmt.Sprintf("宣贯解读要点自动生成（%d 条）", len(draftPts)))
+
+	code, _ = admin.call("POST", "/api/v1/users", map[string]any{
+		"username": "smoketrainer", "password": "Trainer@123456", "name": "培训员自测",
+		"role": "trainer", "dept_id": deptID,
+	})
+	check(code == http.StatusOK || code == http.StatusConflict, "培训员角色可创建")
+	trSess := login("smoketrainer", "Trainer@123456")
+	code, _ = trSess.call("GET", "/api/v1/training/plans", nil)
+	check(code == http.StatusOK, "培训员可访问带培计划")
+
+	code, rk := admin.call("POST", "/api/v1/risks", map[string]any{
+		"post": "通用", "category": "自测", "title": "案例字段自测", "level": "中",
+		"measures": []string{"措施一"}, "case_text": "某矿案例：未按规定支护。",
+	})
+	check(code == http.StatusOK, "风险点可写典型案例")
+	if rid := int64(num(rk["id"])); rid > 0 {
+		_, rlist := admin.call("GET", "/api/v1/risks", nil)
+		foundCase := false
+		for _, it := range asList(rlist) {
+			m := it.(map[string]any)
+			if int64(num(m["id"])) == rid && strings.Contains(str(m["case_text"]), "未按规定支护") {
+				foundCase = true
+			}
+		}
+		check(foundCase, "典型案例随风险点返回")
+		_, _ = admin.call("DELETE", fmt.Sprintf("/api/v1/risks/%d", rid), nil)
+	}
 
 	section("S4/S5 方案评测集")
 	runRetrievalEval(admin, "testdata/eval/retrieval_20.json", 20, 0.85)
@@ -752,6 +851,19 @@ func uploadDoc(s *session, path string, fields map[string]string) uploadResult {
 		fmt.Printf("  ERR   上传返回 %d: %s\n", resp.StatusCode, out.Message)
 	}
 	return uploadResult{ID: out.Data.Doc.ID, Duplicate: out.Data.Duplicate}
+}
+
+// uploadedDocID 从上传接口的响应里取文档 ID（含去重复用的情况）。
+func uploadedDocID(body string) int64 {
+	var env struct {
+		Data struct {
+			Doc struct {
+				ID int64 `json:"id"`
+			} `json:"doc"`
+		} `json:"data"`
+	}
+	_ = json.Unmarshal([]byte(body), &env)
+	return env.Data.Doc.ID
 }
 
 func waitDoc(docID int64, s *session, want string, timeout time.Duration) {

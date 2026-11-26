@@ -10,8 +10,21 @@ const loading = ref(false)
 const page = reactive({ page: 1, page_size: 20 })
 
 const depts = ref([])
+const posts = ref([])
 const dialog = ref(false)
-const form = reactive({ title: '', content: '', dept_ids: [], require_ack: true, deadline: null, publish: true })
+const form = reactive({
+  title: '',
+  source: '',
+  content: '',
+  dept_ids: [],
+  post_ids: [],
+  require_ack: true,
+  deadline: null,
+  publish: true,
+})
+const drafting = ref(false)
+const draftPoints = ref([])
+const draftNotice = ref('')
 
 const recordsDialog = ref(false)
 const records = ref([])
@@ -52,11 +65,49 @@ onMounted(async () => {
   } catch {
     depts.value = []
   }
+  try {
+    const data = await api.get('/api/v1/posts', { all: 1 })
+    posts.value = (data.list || []).filter((p) => p.status === 'active').map((p) => p.name)
+  } catch {
+    posts.value = []
+  }
 })
 
 function openCreate() {
-  Object.assign(form, { title: '', content: '', dept_ids: [], require_ack: true, deadline: null, publish: true })
+  Object.assign(form, {
+    title: '',
+    source: '',
+    content: '',
+    dept_ids: [],
+    post_ids: [],
+    require_ack: true,
+    deadline: null,
+    publish: true,
+  })
+  draftPoints.value = []
+  draftNotice.value = ''
   dialog.value = true
+}
+
+// 建设方案六（6）：新制度发布后平台自动生成解读要点，管理员确认后再发布。
+async function genDraft() {
+  const body = (form.source || form.content).trim()
+  if (!body) {
+    ElMessage.warning('先把制度原文粘到「制度原文」，或在内容里写清要点')
+    return
+  }
+  drafting.value = true
+  try {
+    const d = await api.post('/api/v1/broadcast/draft', { title: form.title, content: body })
+    draftPoints.value = d.points || []
+    draftNotice.value = d.notice || (d.source === 'llm' ? `由 ${d.model || '模型'} 生成初稿，请核对` : '')
+    if (d.content) form.content = d.content
+    ElMessage.success('已生成解读要点初稿，请核对后发布')
+  } catch (e) {
+    ElMessage.error(e.message)
+  } finally {
+    drafting.value = false
+  }
 }
 
 async function save() {
@@ -69,6 +120,7 @@ async function save() {
       title: form.title,
       content: form.content,
       dept_ids: form.dept_ids,
+      post_ids: form.post_ids,
       require_ack: form.require_ack,
       deadline: form.deadline ? new Date(form.deadline).toISOString() : null,
       publish: form.publish,
@@ -120,6 +172,16 @@ async function openRecords(row) {
           <span>{{ row.ack_count }} / {{ row.total_count }}</span>
         </template>
       </el-table-column>
+      <el-table-column label="范围" min-width="150">
+        <template #default="{ row }">
+          <span v-if="!row.dept_ids?.length && !row.post_ids?.length" class="muted">全员</span>
+          <span v-else class="muted">
+            {{ row.dept_ids?.length ? row.dept_ids.length + ' 个区队' : '' }}
+            {{ row.dept_ids?.length && row.post_ids?.length ? ' · ' : '' }}
+            {{ row.post_ids?.length ? row.post_ids.join('、') : '' }}
+          </span>
+        </template>
+      </el-table-column>
       <el-table-column label="截止" width="150">
         <template #default="{ row }">{{ row.deadline ? fmtTime(row.deadline) : '—' }}</template>
       </el-table-column>
@@ -132,13 +194,39 @@ async function openRecords(row) {
       </el-table-column>
     </el-table>
 
-    <el-dialog v-model="dialog" title="新建宣贯任务" width="560px">
-      <el-form label-width="88px">
+    <el-dialog v-model="dialog" title="新建宣贯任务" width="620px">
+      <el-form label-width="98px">
         <el-form-item label="标题"><el-input v-model="form.title" /></el-form-item>
-        <el-form-item label="内容"><el-input v-model="form.content" type="textarea" :rows="4" /></el-form-item>
+        <el-form-item label="制度原文">
+          <el-input
+            v-model="form.source"
+            type="textarea"
+            :rows="4"
+            placeholder="粘贴新制度/新规程原文，用于自动生成解读要点（不发布原文）"
+          />
+        </el-form-item>
+        <el-form-item label="解读要点">
+          <div style="width: 100%">
+            <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 8px">
+              <el-button size="small" :loading="drafting" @click="genDraft">AI 生成要点</el-button>
+              <span class="muted">{{ draftNotice }}</span>
+            </div>
+            <ol v-if="draftPoints.length" class="draft-points">
+              <li v-for="(p, i) in draftPoints" :key="i">{{ p }}</li>
+            </ol>
+          </div>
+        </el-form-item>
+        <el-form-item label="发布正文">
+          <el-input v-model="form.content" type="textarea" :rows="5" placeholder="员工看到的宣贯内容" />
+        </el-form-item>
         <el-form-item label="范围">
-          <el-select v-model="form.dept_ids" multiple placeholder="不选表示全员" style="width: 100%">
+          <el-select v-model="form.dept_ids" multiple placeholder="区队，不选表示不限" style="width: 100%">
             <el-option v-for="d in depts" :key="d.id" :label="d.name" :value="d.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="岗位">
+          <el-select v-model="form.post_ids" multiple allow-create filterable placeholder="岗位，不选表示不限岗位" style="width: 100%">
+            <el-option v-for="p in posts" :key="p" :label="p" :value="p" />
           </el-select>
         </el-form-item>
         <el-form-item label="截止时间">
@@ -202,5 +290,11 @@ async function openRecords(row) {
   color: #a5311f;
   font-size: 18px;
   margin-left: 4px;
+}
+.draft-points {
+  margin: 0;
+  padding-left: 20px;
+  line-height: 1.9;
+  color: #2f3438;
 }
 </style>

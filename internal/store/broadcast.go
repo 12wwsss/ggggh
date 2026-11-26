@@ -11,13 +11,14 @@ import (
 func (s *Store) CreateBroadcast(ctx context.Context, t *model.BroadcastTask) (int64, error) {
 	var id int64
 	err := s.pool.QueryRow(ctx, `insert into broadcast_task
-		(title, content, doc_ids, dept_ids, publisher_id, require_ack, deadline, status)
-		values ($1,$2,$3,$4,$5,$6,$7,$8) returning id`,
-		t.Title, t.Content, arr64(t.DocIDs), arr64(t.DeptIDs), t.PublisherID, t.RequireAck, t.Deadline, t.Status).Scan(&id)
+		(title, content, doc_ids, dept_ids, post_ids, publisher_id, require_ack, deadline, status)
+		values ($1,$2,$3,$4,$5,$6,$7,$8,$9) returning id`,
+		t.Title, t.Content, arr64(t.DocIDs), arr64(t.DeptIDs), arrStr(t.PostIDs),
+		t.PublisherID, t.RequireAck, t.Deadline, t.Status).Scan(&id)
 	return id, wrapErr("新建宣贯任务", err)
 }
 
-// PublishBroadcast 发布任务并按部门生成签收记录。deptIDs 为空表示全员。
+// PublishBroadcast 发布任务并按部门/岗位生成签收记录。deptIDs 与 postIDs 都为空表示全员。
 func (s *Store) PublishBroadcast(ctx context.Context, id int64) (int64, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
@@ -39,6 +40,7 @@ func (s *Store) PublishBroadcast(ctx context.Context, id int64) (int64, error) {
 			select 1 from broadcast_task t
 			where t.id = $1
 			  and (cardinality(t.dept_ids) = 0 or u.dept_id = any(t.dept_ids))
+			  and (cardinality(t.post_ids) = 0 or coalesce(u.post,'') = any(t.post_ids))
 		  )
 		on conflict (task_id, user_id) do nothing`, id)
 	if err != nil {
@@ -49,7 +51,8 @@ func (s *Store) PublishBroadcast(ctx context.Context, id int64) (int64, error) {
 		select u.id, 'broadcast', '新的制度宣贯：'||t.title, left(coalesce(t.content,''), 120), 'broadcast', t.id
 		from broadcast_task t cross join org_user u
 		where t.id=$1 and u.status='active'
-		  and (cardinality(t.dept_ids)=0 or u.dept_id = any(t.dept_ids))`, id); err != nil {
+		  and (cardinality(t.dept_ids)=0 or u.dept_id = any(t.dept_ids))
+		  and (cardinality(t.post_ids)=0 or coalesce(u.post,'') = any(t.post_ids))`, id); err != nil {
 		return 0, wrapErr("生成宣贯消息", err)
 	}
 	return ackCount, tx.Commit(ctx)
@@ -57,7 +60,7 @@ func (s *Store) PublishBroadcast(ctx context.Context, id int64) (int64, error) {
 
 // ListBroadcastTasks 管理端查询任务，附带签收统计。
 func (s *Store) ListBroadcastTasks(ctx context.Context, status string, limit, offset int) ([]model.BroadcastTask, int, error) {
-	rows, err := s.pool.Query(ctx, `select t.id, t.title, t.content, t.doc_ids, t.dept_ids,
+	rows, err := s.pool.Query(ctx, `select t.id, t.title, t.content, t.doc_ids, t.dept_ids, t.post_ids,
 		t.publisher_id, t.require_ack, t.deadline, t.status, t.created_at,
 		(select count(*) from broadcast_record r where r.task_id=t.id) as total_cnt,
 		(select count(*) from broadcast_record r where r.task_id=t.id and r.status='ack') as ack_cnt,
@@ -72,7 +75,7 @@ func (s *Store) ListBroadcastTasks(ctx context.Context, status string, limit, of
 	total := 0
 	for rows.Next() {
 		var t model.BroadcastTask
-		if err := rows.Scan(&t.ID, &t.Title, &t.Content, &t.DocIDs, &t.DeptIDs, &t.PublisherID,
+		if err := rows.Scan(&t.ID, &t.Title, &t.Content, &t.DocIDs, &t.DeptIDs, &t.PostIDs, &t.PublisherID,
 			&t.RequireAck, &t.Deadline, &t.Status, &t.CreatedAt, &t.TotalCount, &t.AckCount, &total); err != nil {
 			return nil, 0, err
 		}
@@ -83,7 +86,7 @@ func (s *Store) ListBroadcastTasks(ctx context.Context, status string, limit, of
 
 // ListMyBroadcasts 员工端查询自己需要签收的任务。
 func (s *Store) ListMyBroadcasts(ctx context.Context, userID int64, onlyPending bool) ([]model.BroadcastTask, error) {
-	rows, err := s.pool.Query(ctx, `select t.id, t.title, t.content, t.doc_ids, t.dept_ids,
+	rows, err := s.pool.Query(ctx, `select t.id, t.title, t.content, t.doc_ids, t.dept_ids, t.post_ids,
 		t.publisher_id, t.require_ack, t.deadline, t.status, t.created_at, r.status,
 		(select count(*) from broadcast_record r2 where r2.task_id=t.id),
 		(select count(*) from broadcast_record r2 where r2.task_id=t.id and r2.status='ack')
@@ -97,7 +100,7 @@ func (s *Store) ListMyBroadcasts(ctx context.Context, userID int64, onlyPending 
 	out := []model.BroadcastTask{}
 	for rows.Next() {
 		var t model.BroadcastTask
-		if err := rows.Scan(&t.ID, &t.Title, &t.Content, &t.DocIDs, &t.DeptIDs, &t.PublisherID,
+		if err := rows.Scan(&t.ID, &t.Title, &t.Content, &t.DocIDs, &t.DeptIDs, &t.PostIDs, &t.PublisherID,
 			&t.RequireAck, &t.Deadline, &t.Status, &t.CreatedAt, &t.MyStatus, &t.TotalCount, &t.AckCount); err != nil {
 			return nil, err
 		}

@@ -96,7 +96,11 @@ type userReq struct {
 }
 
 func validRole(r string) bool {
-	return r == model.RoleAdmin || r == model.RoleDeptLeader || r == model.RoleSafety || r == model.RoleEmployee
+	switch r {
+	case model.RoleAdmin, model.RoleDeptLeader, model.RoleSafety, model.RoleTrainer, model.RoleEmployee:
+		return true
+	}
+	return false
 }
 
 func (s *Server) createUser(c *gin.Context) {
@@ -110,7 +114,7 @@ func (s *Server) createUser(c *gin.Context) {
 		return
 	}
 	if !validRole(req.Role) {
-		fail(c, http.StatusBadRequest, "角色只能是 admin、dept_leader、safety、employee")
+		fail(c, http.StatusBadRequest, "角色只能是 admin、dept_leader、safety、trainer、employee")
 		return
 	}
 	if len([]rune(req.Password)) < 8 {
@@ -235,7 +239,8 @@ func (s *Server) listRoles(c *gin.Context) {
 		matrix[p.Role] = append(matrix[p.Role], p)
 	}
 	ok(c, gin.H{
-		"roles":  []string{model.RoleAdmin, model.RoleDeptLeader, model.RoleSafety, model.RoleEmployee},
+		"roles": []string{model.RoleAdmin, model.RoleDeptLeader, model.RoleSafety,
+			model.RoleTrainer, model.RoleEmployee},
 		"matrix": matrix,
 	})
 }
@@ -264,6 +269,7 @@ func (s *Server) updateRole(c *gin.Context) {
 		"task":      {"all"},
 		"eval":      {"all"},
 		"doc":       {"all"},
+		"content":   {"all"},
 	}
 	for _, p := range req.Policies {
 		if p.Action != "read" && p.Action != "write" {

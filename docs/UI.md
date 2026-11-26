@@ -106,4 +106,4 @@ powershell -ExecutionPolicy Bypass -File scripts\build-web.ps1
 node web\scripts\verify-ui.mjs --base http://127.0.0.1:8080
 ```
 
-最近一次结果：30 项断言全部通过，截图 `employee-home.png`、`employee-answer.png`、`admin-dashboard.png`、`admin-docs.png`、`admin-issues.png`。
+最近一次结果：44 项断言全部通过（2026-11-26），截图 `employee-home.png`、`employee-answer.png`、`employee-culture.png`、`employee-culture-detail.png`、`admin-dashboard.png`、`admin-docs.png`、`admin-issues.png`、`admin-content.png`、`admin-broadcast-draft.png`。

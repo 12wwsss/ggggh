@@ -83,9 +83,10 @@ func (s *Server) importUsers(c *gin.Context) {
 
 	roleMap := map[string]string{
 		"": "employee", "员工": model.RoleEmployee, "区队长": model.RoleDeptLeader,
-		"安全科": model.RoleSafety, "平台管理员": model.RoleAdmin,
+		"安全科": model.RoleSafety, "培训员": model.RoleTrainer, "平台管理员": model.RoleAdmin,
 		model.RoleAdmin: model.RoleAdmin, model.RoleDeptLeader: model.RoleDeptLeader,
-		model.RoleSafety: model.RoleSafety, model.RoleEmployee: model.RoleEmployee,
+		model.RoleSafety: model.RoleSafety, model.RoleTrainer: model.RoleTrainer,
+		model.RoleEmployee: model.RoleEmployee,
 	}
 
 	valid, invalid := 0, 0
@@ -117,7 +118,7 @@ func (s *Server) importUsers(c *gin.Context) {
 		roleKey := get(rec, "角色")
 		role, okRole := roleMap[roleKey]
 		if reason == "" && !okRole {
-			reason = "角色不合法（员工/区队长/安全科/平台管理员）"
+			reason = "角色不合法（员工/区队长/安全科/培训员/平台管理员）"
 		}
 		var deptID *int64
 		if reason == "" {
@@ -128,8 +129,9 @@ func (s *Server) importUsers(c *gin.Context) {
 				} else {
 					deptID = &id
 				}
-			} else if role == model.RoleEmployee || role == model.RoleDeptLeader || role == model.RoleSafety {
-				reason = "员工/区队长/安全科必须填部门"
+			} else if role == model.RoleEmployee || role == model.RoleDeptLeader ||
+				role == model.RoleSafety || role == model.RoleTrainer {
+				reason = "员工/区队长/安全科/培训员必须填部门"
 			}
 		}
 		if reason == "" {

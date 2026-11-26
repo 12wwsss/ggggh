@@ -32,8 +32,11 @@ func Pick(path string) (Parser, error) {
 			return &LibreOffice{}, nil
 		}
 		return &Docx{}, nil
-	case ".txt", ".md", ".csv":
+	case ".txt", ".md":
 		return &Text{}, nil
+	case ".csv", ".json":
+		// FAQ 导入：CSV/JSON 一问一答，每条生成一个切片。
+		return &FAQ{}, nil
 	case ".doc", ".pdf", ".wps":
 		if sofficeAvailable() {
 			return &LibreOffice{}, nil
@@ -51,6 +54,8 @@ func ByName(name string) (Parser, error) {
 		return &Docx{}, nil
 	case "text":
 		return &Text{}, nil
+	case "faq":
+		return &FAQ{}, nil
 	case "libreoffice":
 		if !sofficeAvailable() {
 			return nil, fmt.Errorf("当前环境未找到 soffice")

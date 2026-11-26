@@ -72,10 +72,12 @@ async function removePost(row) {
 const roles = ref([])
 const role = ref('dept_leader')
 const resources = [
-  'doc', 'qa', 'learn', 'exam', 'broadcast', 'issue', 'user', 'dept', 'audit', 'task', 'dashboard', 'eval',
+  'doc', 'qa', 'learn', 'exam', 'broadcast', 'content', 'training', 'issue', 'user', 'dept', 'audit', 'task',
+  'dashboard', 'eval',
 ]
 const resourceText = {
-  doc: '规程文档', qa: '智能问答', learn: '学习与小测', exam: '考试', broadcast: '宣贯', issue: '问题闭环',
+  doc: '规程文档', qa: '智能问答', learn: '学习与小测', exam: '考试', broadcast: '宣贯', content: '安全文化内容',
+  training: '新员工带培', issue: '问题闭环',
   user: '用户', dept: '部门', audit: '审计日志', task: '后台任务', dashboard: '看板', eval: '评测',
 }
 const roleMatrix = ref({})
@@ -89,6 +91,7 @@ const scopeMap = {
   task: ['all'],
   eval: ['all'],
   doc: ['all'],
+  content: ['all'],
 }
 
 const roleRows = computed(() =>

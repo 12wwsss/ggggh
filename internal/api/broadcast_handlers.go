@@ -1,7 +1,9 @@
 package api
 
 import (
+	"context"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -29,6 +31,7 @@ type broadcastReq struct {
 	Content    string     `json:"content" binding:"required"`
 	DocIDs     []int64    `json:"doc_ids"`
 	DeptIDs    []int64    `json:"dept_ids"`
+	PostIDs    []string   `json:"post_ids"`
 	RequireAck *bool      `json:"require_ack"`
 	Deadline   *time.Time `json:"deadline"`
 	Publish    bool       `json:"publish"`
@@ -49,6 +52,7 @@ func (s *Server) createBroadcast(c *gin.Context) {
 	cl := claims(c)
 	id, err := s.Store.CreateBroadcast(c.Request.Context(), &model.BroadcastTask{
 		Title: req.Title, Content: req.Content, DocIDs: req.DocIDs, DeptIDs: req.DeptIDs,
+		PostIDs:     normalizePosts(req.PostIDs),
 		PublisherID: &cl.UserID, RequireAck: requireAck, Deadline: req.Deadline, Status: status,
 	})
 	if err != nil {
@@ -119,4 +123,40 @@ func (s *Server) ackBroadcast(c *gin.Context) {
 		return
 	}
 	ok(c, gin.H{"ack": req.Ack})
+}
+
+// normalizePosts 去掉空白岗位名并去重，避免发布时重复匹配。
+func normalizePosts(in []string) []string {
+	seen := map[string]bool{}
+	out := make([]string, 0, len(in))
+	for _, p := range in {
+		p = strings.TrimSpace(p)
+		if p == "" || seen[p] {
+			continue
+		}
+		seen[p] = true
+		out = append(out, p)
+	}
+	return out
+}
+
+// draftBroadcast 生成制度宣贯的「解读要点」初稿。
+// 建设方案六（6）：新制度发布后平台自动生成解读要点，管理员确认后发布。
+func (s *Server) draftBroadcast(c *gin.Context) {
+	var req struct {
+		Title   string `json:"title"`
+		Content string `json:"content"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		fail(c, http.StatusBadRequest, "请提交制度标题与正文")
+		return
+	}
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 60*time.Second)
+	defer cancel()
+	d, err := s.Svc.DraftBroadcast(ctx, req.Title, req.Content)
+	if err != nil {
+		fail(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	ok(c, d)
 }

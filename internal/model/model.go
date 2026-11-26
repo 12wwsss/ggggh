@@ -11,6 +11,7 @@ const (
 	RoleAdmin      = "admin"
 	RoleDeptLeader = "dept_leader"
 	RoleSafety     = "safety"
+	RoleTrainer    = "trainer"
 	RoleEmployee   = "employee"
 )
 
@@ -213,11 +214,13 @@ type ExamRecord struct {
 
 // BroadcastTask 宣贯任务。
 type BroadcastTask struct {
-	ID          int64      `json:"id"`
-	Title       string     `json:"title"`
-	Content     string     `json:"content"`
-	DocIDs      []int64    `json:"doc_ids"`
-	DeptIDs     []int64    `json:"dept_ids"`
+	ID      int64   `json:"id"`
+	Title   string  `json:"title"`
+	Content string  `json:"content"`
+	DocIDs  []int64 `json:"doc_ids"`
+	DeptIDs []int64 `json:"dept_ids"`
+	// PostIDs 是岗位下发范围，空数组表示不限岗位；与 DeptIDs 同时为空表示全员。
+	PostIDs     []string   `json:"post_ids"`
 	PublisherID *int64     `json:"publisher_id,omitempty"`
 	RequireAck  bool       `json:"require_ack"`
 	Deadline    *time.Time `json:"deadline,omitempty"`

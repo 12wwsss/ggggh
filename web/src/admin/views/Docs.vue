@@ -130,7 +130,7 @@ async function remove(row) {
         <el-option label="解析失败" value="failed" />
       </el-select>
       <div style="flex: 1"></div>
-      <el-button type="primary" @click="uploadVisible = true">上传规程</el-button>
+      <el-button type="primary" @click="uploadVisible = true">上传文档</el-button>
     </div>
 
     <el-table v-loading="loading" :data="rows" size="small">
@@ -178,19 +178,29 @@ async function remove(row) {
       />
     </div>
 
-    <el-dialog v-model="uploadVisible" title="上传规程文档" width="480px">
+    <el-dialog v-model="uploadVisible" title="上传知识文档" width="480px">
       <el-form label-width="72px">
         <el-form-item label="文件">
-          <el-upload :auto-upload="false" :limit="1" :on-change="onFileChange" accept=".docx,.doc,.pdf,.txt,.md">
+          <el-upload
+            :auto-upload="false"
+            :limit="1"
+            :on-change="onFileChange"
+            accept=".docx,.doc,.pdf,.txt,.md,.csv,.json"
+          >
             <el-button>选择文件</el-button>
-            <template #tip><div class="muted">支持 docx / pdf / txt，doc、pdf 需要服务器安装 LibreOffice</div></template>
+            <template #tip>
+              <div class="muted">
+                规程按「第X条」切分；制度、操作规程、事故案例没有条款号时按段落切分；FAQ 用 CSV（问题,答案）或 JSON。
+                doc / pdf 需要服务器安装 LibreOffice。
+              </div>
+            </template>
           </el-upload>
         </el-form-item>
         <el-form-item label="标题">
           <el-input v-model="uploadForm.title" placeholder="默认取文件名" />
         </el-form-item>
         <el-form-item label="分类">
-          <el-input v-model="uploadForm.category" />
+          <el-input v-model="uploadForm.category" placeholder="规程 / 制度 / 操作规程 / 事故案例 / FAQ" />
         </el-form-item>
         <el-form-item label="去重">
           <el-switch v-model="uploadForm.force" active-text="强制重新入库" inactive-text="相同内容复用已有文档" />

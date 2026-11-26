@@ -68,7 +68,8 @@ func (s *Service) UploadDoc(ctx context.Context, filename string, src io.Reader,
 	if ext == "" {
 		return nil, false, fmt.Errorf("文件缺少扩展名")
 	}
-	allowed := map[string]bool{".docx": true, ".doc": true, ".pdf": true, ".txt": true, ".md": true, ".wps": true}
+	allowed := map[string]bool{".docx": true, ".doc": true, ".pdf": true, ".txt": true, ".md": true,
+		".wps": true, ".csv": true, ".json": true}
 	if !allowed[ext] {
 		return nil, false, fmt.Errorf("不支持的文件类型 %s", ext)
 	}

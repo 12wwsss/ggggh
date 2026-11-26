@@ -16,6 +16,7 @@ const routes = [
       { path: 'learn', name: 'learn', component: () => import('./views/Learn.vue'), meta: { title: '学习与题库' } },
       { path: 'exams', name: 'exams', component: () => import('./views/Exams.vue'), meta: { title: '考试管理' } },
       { path: 'broadcasts', name: 'broadcasts', component: () => import('./views/Broadcasts.vue'), meta: { title: '宣贯管理' } },
+      { path: 'content', name: 'content', component: () => import('./views/Content.vue'), meta: { title: '安全文化内容' } },
       { path: 'media', name: 'media', component: () => import('./views/Media.vue'), meta: { title: '视频资料' } },
       { path: 'risks', name: 'risks', component: () => import('./views/Risks.vue'), meta: { title: '岗位风险' } },
       { path: 'training', name: 'training', component: () => import('./views/Training.vue'), meta: { title: '新员工带培' } },

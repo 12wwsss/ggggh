@@ -96,10 +96,74 @@ func TestSplitLongClauseIntoSeveralParts(t *testing.T) {
 	}
 }
 
-func TestSplitWithoutClauseFails(t *testing.T) {
-	_, err := Split(blocks("这是一段没有条款结构的说明文字。", "第二段说明。"))
-	if err == nil {
-		t.Fatal("缺少“第X条”结构时应返回错误，避免把非规程文档发布成可检索资料")
+func TestSplitWithoutClauseFallsBackToParagraphs(t *testing.T) {
+	// 建设方案七（二）：矿上安全管理制度、各岗位操作规程、典型事故案例
+	// 大多没有“第X条”，也要能进知识库，不能被整体拒收。
+	got, err := Split(blocks(
+		"某某煤矿安全管理制度",
+		"一、入井管理",
+		"所有入井人员必须佩戴安全帽、矿灯和自救器，入井前接受检身。",
+		"二、交接班管理",
+		"交接班必须现场进行，交清设备运行、隐患处理和注意事项。",
+	))
+	if err != nil {
+		t.Fatalf("无条款结构文档应按段落切分，实际报错: %v", err)
+	}
+	if len(got) < 2 {
+		t.Fatalf("期望至少 2 个段落切片，实际 %d", len(got))
+	}
+	if got[0].ClauseNo != "" {
+		t.Errorf("段落切片不应编造条款号，实际 %q", got[0].ClauseNo)
+	}
+	if got[0].Chapter == "" || got[0].Chapter == "正文" {
+		t.Errorf("小标题应作为章节上下文，实际 %q", got[0].Chapter)
+	}
+	for i, c := range got {
+		if c.Seq != i+1 {
+			t.Errorf("第 %d 片 seq = %d", i, c.Seq)
+		}
+	}
+}
+
+func TestSplitFallsBackWhenTextIsProse(t *testing.T) {
+	got, err := Split(blocks("事故案例：某矿 2023 年 5 月发生顶板事故，原因是未敲帮问顶。",
+		"教训：进入作业地点前必须敲帮问顶，发现离层立即撤人。"))
+	if err != nil {
+		t.Fatalf("纯段落文本应可切分: %v", err)
+	}
+	if len(got) != 1 {
+		t.Fatalf("短文本应合成 1 片，实际 %d", len(got))
+	}
+	if !strings.Contains(got[0].Content, "敲帮问顶") {
+		t.Errorf("内容丢失: %q", got[0].Content)
+	}
+}
+
+func TestSplitEmptyDocumentStillFails(t *testing.T) {
+	if _, err := Split(blocks("   ", "\n")); err == nil {
+		t.Fatal("空文档仍应报错，避免产生空文档")
+	}
+}
+
+func TestSplitFAQBlocks(t *testing.T) {
+	got, err := Split([]Block{
+		{Text: "瓦斯超限怎么办？\n立即停电撤人并汇报调度。", Level: BlockLevelFAQ},
+		{Text: "停风了怎么办？\n立即撤人、断电、设栅栏。", Level: BlockLevelFAQ},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 2 {
+		t.Fatalf("期望 2 条 FAQ 切片，实际 %d", len(got))
+	}
+	if got[0].ClauseNo != "FAQ-1" || got[1].ClauseNo != "FAQ-2" {
+		t.Errorf("FAQ 条款号不符: %q, %q", got[0].ClauseNo, got[1].ClauseNo)
+	}
+	if !strings.HasPrefix(got[0].Content, "问：瓦斯超限怎么办？") {
+		t.Errorf("FAQ 内容格式不符: %q", got[0].Content)
+	}
+	if got[0].Chapter != "高频问题" {
+		t.Errorf("FAQ 章节 = %q", got[0].Chapter)
 	}
 }
 

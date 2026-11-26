@@ -18,7 +18,7 @@ func (s *Server) changeTrainingMentor(c *gin.Context) {
 		return
 	}
 	cl := claims(c)
-	allowed := cl.Role == "admin" || cl.Role == "safety" ||
+	allowed := cl.Role == "admin" || cl.Role == "safety" || cl.Role == "trainer" ||
 		(cl.Role == "dept_leader" && cl.DeptID > 0 && plan.UserDeptID != nil && *plan.UserDeptID == cl.DeptID)
 	if !allowed {
 		fail(c, http.StatusForbidden, "没有更换师傅的权限")

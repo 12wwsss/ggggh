@@ -17,6 +17,7 @@ type RiskPoint struct {
 	Measures    []string `json:"measures"`
 	Level       string   `json:"level"`
 	Clauses     []string `json:"clause_refs"`
+	CaseText    string   `json:"case_text"`
 }
 
 // ListRiskPoints 按岗位取风险点（job 为空取全部）。
@@ -24,7 +25,8 @@ func (s *Store) ListRiskPoints(ctx context.Context, job string, limit int) ([]Ri
 	if limit <= 0 {
 		limit = 200
 	}
-	rows, err := s.pool.Query(ctx, `select id, post, category, title, description, measures, level, clause_refs
+	rows, err := s.pool.Query(ctx, `select id, post, category, title, description, measures, level, clause_refs,
+		coalesce(case_text,'')
 		from risk_point where status='published' and ($1='' or post=$1 or post='通用')
 		order by sort, id limit $2`, job, limit)
 	if err != nil {
@@ -35,7 +37,8 @@ func (s *Store) ListRiskPoints(ctx context.Context, job string, limit int) ([]Ri
 	for rows.Next() {
 		var r RiskPoint
 		var measures, clauses []byte
-		if err := rows.Scan(&r.ID, &r.Post, &r.Category, &r.Title, &r.Description, &measures, &r.Level, &clauses); err != nil {
+		if err := rows.Scan(&r.ID, &r.Post, &r.Category, &r.Title, &r.Description, &measures, &r.Level,
+			&clauses, &r.CaseText); err != nil {
 			return nil, err
 		}
 		_ = json.Unmarshal(measures, &r.Measures)
@@ -56,9 +59,9 @@ func (s *Store) CreateRiskPoint(ctx context.Context, r *RiskPoint) (int64, error
 	measures, _ := json.Marshal(r.Measures)
 	clauses, _ := json.Marshal(r.Clauses)
 	var id int64
-	err := s.pool.QueryRow(ctx, `insert into risk_point(post, category, title, description, measures, level, clause_refs)
-		values ($1,$2,$3,$4,$5,$6,$7) returning id`,
-		r.Post, r.Category, r.Title, r.Description, measures, r.Level, clauses).Scan(&id)
+	err := s.pool.QueryRow(ctx, `insert into risk_point(post, category, title, description, measures, level, clause_refs, case_text)
+		values ($1,$2,$3,$4,$5,$6,$7,$8) returning id`,
+		r.Post, r.Category, r.Title, r.Description, measures, r.Level, clauses, r.CaseText).Scan(&id)
 	return id, wrapErr("写入风险点", err)
 }
 

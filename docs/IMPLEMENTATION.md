@@ -38,7 +38,7 @@
   - `Docx` 直解（zip + `word/document.xml`，无外部依赖）；
   - `LibreOffice` 子进程（`.doc/.pdf` 需要，未安装时不静默降级，直接报错）；
   - `Text`（txt/md）。
-- 切分：`parser.Split` 按“第X章/第X节/第X条”结构化；目录行（点线引导）、页码行丢弃；超长条款按句读切段并共用条款号（`part` 递增）；无“第X条”结构时返回错误，避免把非规程文档发布成可检索资料。
+- 切分：`parser.Split` 按“第X章/第X节/第X条”结构化；目录行（点线引导）、页码行丢弃；超长条款按句读切段并共用条款号（`part` 递增）。没有“第X条”结构的制度、操作规程、事故案例按小标题与段落切分（条款号留空，不编造），FAQ 的 CSV/JSON 一问一答各成一片（`FAQ-1`…）。
 - 事务：解析在内存完成后**一次性**写入（`store.ReplaceChunks` 先删后插，单事务）；失败整体回滚并把文档置 `failed`，不留脏切片。
 - 审核发布：管理员查看切片 → `publish`（状态机 `pending_review → published`，重复发布 409）→ 投递 `doc_embed`。
 
@@ -98,6 +98,24 @@
 - **日志表保留**：`log_retention` 每天按 `logs.qa_log_days`（默认 90 天）清理 `qa_log`、按 `logs.audit_days`（默认 180 天）清理 `audit_log`。两张表每个请求写一行，压测两小时 `qa_log` 就到 9258 行，不设上限会一直涨。实测：把一行改成 120 天前，任务触发后 `qa_log_removed=1`。
 - **系统日志上限**：`/etc/systemd/journald.conf` 设 `SystemMaxUse=1G`、`SystemMaxFileSize=100M`；实测从 3.9 GB 降到 978 MB。`/opt/coalrag/logs/*.log` 交给 logrotate（每周、保留 8 份、压缩）。
 - **备份恢复**：`scripts/backup.ps1` 导出 `pg_dump` + `storage` + manifest（sha256），默认保留 7 份；`scripts/restore.ps1` 校验 sha256 后删库重建并还原，支持 `-RestoreStorage`。已用独立库 `coalrag_restore_test` 做还原验证（8 用户 / 9 文档 / 189 切片一致）。
+
+## 建设方案第一批（2026-11-26）
+
+按《煤矿安全员智能体数字人建设方案 V3.0》补齐的第一批功能。迁移 `0029`–`0032`。
+
+| 方案条目 | 落地 | 说明 |
+| --- | --- | --- |
+| 六（1）首页主动推送安全文化 | `web/src/employee/views/Culture.vue`、`CultureDetail.vue`、`Home.vue` 文化区 | 电脑端/H5 与小程序同源同数据；分类覆盖案例/安全月/寄语/光荣榜/知识卡 |
+| 六（1）内容日常化运营 | 后台「安全文化内容」页 + `/content` 增删改查 | 可新建/编辑/排序/上下架；`content_item` 增加 `status`、`updated_at`、`updated_by` |
+| 六（1）短视频 | 沿用「视频资料」（`media_item`，mp4/webm/mov/ogg + 外链） | 视频独立入口，不混在图文流里 |
+| 七（二）Word/PDF/FAQ 导入 | `parser`：`FAQ`（CSV/JSON）、`splitFree`（无条款结构文档按段落） | 制度、操作规程、事故案例不再被整体拒收；FAQ 一条一片 |
+| 七（二）宣贯按岗位推送 | `broadcast_task.post_ids` | 发布时按「区队 ∪ 岗位」生成签收记录与站内消息，两者都空为全员 |
+| 六（6）自动生成解读要点 | `service.DraftBroadcast` + `/broadcast/draft` + 宣贯弹窗「AI 生成要点」 | 模型可用时出 JSON 要点；离线/桩模型时按正文规则提炼并提示人工补充 |
+| 五 培训员角色 | `role=trainer` + 权限策略 + 培训员可管理带培 | 后台用户表单、批量导入（中文角色「培训员」）均支持 |
+| 六（3）风险点典型案例 | `risk_point.case_text` + 后台录入 + 小程序岗位风险弹层展示 | 与「处置要点」并列 |
+| 七（二）语音提问/朗读 | H5 用 Web Speech（`Ask.vue`）；小程序识别/TTS 逻辑已写（`chat.js` 的 `initVoice`/`voice`），由 `utils/config.js` 的 `enableWechatSI` 开关控制 | 测试号没有插件管理，`app.json` 不声明插件、开关为 false，长按语音退化为录音附件；换正式小程序后按 `miniprogram-work/README.md` 三步开启 |
+
+同时修掉一处回归：`qa:write` 在 `0027` 被当作“非法写入”清理后，`/qa/ask` 对全员返回 403；提问改为登录即可（`qa` 资源在权限矩阵中仍是只读资源），反馈保留本人/范围校验。
 
 ## 前端
 

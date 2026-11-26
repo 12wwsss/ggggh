@@ -23,7 +23,7 @@ func (s *Server) compatRisks(c *gin.Context) {
 		items = append(items, gin.H{
 			"id": r.ID, "job": r.Post, "cat": r.Category, "title": r.Title,
 			"desc": r.Description, "level": r.Level,
-			"measures": r.Measures, "clauses": r.Clauses,
+			"measures": r.Measures, "clauses": r.Clauses, "case": r.CaseText,
 		})
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true, "items": items})
@@ -63,6 +63,7 @@ func (s *Server) createRisk(c *gin.Context) {
 		Measures    []string `json:"measures"`
 		Level       string   `json:"level"`
 		Clauses     []string `json:"clause_refs"`
+		CaseText    string   `json:"case_text"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil || strings.TrimSpace(req.Title) == "" {
 		fail(c, http.StatusBadRequest, "请填写风险点名称")
@@ -75,9 +76,11 @@ func (s *Server) createRisk(c *gin.Context) {
 		req.Level = "中"
 	}
 	item := &store.RiskPoint{Post: req.Post, Category: req.Category, Title: req.Title,
-		Description: req.Description, Measures: req.Measures, Level: req.Level, Clauses: req.Clauses}
+		Description: req.Description, Measures: req.Measures, Level: req.Level, Clauses: req.Clauses,
+		CaseText: strings.TrimSpace(req.CaseText)}
 	id, err := s.Store.CreateRiskPoint(c.Request.Context(), item)
 	if err != nil {
+		s.Log.Error("保存风险点失败", "err", err, "post", item.Post, "title", item.Title)
 		fail(c, http.StatusInternalServerError, "保存失败")
 		return
 	}

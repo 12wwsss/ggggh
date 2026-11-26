@@ -26,6 +26,20 @@
 | 公网服务器 | 1 核 1G 够用，装 nginx + frps |
 | 矿内出站 | 允许连云端 7000 端口 |
 | 小程序后台 | request 合法域名、业务域名、downloadFile 域名 |
+| 小程序插件 | 「微信同声传译」（语音提问/朗读）：**测试号加不了**，需正式小程序；未启用时长按语音=录音附件 |
+
+### 服务器依赖（知识库导入）
+
+`docx` 由内置解析器直接读，**不需要**额外软件；`pdf`、`doc`、`wps` 走 LibreOffice 子进程转换：
+
+```bash
+# Ubuntu / 麒麟：装一次即可，之后 PDF 与老 Word 才能导入
+apt-get install -y libreoffice-writer --no-install-recommends
+soffice --version   # 能打印版本即就绪
+```
+
+未安装时上传 PDF 会明确报「解析 PDF 需要安装 LibreOffice」，不会留下脏切片。
+FAQ 用 CSV（`问题,答案` 两列）或 JSON（`[{"q":"…","a":"…"}]`），不依赖 LibreOffice。
 
 ## 1. DNS
 

@@ -7,7 +7,7 @@ const rows = ref([])
 const loading = ref(false)
 const dialog = ref(false)
 const saving = ref(false)
-const form = ref({ post: '通用', category: '', title: '', description: '', level: '中', measuresText: '', clausesText: '' })
+const form = ref({ post: '通用', category: '', title: '', description: '', level: '中', measuresText: '', clausesText: '', caseText: '' })
 const POSTS = ['通用', '采煤', '掘进', '通风', '机电', '运输']
 
 async function load() {
@@ -23,7 +23,7 @@ async function load() {
 }
 
 function open() {
-  form.value = { post: '通用', category: '', title: '', description: '', level: '中', measuresText: '', clausesText: '' }
+  form.value = { post: '通用', category: '', title: '', description: '', level: '中', measuresText: '', clausesText: '', caseText: '' }
   dialog.value = true
 }
 
@@ -39,6 +39,7 @@ async function submit() {
       level: form.value.level,
       measures: form.value.measuresText.split('\n').map((s) => s.trim()).filter(Boolean),
       clause_refs: form.value.clausesText.split(/[，,、\s]+/).map((s) => s.trim()).filter(Boolean),
+      case_text: form.value.caseText,
     })
     ElMessage.success('已添加')
     dialog.value = false
@@ -84,6 +85,12 @@ onMounted(load)
       <el-table-column label="措施" width="80">
         <template #default="{ row }">{{ (row.measures || []).length }} 条</template>
       </el-table-column>
+      <el-table-column label="案例" width="70">
+        <template #default="{ row }">
+          <el-tag v-if="row.case_text" type="success" size="small">有</el-tag>
+          <span v-else class="muted">无</span>
+        </template>
+      </el-table-column>
       <el-table-column label="操作" width="90">
         <template #default="{ row }">
           <el-button link type="danger" @click="remove(row)">删除</el-button>
@@ -114,6 +121,14 @@ onMounted(load)
         </el-form-item>
         <el-form-item label="管控措施">
           <el-input v-model="form.measuresText" type="textarea" :rows="4" placeholder="一行一条" />
+        </el-form-item>
+        <el-form-item label="典型案例">
+          <el-input
+            v-model="form.caseText"
+            type="textarea"
+            :rows="4"
+            placeholder="选填。写清经过与教训，例如：某矿 2023 年因未敲帮问顶导致片帮伤人……"
+          />
         </el-form-item>
         <el-form-item label="依据条款">
           <el-input v-model="form.clausesText" placeholder="如：第四十八条、第五十二条" />

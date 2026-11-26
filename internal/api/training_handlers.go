@@ -17,7 +17,7 @@ func canManagePlan(cl *auth.Claims, plan *store.TrainingPlan) bool {
 	}
 	isMentor := plan.MentorUserID != nil && *plan.MentorUserID == cl.UserID
 	switch cl.Role {
-	case "admin", "safety":
+	case "admin", "safety", "trainer":
 		return true
 	case "dept_leader":
 		if isMentor {
@@ -31,7 +31,7 @@ func canManagePlan(cl *auth.Claims, plan *store.TrainingPlan) bool {
 func (s *Server) listTrainingPlans(c *gin.Context) {
 	cl := claims(c)
 	p, size, offset := pageParams(c)
-	if cl.Role == "admin" || cl.Role == "safety" {
+	if cl.Role == "admin" || cl.Role == "safety" || cl.Role == "trainer" {
 		list, total, err := s.Store.ListTrainingPlans(c.Request.Context(), size, offset)
 		if err != nil {
 			fail(c, http.StatusInternalServerError, "查询失败")
@@ -134,7 +134,7 @@ func (s *Server) createTrainingPlan(c *gin.Context) {
 			fail(c, http.StatusForbidden, "只能给本队员工建计划")
 			return
 		}
-	} else if cl.Role != "admin" && cl.Role != "safety" {
+	} else if cl.Role != "admin" && cl.Role != "safety" && cl.Role != "trainer" {
 		fail(c, http.StatusForbidden, "没有权限")
 		return
 	}
@@ -206,7 +206,7 @@ func (s *Server) createTrainingPlansBatch(c *gin.Context) {
 				skipped = append(skipped, uid)
 				continue
 			}
-		} else if cl.Role != "admin" && cl.Role != "safety" {
+		} else if cl.Role != "admin" && cl.Role != "safety" && cl.Role != "trainer" {
 			fail(c, http.StatusForbidden, "没有权限")
 			return
 		}
