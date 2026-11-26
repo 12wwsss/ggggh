@@ -937,7 +937,7 @@ func (s *Server) compatCurrentUser(c *gin.Context) *model.User {
 		return nil
 	}
 	u, err := s.Store.GetUserByID(c.Request.Context(), cl.UserID)
-	if err != nil {
+	if err != nil || u.Status != "active" {
 		return nil
 	}
 	return u

@@ -165,13 +165,18 @@ func (s *Server) updateUser(c *gin.Context) {
 	if status == "" {
 		status = "active"
 	}
-	if p := strings.TrimSpace(req.Post); p != "" {
+	oldUser, err := s.Store.GetUserByID(c.Request.Context(), id)
+	if err != nil {
+		fail(c, http.StatusNotFound, "用户不存在")
+		return
+	}
+	if p := strings.TrimSpace(req.Post); p != "" && p != strings.TrimSpace(oldUser.Post) {
 		if okPost, _ := s.Store.PostExists(c.Request.Context(), p); !okPost {
-			fail(c, http.StatusBadRequest, "岗位不存在，请先在岗位管理中添加")
+			fail(c, http.StatusBadRequest, "岗位不存在或已停用，请先在岗位管理中添加")
 			return
 		}
 	}
-	err := s.Store.UpdateUser(c.Request.Context(), &model.User{
+	err = s.Store.UpdateUser(c.Request.Context(), &model.User{
 		ID: id, Name: req.Name, Phone: req.Phone, Post: req.Post,
 		Role: req.Role, Status: status, DeptID: req.DeptID,
 	})

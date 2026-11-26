@@ -117,6 +117,21 @@ func (s *Server) authMiddleware() gin.HandlerFunc {
 			fail(c, http.StatusUnauthorized, "访问令牌无效或已过期")
 			return
 		}
+		// 每次请求都按数据库最新状态刷新角色/部门，停用账号立即失效，
+		// 避免改角色、调部门后旧令牌还能用旧权限。
+		u, err := s.Store.GetUserByID(c.Request.Context(), cl.UserID)
+		if err != nil || u.Status != "active" {
+			fail(c, http.StatusUnauthorized, "账号不存在或已停用")
+			return
+		}
+		cl.Username = u.Username
+		cl.Name = u.Name
+		cl.Role = u.Role
+		if u.DeptID != nil {
+			cl.DeptID = *u.DeptID
+		} else {
+			cl.DeptID = 0
+		}
 		c.Set(ctxClaims, cl)
 		c.Next()
 	}
