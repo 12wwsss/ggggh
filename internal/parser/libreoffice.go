@@ -76,6 +76,9 @@ func (l *LibreOffice) Parse(ctx context.Context, path string) ([]Block, error) {
 	defer os.RemoveAll(outDir)
 
 	cmd := exec.CommandContext(ctx, bin, "--headless", "--norestore",
+		// 服务账号的 HOME（/opt/coalrag）通常是只读的，必须把 LibreOffice 的
+		// 用户配置目录指到临时目录，否则启动时报 "User installation could not be completed"。
+		"-env:UserInstallation=file://"+filepath.ToSlash(filepath.Join(outDir, "lo-profile")),
 		"--convert-to", "txt:Text (encoded):UTF8", "--outdir", outDir, path)
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return nil, fmt.Errorf("LibreOffice 转换失败: %v: %s", err, strings.TrimSpace(string(out)))

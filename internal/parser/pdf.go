@@ -40,7 +40,11 @@ func pdftotextPath() string {
 // pdftotextAvailable 供 Pick 判断能否解析 PDF。
 func pdftotextAvailable() bool { return pdftotextPath() != "" }
 
-// Parse 抽取 PDF 文本并按段落切块；扫描件（无文字层）会明确报错，提示走 OCR。
+// Parse 抽取 PDF 文本，按行切成块。
+//
+// 这里刻意保持“一行一块”：条款切分（parser.Split）需要看到每一行才能识别
+// “第X条”边界并把折行并回上一条；如果在这里先按段落合并，条款号就只剩
+// 首行能匹配，整份规程会退化成两三个大块。
 func (p *Pdf) Parse(ctx context.Context, path string) ([]Block, error) {
 	bin := pdftotextPath()
 	if bin == "" {
@@ -62,43 +66,18 @@ func (p *Pdf) Parse(ctx context.Context, path string) ([]Block, error) {
 	return blocks, nil
 }
 
-// textBlocks 把纯文本切成段落块：空行分段；连续多行没有空行时每 8 行成一块，
-// 避免整份 PDF 变成一个巨大段落、检索时只能整篇召回。
+// textBlocks 把纯文本按行切块，去掉空行与分页符。
 func textBlocks(text string) []Block {
 	text = strings.ReplaceAll(text, "\r\n", "\n")
 	text = strings.ReplaceAll(text, "\r", "\n")
-	text = strings.ReplaceAll(text, "\f", "\n\n")
-
-	paras := make([]string, 0, 16)
-	cur := make([]string, 0, 8)
-	flush := func() {
-		if s := strings.TrimSpace(strings.Join(cur, "\n")); s != "" {
-			paras = append(paras, s)
-		}
-		cur = cur[:0]
-	}
+	text = strings.ReplaceAll(text, "\f", "\n")
 
 	lines := strings.Split(text, "\n")
-	kept := 0
+	blocks := make([]Block, 0, len(lines))
 	for _, ln := range lines {
-		t := strings.TrimSpace(ln)
-		if t == "" {
-			flush()
-			kept = 0
-			continue
-		}
-		cur = append(cur, t)
-		kept++
-		if kept >= 8 {
-			flush()
-			kept = 0
+		if t := strings.TrimSpace(ln); t != "" {
+			blocks = append(blocks, Block{Text: t})
 		}
 	}
-	flush()
-
-	out := make([]Block, 0, len(paras))
-	for _, p := range paras {
-		out = append(out, Block{Text: p})
-	}
-	return out
+	return blocks
 }

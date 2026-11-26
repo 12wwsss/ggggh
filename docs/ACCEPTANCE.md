@@ -99,3 +99,16 @@
 | 回滚 | `sudo cp /opt/coalrag/bin/coalrag-server.bak-20261126-204711 /opt/coalrag/bin/coalrag-server && sudo systemctl restart coalrag`；如数据库需回退：`sudo -u postgres pg_restore -d coalrag --clean /opt/coalrag/backups/pre-batch1-20261126-204717.dump` |
 
 截图：`docs/screenshots/deploy-employee-home.png`、`deploy-employee-culture.png`、`deploy-employee-culture-detail.png`、`deploy-admin-content.png`。
+
+### 同日晚间：第二批增量部署
+
+| 项 | 内容 |
+| --- | --- |
+| 版本 | sha256 `c5bac4d965bb45f4019e7afd51d11373e2808f1ca3ea05b2d5c6980cdfb7ca66`（16,269,464 B），22:03 重启 |
+| 迁移 | `0033_issue_post`；`issue.post` 列已加，7 条历史问题按上报人岗位回填 |
+| 备份 | 二进制 `coalrag-server.bak-20261126-220132`；数据库 `/opt/coalrag/backups/pre-batch2-20261126-220132.dump`（673 KB） |
+| 服务器依赖 | 已装 `poppler-utils`（pdftotext 24.02）与 `libreoffice-writer 24.2.7`（`/usr/bin/soffice`） |
+| 验证 | `/api/v1/issues` 200；`/reports/issues` 的 `by_post` 三项（采煤机司机 5 / 综采一队队长 1 / 支架工 1）；`/reports/issue-digest?period=daily` 返回「隐患日报」正文；同一份《煤矿安全规程（节选）》转成的 **PDF 与 DOC 各切出 21 条条款**（docx 也是 21 条）；远端后台 `Reports-Cosfck5k.js` 含「按岗位 / 预览日报」 |
+| 修复记录 | 首版部署发现两处问题并当日修复：① LibreOffice 以服务账号运行时报 `User installation could not be completed`（HOME 只读）→ 传 `-env:UserInstallation` 到临时目录；② pdftotext 结果先按 8 行合并导致条款号识别不到 → 改为一行一块，交给条款切分 |
+
+截图：`docs/screenshots/deploy-employee-home.png`。
