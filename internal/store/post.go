@@ -76,19 +76,25 @@ func (s *Store) UpdatePost(ctx context.Context, p *model.Post) error {
 	return tx.Commit(ctx)
 }
 
-// DeletePost 删除岗位；仍被账号使用时拒绝。
+// DeletePost 删除岗位；仍被账号、学习条目、分配、题库或风险点使用时拒绝。
 func (s *Store) DeletePost(ctx context.Context, id int64) error {
 	var name string
 	if err := s.pool.QueryRow(ctx, `select name from org_post where id=$1`, id).Scan(&name); err != nil {
 		return wrapErr("查询岗位", err)
 	}
 	var used int
-	if err := s.pool.QueryRow(ctx, `select count(*) from org_user where post=$1`, name).Scan(&used); err != nil {
+	err := s.pool.QueryRow(ctx, `select
+		(select count(*) from org_user where post=$1) +
+		(select count(*) from learn_item where post=$1) +
+		(select count(*) from learn_assign where post=$1) +
+		(select count(*) from quiz_question where job=$1) +
+		(select count(*) from risk_point where post=$1)`, name).Scan(&used)
+	if err != nil {
 		return wrapErr("统计岗位", err)
 	}
 	if used > 0 {
 		return ErrConflict
 	}
-	_, err := s.pool.Exec(ctx, `delete from org_post where id=$1`, id)
+	_, err = s.pool.Exec(ctx, `delete from org_post where id=$1`, id)
 	return wrapErr("删除岗位", err)
 }
