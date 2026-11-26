@@ -73,7 +73,7 @@ Page({
   startById(id) {    const ex = this.data.exams.find(x => x.id === id)
     if (!ex) return
     if (ex.status === 'done') {
-      return wx.showToast({ title: '这份卷已交过', icon: 'none' })
+      return wx.showToast({ title: '考试次数已用完', icon: 'none' })
     }
     if (!ex.mine) {
       return wx.showModal({
@@ -84,7 +84,8 @@ Page({
     }
     wx.showModal({
       title: '开始考试',
-      content: ex.title + '\n' + ex.questions + ' 题 · ' + ex.minutes + ' 分钟 · ' + ex.pass + ' 分及格\n\n开始后计时，交卷不可重考',
+      content: ex.title + '\n' + ex.questions + ' 题 · ' + ex.minutes + ' 分钟 · ' + ex.pass + ' 分及格\n\n' +
+        (ex.passed ? '已通过，本次为重考（剩余 ' + ((ex.max_attempts || 1) - ex.attempts) + ' 次）' : '开始后计时，交卷前可改答案'),
       success: r => { if (r.confirm) this.doStart(id) }
     })
   },

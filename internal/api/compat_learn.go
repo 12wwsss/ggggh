@@ -499,7 +499,7 @@ func (s *Server) compatExamList(c *gin.Context) {
 		if maxAttempts <= 0 {
 			maxAttempts = 1
 		}
-		if passed || attempts >= maxAttempts {
+		if attempts >= maxAttempts {
 			status = "done"
 		}
 		items = append(items, gin.H{
