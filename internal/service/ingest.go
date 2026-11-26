@@ -26,6 +26,7 @@ const (
 	TaskDocParse      = "doc_parse"
 	TaskDocEmbed      = "doc_embed"
 	TaskIssueSweep    = "issue_overdue_sweep"
+	TaskLearnDue      = "learn_due_sweep"
 	TaskBroadcastScan = "broadcast_deadline_scan"
 	TaskExamTimeout   = "exam_timeout_sweep"
 	TaskRetention     = "task_retention"

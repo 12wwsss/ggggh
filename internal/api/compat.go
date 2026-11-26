@@ -971,12 +971,13 @@ func (s *Server) compatOptions(c *gin.Context) {
 	if err != nil || len(mediaCats) == 0 {
 		mediaCats = []string{"操作视频", "设备原理", "规程制度", "事故案例"}
 	}
+	contact, _ := s.Store.GetSetting(c.Request.Context(), "safety_contact")
 	c.JSON(http.StatusOK, gin.H{
 		"ok":        true,
 		"jobs":      jobs,
 		"teams":     teams,
 		"mediaCats": mediaCats,
-		"contact":   "",
+		"contact":   contact,
 		"version":   "1.0",
 	})
 }

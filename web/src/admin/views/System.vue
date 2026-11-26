@@ -5,6 +5,25 @@ import { api, download } from '../../shared/http'
 import { fmtTime, taskStatus } from '../../shared/format'
 
 const tab = ref('tasks')
+const contact = ref('')
+
+async function loadSettings() {
+  try {
+    const d = await api.get('/api/v1/settings')
+    contact.value = d.safety_contact || ''
+  } catch (e) {
+    ElMessage.error(e.message)
+  }
+}
+
+async function saveContact() {
+  try {
+    await api.put('/api/v1/settings', { safety_contact: contact.value.trim() })
+    ElMessage.success('已保存')
+  } catch (e) {
+    ElMessage.error(e.message)
+  }
+}
 
 const kindText = {
   doc_parse: '文档解析',
@@ -46,6 +65,7 @@ async function loadAudits() {
 onMounted(async () => {
   await loadTasks()
   await loadAudits()
+  await loadSettings()
 })
 
 async function retry(row) {
@@ -61,6 +81,13 @@ async function retry(row) {
 
 <template>
   <div class="panel">
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px">
+      <span class="bold">基础配置</span>
+      <span class="muted">安全科电话</span>
+      <el-input v-model="contact" placeholder="如 0351-1234567" style="width: 240px" />
+      <el-button type="primary" size="small" @click="saveContact">保存</el-button>
+      <span class="muted">小程序“我的 → 联系安全科”会显示这个号码</span>
+    </div>
     <el-tabs v-model="tab">
       <el-tab-pane label="后台任务" name="tasks">
         <div style="display: flex; gap: 10px; margin-bottom: 12px">

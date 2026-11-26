@@ -10,6 +10,14 @@ const wrong = ref({ rows: [], records: 0, users: 0 })
 const issues = ref({ daily: [], status: {}, overdue: 0, total: 0, closed: 0, avg_close_hours: 0, by_dept: [] })
 
 const maxDaily = computed(() => Math.max(1, ...issues.value.daily.map((d) => Math.max(d.reported, d.closed))))
+const curReported = computed(() => issues.value.daily.reduce((s, d) => s + (d.reported || 0), 0))
+const curClosed = computed(() => issues.value.daily.reduce((s, d) => s + (d.closed || 0), 0))
+
+function delta(cur, prev) {
+  if (!prev) return cur ? '新增' : '0%'
+  const p = Math.round(((cur - prev) / prev) * 100)
+  return (p >= 0 ? '+' : '') + p + '%'
+}
 
 async function load() {
   loading.value = true
@@ -73,6 +81,11 @@ onMounted(load)
           <div class="stat"><div class="n">{{ issues.closed }}</div><div class="muted">已闭环</div></div>
           <div class="stat"><div class="n">{{ issues.overdue }}</div><div class="muted">当前超时</div></div>
           <div class="stat"><div class="n">{{ Number(issues.avg_close_hours || 0).toFixed(1) }}</div><div class="muted">平均闭环小时</div></div>
+        </div>
+
+        <div class="muted" style="margin: 6px 0 12px">
+          本期上报 <strong>{{ curReported }}</strong>（上期 {{ issues.prev_reported || 0 }}，环比 {{ delta(curReported, issues.prev_reported) }}）
+          · 本期闭环 <strong>{{ curClosed }}</strong>（上期 {{ issues.prev_closed || 0 }}，环比 {{ delta(curClosed, issues.prev_closed) }}）
         </div>
 
         <div style="margin-bottom: 10px">

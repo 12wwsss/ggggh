@@ -78,6 +78,32 @@ func (s *Store) LearnAssignmentsForUser(ctx context.Context, post string, deptID
 	return out, rows.Err()
 }
 
+// SweepLearnDue 扫描学习分配，给命中范围且未完成的员工发到期/逾期提醒。
+// 同一个人同一条分配只提醒一次（message.dedupe_key 唯一）。
+func (s *Store) SweepLearnDue(ctx context.Context) (int, error) {
+	tag, err := s.pool.Exec(ctx, `insert into message(user_id, kind, title, body, ref_type, ref_id, dedupe_key)
+		select u.id, 'learn',
+			case when a.due_at < current_date then '学习任务已逾期' else '学习任务即将到期' end,
+			li.title || '（截止 ' || to_char(a.due_at,'MM-DD') || '）',
+			'learn', li.id,
+			'learn_' || a.id || '_' || u.id
+		from learn_assign a
+		join learn_item li on li.id=a.item_id
+		join org_user u on u.status='active'
+			and (a.post='' or u.post=a.post)
+			and (a.dept_id is null or u.dept_id=a.dept_id)
+		where a.due_at is not null
+		  and a.due_at <= current_date + 1
+		  and not exists (
+			select 1 from learn_record r where r.item_id=a.item_id and r.user_id=u.id and r.status='completed'
+		  )
+		on conflict (user_id, dedupe_key) where dedupe_key is not null do nothing`)
+	if err != nil {
+		return 0, wrapErr("扫描学习到期", err)
+	}
+	return int(tag.RowsAffected()), nil
+}
+
 // LearnRequiredStats 必修（含分配）总数与完成数。
 func (s *Store) LearnRequiredStats(ctx context.Context, userID int64, post string, deptID *int64) (total, done int, err error) {
 	err = s.pool.QueryRow(ctx, `with req as (

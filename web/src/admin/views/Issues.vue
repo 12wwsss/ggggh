@@ -286,6 +286,9 @@ async function act(kind) {
         </el-timeline>
 
         <el-divider content-position="left">附件</el-divider>
+        <div v-if="attachments.length" style="margin-bottom: 8px">
+          <el-button size="small" @click="download(`/api/v1/issues/${current.id}/attachments.zip`, `隐患-${current.id}.zip`)">打包下载</el-button>
+        </div>
         <div v-if="!attachments.length" class="muted">无附件</div>
         <div v-for="a in attachments" :key="a.id" class="att-row" @click="downloadAttachment(a)">
           <span>{{ a.file_name.split(/[\\/]/).pop() }}</span>

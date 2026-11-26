@@ -54,7 +54,7 @@ func (w *Worker) Run(ctx context.Context) {
 }
 
 func (w *Worker) enqueueSweeps(ctx context.Context) {
-	for _, kind := range []string{TaskIssueSweep, TaskBroadcastScan, TaskExamTimeout} {
+	for _, kind := range []string{TaskIssueSweep, TaskBroadcastScan, TaskExamTimeout, TaskLearnDue} {
 		if _, err := w.Svc.Store.Enqueue(ctx, kind, map[string]any{}, 0); err != nil {
 			w.Svc.Log.Error("投递扫描任务失败", "kind", kind, "err", err)
 		}
@@ -105,6 +105,15 @@ func (w *Worker) handle(ctx context.Context, t *model.Task) error {
 			return fmt.Errorf("任务载荷缺少 doc_id: %w", err)
 		}
 		return w.Svc.EmbedDoc(ctx, docID)
+	case TaskLearnDue:
+		n, err := w.Svc.Store.SweepLearnDue(ctx)
+		if err != nil {
+			return err
+		}
+		if n > 0 {
+			w.Svc.Log.Info("学习到期提醒", "count", n)
+		}
+		return nil
 	case TaskIssueSweep:
 		ids, err := w.Svc.Store.SweepOverdueIssues(ctx)
 		if err != nil {

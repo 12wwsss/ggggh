@@ -57,5 +57,11 @@ func (s *Server) issueReport(c *gin.Context) {
 		fail(c, http.StatusInternalServerError, "统计失败")
 		return
 	}
+	if days >= 1 && days <= 90 {
+		if p1, p2, err := s.Store.IssueCountsRange(c.Request.Context(), days*2-1, days); err == nil {
+			rep.PrevReported = p1
+			rep.PrevClosed = p2
+		}
+	}
 	ok(c, rep)
 }

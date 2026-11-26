@@ -213,11 +213,33 @@ func (s *Store) SetTrainingStageDone(ctx context.Context, planID, stageID int64,
 	_, err := s.pool.Exec(ctx, `update training_stage set done=$3,
 		done_at = case when $3 then now() else null end
 		where id=$1 and plan_id=$2`, stageID, planID, done)
-	return wrapErr("更新带培阶段", err)
+	if err != nil {
+		return wrapErr("更新带培阶段", err)
+	}
+	return s.refreshPlanStatus(ctx, planID)
+}
+
+// refreshPlanStatus 阶段全部完成时把计划置为 done，取消完成时恢复 active。
+func (s *Store) refreshPlanStatus(ctx context.Context, planID int64) error {
+	var total, done int
+	if err := s.pool.QueryRow(ctx, `select count(*), count(*) filter (where done)
+		from training_stage where plan_id=$1`, planID).Scan(&total, &done); err != nil {
+		return wrapErr("统计带培阶段", err)
+	}
+	status := "active"
+	if total > 0 && done == total {
+		status = "done"
+	}
+	_, err := s.pool.Exec(ctx, `update training_plan set status=$2 where id=$1`, planID, status)
+	return wrapErr("更新带培状态", err)
 }
 
 // SetStageDoneByID 管理端标记阶段。
 func (s *Store) SetStageDoneByID(ctx context.Context, stageID int64, done bool) error {
+	var planID int64
+	if err := s.pool.QueryRow(ctx, `select plan_id from training_stage where id=$1`, stageID).Scan(&planID); err != nil {
+		return wrapErr("查询带培阶段", err)
+	}
 	tag, err := s.pool.Exec(ctx, `update training_stage set done=$2,
 		done_at = case when $2 then now() else null end where id=$1`, stageID, done)
 	if err != nil {
@@ -226,7 +248,7 @@ func (s *Store) SetStageDoneByID(ctx context.Context, stageID int64, done bool) 
 	if tag.RowsAffected() == 0 {
 		return ErrNotFound
 	}
-	return nil
+	return s.refreshPlanStatus(ctx, planID)
 }
 
 var _ = model.LearnRecord{}

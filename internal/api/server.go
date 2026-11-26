@@ -264,6 +264,8 @@ func New(cfg *config.Config, st *store.Store, svc *service.Service, mgr *auth.Ma
 
 	// 二期问题闭环
 	authed.GET("/issue-cates", s.require("issue", "read"), s.listIssueCates)
+	authed.GET("/settings", s.require("user", "read"), s.getSettings)
+	authed.PUT("/settings", s.require("user", "write"), s.updateSettings)
 	authed.GET("/issues", s.require("issue", "read"), s.listIssues)
 	authed.POST("/issues", s.require("issue", "write"), s.createIssue)
 	authed.GET("/issues/stats", s.require("issue", "read"), s.issueStats)
@@ -275,6 +277,7 @@ func New(cfg *config.Config, st *store.Store, svc *service.Service, mgr *auth.Ma
 	authed.POST("/issues/:id/verify", s.require("issue", "write"), s.verifyIssue)
 	authed.POST("/issues/:id/close", s.require("issue", "write"), s.closeIssue)
 	authed.GET("/issues/:id/attachments", s.require("issue", "read"), s.listIssueAttachments)
+	authed.GET("/issues/:id/attachments.zip", s.require("issue", "read"), s.zipIssueAttachments)
 	authed.GET("/issues/:id/attachments/:aid", s.require("issue", "read"), s.downloadIssueAttachment)
 	authed.POST("/issues/:id/attachments", s.require("issue", "write"), s.uploadIssueAttachment)
 

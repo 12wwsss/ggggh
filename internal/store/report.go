@@ -117,13 +117,27 @@ type DeptIssueRow struct {
 
 // IssueReport 隐患趋势。
 type IssueReport struct {
-	Daily      []DailyCount   `json:"daily"`
-	Status     map[string]int `json:"status"`
-	Overdue    int            `json:"overdue"`
-	Total      int            `json:"total"`
-	Closed     int            `json:"closed"`
-	AvgCloseHr float64        `json:"avg_close_hours"`
-	ByDept     []DeptIssueRow `json:"by_dept"`
+	Daily        []DailyCount   `json:"daily"`
+	Status       map[string]int `json:"status"`
+	Overdue      int            `json:"overdue"`
+	Total        int            `json:"total"`
+	Closed       int            `json:"closed"`
+	AvgCloseHr   float64        `json:"avg_close_hours"`
+	ByDept       []DeptIssueRow `json:"by_dept"`
+	PrevReported int            `json:"prev_reported"`
+	PrevClosed   int            `json:"prev_closed"`
+}
+
+// IssueCountsRange 统计相对今天的日期窗口（含端点）内的上报/关闭数。
+func (s *Store) IssueCountsRange(ctx context.Context, fromDaysAgo, toDaysAgo int) (reported, closed int, err error) {
+	err = s.pool.QueryRow(ctx, `select
+		count(*) filter (where created_at::date between current_date-$1 and current_date-$2),
+		count(*) filter (where closed_at::date between current_date-$1 and current_date-$2)
+		from issue`, fromDaysAgo, toDaysAgo).Scan(&reported, &closed)
+	if err != nil {
+		return 0, 0, wrapErr("统计环比", err)
+	}
+	return reported, closed, nil
 }
 
 // IssueReport 近 N 天隐患趋势与分布。
