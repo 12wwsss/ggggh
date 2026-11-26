@@ -266,7 +266,7 @@ func (s *Server) compatCreateIssue(c *gin.Context) {
 	if len(meta) > 0 {
 		desc = strings.Join(meta, " ") + "\n" + desc
 	}
-	issue := &model.Issue{Title: title, Description: desc, Severity: severity, ReporterID: &u.ID}
+	issue := &model.Issue{Title: title, Description: desc, Severity: severity, Post: u.Post, ReporterID: &u.ID}
 	if u.DeptID != nil {
 		issue.DeptID = u.DeptID
 	}

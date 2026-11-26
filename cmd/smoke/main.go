@@ -451,6 +451,35 @@ func main() {
 	issueID := int64(num(iss["id"]))
 	check(issueID > 0, "问题上报成功")
 
+	// 岗位快照：上报时取上报人岗位；报表按岗位分布；日报/周报可预览
+	_, meInfo := worker.call("GET", "/api/v1/auth/me", nil)
+	userPost := ""
+	if u, ok := meInfo["user"].(map[string]any); ok {
+		userPost = str(u["post"])
+	}
+	check(str(iss["post"]) == userPost, fmt.Sprintf("问题记录上报人岗位（%q）", str(iss["post"])))
+
+	_, issueRep := admin.call("GET", "/api/v1/reports/issues?days=14", nil)
+	wantPost := userPost
+	if wantPost == "" {
+		wantPost = "未填岗位"
+	}
+	hasPost := false
+	for _, it := range asList(map[string]any{"list": issueRep["by_post"]}) {
+		if m, ok := it.(map[string]any); ok && str(m["post"]) == wantPost {
+			hasPost = true
+		}
+	}
+	check(hasPost, "报表按岗位分布包含上报岗位")
+
+	code, dg := admin.call("GET", "/api/v1/reports/issue-digest?period=daily", nil)
+	check(code == http.StatusOK && strings.Contains(str(dg["title"]), "隐患日报"), "隐患日报可预览")
+	check(strings.Contains(str(dg["body"]), "未闭环"), "日报正文含未闭环统计")
+	code, dgw := admin.call("GET", "/api/v1/reports/issue-digest?period=weekly", nil)
+	check(code == http.StatusOK && strings.Contains(str(dgw["title"]), "隐患周报"), "隐患周报可预览")
+	code, _ = worker.call("GET", "/api/v1/reports/issue-digest?period=daily", nil)
+	check(code == http.StatusForbidden, "员工无权查看隐患报表")
+
 	// 并发状态迁移：两个动作同时提交，事务保护下只有一个生效
 	_, iss2 := worker.call("POST", "/api/v1/issues", map[string]any{
 		"title": "并发受理用例", "description": "用于验证同一单据的并发受理。", "severity": "low",

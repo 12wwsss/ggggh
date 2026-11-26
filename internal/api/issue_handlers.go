@@ -60,8 +60,16 @@ func (s *Server) createIssue(c *gin.Context) {
 		d := cl.DeptID
 		dept = &d
 	}
+	// 岗位取上报人当前岗位，随问题落一份快照：以后调岗不影响历史统计。
+	post := ""
+	if u, err := s.Store.GetUserByID(c.Request.Context(), cl.UserID); err == nil {
+		post = u.Post
+		if dept == nil && u.DeptID != nil {
+			dept = u.DeptID
+		}
+	}
 	issue, err := s.Store.CreateIssue(c.Request.Context(), &model.Issue{
-		Title: req.Title, Description: req.Description, CateID: req.CateID, DeptID: dept,
+		Title: req.Title, Description: req.Description, CateID: req.CateID, DeptID: dept, Post: post,
 		ReporterID: &cl.UserID, AssigneeID: req.AssigneeID, Severity: severity, Deadline: req.Deadline,
 	})
 	if err != nil {

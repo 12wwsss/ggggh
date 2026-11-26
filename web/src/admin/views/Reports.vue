@@ -9,6 +9,20 @@ const learning = ref({ rows: [], users: 0, items: 0, completed: 0 })
 const wrong = ref({ rows: [], records: 0, users: 0 })
 const issues = ref({ daily: [], status: {}, overdue: 0, total: 0, closed: 0, avg_close_hours: 0, by_dept: [] })
 const issueDays = ref(14)
+const digest = ref(null)
+const digestTitle = ref('')
+const digestBody = ref('')
+
+async function loadDigest(period) {
+  try {
+    const res = await api.get('/api/v1/reports/issue-digest', { period })
+    digest.value = res.digest
+    digestTitle.value = res.title
+    digestBody.value = res.body
+  } catch (e) {
+    ElMessage.error(e.message)
+  }
+}
 
 async function loadIssues() {
   try {
@@ -133,6 +147,36 @@ onMounted(load)
         </div>
 
         <div class="panel">
+          <div class="panel-title">
+            按岗位
+            <span class="muted" style="font-weight: 400; font-size: 12px; margin-left: 8px">
+              上报时记录的岗位快照，调岗不影响历史
+            </span>
+          </div>
+          <el-table :data="issues.by_post || []" size="small">
+            <el-table-column prop="post" label="岗位" min-width="140" />
+            <el-table-column prop="total" label="总数" width="90" />
+            <el-table-column prop="closed" label="已闭环" width="90" />
+            <el-table-column prop="open" label="未闭环" width="90" />
+          </el-table>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">隐患日报 / 周报</div>
+          <div class="muted" style="margin-bottom: 10px">
+            每天 08:00 后自动汇总一次并发站内消息（管理员、安全科）；周一同发周报。可以先看再等推送。
+          </div>
+          <div style="display: flex; gap: 8px; margin-bottom: 10px">
+            <el-button size="small" @click="loadDigest('daily')">预览日报</el-button>
+            <el-button size="small" @click="loadDigest('weekly')">预览周报</el-button>
+          </div>
+          <div v-if="digest" class="digest">
+            <div style="font-weight: 600">{{ digestTitle }}</div>
+            <pre class="digest-body">{{ digestBody }}</pre>
+          </div>
+        </div>
+
+        <div class="panel">
           <div class="panel-title">状态分布</div>
           <div class="row">
             <el-tag v-for="(n, k) in issues.status" :key="k" type="info" effect="plain" style="margin-right: 8px">
@@ -169,6 +213,20 @@ onMounted(load)
   border: 1px solid #eef0f3;
   border-radius: 8px;
   padding: 14px 16px;
+}
+.digest {
+  background: #fafaf7;
+  border: 1px dashed #e2e0d6;
+  border-radius: 6px;
+  padding: 12px 14px;
+}
+.digest-body {
+  margin: 8px 0 0;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.9;
+  color: #3c444c;
+  white-space: pre-wrap;
 }
 .panel-title {
   font-weight: 600;

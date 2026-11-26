@@ -1,7 +1,7 @@
 # 验收对照（按技术方案逐条）
 
 验证时间：2026-11-26（离线模型已在 Ubuntu 服务器上部署并实测）
-命令：`bin\smoke.exe`（122 项）、`web\scripts\verify-ui.mjs`（44 项）、`scripts\check.ps1`；准确率见 `docs/OFFLINE-EVAL.md`，并发与长稳见 `docs/CONCURRENCY.md`
+命令：`bin\smoke.exe`（128 项）、`web\scripts\verify-ui.mjs`（46 项）、`scripts\check.ps1`；准确率见 `docs/OFFLINE-EVAL.md`，并发与长稳见 `docs/CONCURRENCY.md`
 
 ## 一、工作项 S0–S10
 
@@ -57,7 +57,7 @@
 | 六（1）首页主动推送安全文化（图文/知识卡） | 达成 | 员工首页有「安全文化」区（最多 3 条 + 全部）；`/culture` 列表与详情；后台可发布/下架；种子 `0032` 保证全新部署有内容 |
 | 六（1）文化内容可日常运营 | 达成 | 后台「安全文化内容」页新建/编辑/排序/上下架/删除；草稿员工不可见、发布后可见、员工越权 403 |
 | 六（1）短视频 | 达成 | 视频资料页（上传/外链/分类/播放），入口在员工首页「看视频」 |
-| 七（二）Word/PDF/FAQ 导入 | 部分达成 | docx 直解、CSV/JSON FAQ 一条一片、无条款结构的制度/操作规程/事故案例按段落切分；**PDF/.doc 仍依赖服务器安装 LibreOffice** |
+| 七（二）Word/PDF/FAQ 导入 | 达成 | docx 直解、PDF 走 pdftotext、doc/wps 走 LibreOffice（服务器已装 24.2.7）、CSV/JSON FAQ 一条一片、无条款结构的制度/操作规程/事故案例按段落切分 |
 | 六（6）宣贯按岗位精准推送 | 达成 | `broadcast_task.post_ids`，发布时按「区队 ∪ 岗位」生成签收与站内消息；后台可选岗位 |
 | 六（6）自动生成解读要点 | 达成 | `/broadcast/draft` 出要点初稿；真实模型出 JSON，桩/离线模型退化为规则提炼并提示人工确认 |
 | 七（二）语音提问与朗读 | 部分达成 | 识别/TTS 代码已就绪，但**测试号不能添加插件**：当前 `enableWechatSI=false`，长按语音=录音附件；换正式小程序后按 README 三步开启（加插件、app.json 声明、开关改 true） |
@@ -73,10 +73,20 @@
 5. **日志表无界** → 已补：`log_retention` 每日清理（qa_log 90 天、audit_log 180 天）。
 6. **推送渠道单一**：站内消息已覆盖受理/整改/验收/闭环/驳回/宣贯/带培/学习到期，仍没有短信或企业微信。
 7. **真实语料未导入**：知识库当前是 21 条规程示例条款 + 6 条演示文化内容，评测结论不能直接外推到真实规程。
-8. **PDF/.doc 解析**：代码已按 LibreOffice 子进程实现，服务器未安装时会明确报错；批量导入前需在部署脚本里装 LibreOffice，或改用 Python sidecar。
+8. **扫描件 PDF**：只有文字层的 PDF 能抽文本（pdftotext），扫描件需要 OCR，当前会明确报「需要 OCR」而不是产出空内容。
 9. **数字人与信创**：三期「智能体数字人 / 展厅数字人 / 品牌文化知识库」尚未开工；国产 OS+数据库适配（S9）与等保测评仍未完成。
 
-## 七、2026-11-26 增量部署记录（192.168.134.103）
+## 七、建设方案 V3.0 第二批（2026-11-26）
+
+| 方案条目 | 结论 | 证据 |
+| --- | --- | --- |
+| 六（5）按岗位、区队看问题分布 | 达成 | `issue.post` 上报时写岗位快照；`/reports/issues` 返回 `by_post`；报表页新增「按岗位」表；自测：上报人岗位「采煤机司机」与问题记录一致，分布表包含该岗位 |
+| 六（5）定期生成问题分析报表 | 达成 | worker 每天 08:00-08:09 投递 `issue_daily_report`，周一同发周报；汇总新增/闭环/未闭环/超时/平均闭环时长 + 区队/岗位/分类 Top3，以 `report` 类站内消息发给管理员与安全科；`HasTaskToday` 保证一天只发一次 |
+| 报表预览 | 达成 | `GET /reports/issue-digest?period=daily|weekly`；自测：日报返回「隐患日报：新增 x / 闭环 y」，正文含未闭环统计；员工访问 403 |
+| 七（二）PDF 导入 | 达成 | `parser.Pdf` 调 `pdftotext -enc UTF-8 -nopgbrk`；服务器 pdftotext 24.02；无文字层报「需要 OCR」 |
+| 七（二）doc/wps 导入 | 达成 | 服务器已装 LibreOffice 24.2.7（`--no-install-recommends libreoffice-writer`），`soffice --version` 正常 |
+
+## 八、2026-11-26 增量部署记录（192.168.134.103）
 
 | 项 | 内容 |
 | --- | --- |

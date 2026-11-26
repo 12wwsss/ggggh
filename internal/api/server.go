@@ -150,6 +150,7 @@ func New(cfg *config.Config, st *store.Store, svc *service.Service, mgr *auth.Ma
 	authed.GET("/reports/learning", s.learningReport)
 	authed.GET("/reports/wrong", s.wrongReport)
 	authed.GET("/reports/issues", s.issueReport)
+	authed.GET("/reports/issue-digest", s.issueDigestReport)
 
 	// 导出
 	authed.GET("/export/issues", s.exportIssues)

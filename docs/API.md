@@ -42,7 +42,7 @@
 | 方法 | 路径 | 权限 | 说明 |
 | --- | --- | --- | --- |
 | GET | `/docs` | doc:read | 管理员可见全部状态，其他角色只看已发布 |
-| POST | `/docs` | doc:write | multipart：`file`（≤64MB）、`title`、`category`；入库后异步解析。支持 docx/doc/pdf/txt/md/csv/json：规程按「第X条」切分，制度/操作规程/事故案例等无条款号文档按小标题与段落切分，FAQ 用 CSV（问题,答案）或 JSON（`[{"q","a"}]`），一条问答一个切片（`FAQ-1`…） |
+| POST | `/docs` | doc:write | multipart：`file`（≤64MB）、`title`、`category`；入库后异步解析。支持 docx/doc/pdf/txt/md/csv/json（PDF 走 pdftotext，doc/wps 走 LibreOffice）：规程按「第X条」切分，制度/操作规程/事故案例等无条款号文档按小标题与段落切分，FAQ 用 CSV（问题,答案）或 JSON（`[{"q","a"}]`），一条问答一个切片（`FAQ-1`…） |
 | GET | `/docs/:id` | doc:read | 文档详情（状态、错误信息、切片数） |
 | GET | `/docs/:id/chunks` | doc:read | 切片列表；非管理员只看已发布切片 |
 | POST | `/docs/:id/publish` | doc:write | 仅 `pending_review` 可发布，重复发布 409 |
@@ -104,7 +104,7 @@
 | --- | --- | --- | --- |
 | GET | `/issues` | issue:read | 按状态/部门/关键字查询，员工只看自己相关 |
 | GET | `/issue-cates` | issue:read | 问题分类，供上报表单选择 |
-| POST | `/issues` | issue:write | 上报，编号形如 `WT20251111-0001` |
+| POST | `/issues` | issue:write | 上报，编号形如 `WT20251111-0001`；服务端按上报人写入 `post` 岗位快照 |
 | GET | `/issues/:id` | issue:read | 详情（越范围 403） |
 | GET | `/issues/:id/flow` | issue:read | 流转记录（只读） |
 | POST | `/issues/:id/accept` | issue:write | `reported → accepted`，可指派与设期限 |
@@ -115,6 +115,15 @@
 | GET/POST | `/issues/:id/attachments` | issue:read / write | 附件列表 / 上传（≤32MB） |
 | GET | `/issues/:id/attachments/:aid` | issue:read | 下载附件原文件（按数据范围校验） |
 | GET | `/issues/stats` | issue:read | 各状态计数与超时数 |
+
+## 报表
+
+| 方法 | 路径 | 权限 | 说明 |
+| --- | --- | --- | --- |
+| GET | `/reports/learning` | 管理员/安全科 | 学习档案 |
+| GET | `/reports/wrong` | 管理员/安全科 | 错题统计 |
+| GET | `/reports/issues` | 管理员/安全科 | 隐患趋势，含 `by_dept`、`by_post`、`status`、环比 |
+| GET | `/reports/issue-digest` | 管理员/安全科 | `?period=daily|weekly` 预览隐患日报/周报（与定时推送同一份统计）：`{digest,title,body}` |
 
 ## 安全文化内容
 

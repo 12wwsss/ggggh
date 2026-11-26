@@ -37,7 +37,16 @@ func Pick(path string) (Parser, error) {
 	case ".csv", ".json":
 		// FAQ 导入：CSV/JSON 一问一答，每条生成一个切片。
 		return &FAQ{}, nil
-	case ".doc", ".pdf", ".wps":
+	case ".pdf":
+		// PDF 优先走 pdftotext：只抽文字、依赖小、不经过 Draw 转换。
+		if pdftotextAvailable() {
+			return &Pdf{}, nil
+		}
+		if sofficeAvailable() {
+			return &LibreOffice{}, nil
+		}
+		return nil, fmt.Errorf("解析 PDF 需要 poppler-utils（pdftotext）或 LibreOffice，当前环境都没有")
+	case ".doc", ".wps":
 		if sofficeAvailable() {
 			return &LibreOffice{}, nil
 		}
@@ -56,6 +65,8 @@ func ByName(name string) (Parser, error) {
 		return &Text{}, nil
 	case "faq":
 		return &FAQ{}, nil
+	case "pdf":
+		return &Pdf{}, nil
 	case "libreoffice":
 		if !sofficeAvailable() {
 			return nil, fmt.Errorf("当前环境未找到 soffice")

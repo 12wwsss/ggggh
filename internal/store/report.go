@@ -115,6 +115,14 @@ type DeptIssueRow struct {
 	Open   int    `json:"open"`
 }
 
+// PostIssueRow 岗位隐患统计。
+type PostIssueRow struct {
+	Post   string `json:"post"`
+	Total  int    `json:"total"`
+	Closed int    `json:"closed"`
+	Open   int    `json:"open"`
+}
+
 // IssueReport 隐患趋势。
 type IssueReport struct {
 	Daily        []DailyCount   `json:"daily"`
@@ -124,6 +132,7 @@ type IssueReport struct {
 	Closed       int            `json:"closed"`
 	AvgCloseHr   float64        `json:"avg_close_hours"`
 	ByDept       []DeptIssueRow `json:"by_dept"`
+	ByPost       []PostIssueRow `json:"by_post"`
 	PrevReported int            `json:"prev_reported"`
 	PrevClosed   int            `json:"prev_closed"`
 }
@@ -145,7 +154,8 @@ func (s *Store) IssueReport(ctx context.Context, days int) (*IssueReport, error)
 	if days <= 0 || days > 90 {
 		days = 14
 	}
-	rep := &IssueReport{Daily: []DailyCount{}, Status: map[string]int{}, ByDept: []DeptIssueRow{}}
+	rep := &IssueReport{Daily: []DailyCount{}, Status: map[string]int{}, ByDept: []DeptIssueRow{},
+		ByPost: []PostIssueRow{}}
 	rows, err := s.pool.Query(ctx, `select to_char(d.day,'MM-DD'),
 		(select count(*) from issue where created_at::date = d.day),
 		(select count(*) from issue where closed_at::date = d.day)
@@ -197,6 +207,21 @@ func (s *Store) IssueReport(ctx context.Context, days int) (*IssueReport, error)
 			return nil, err
 		}
 		rep.ByDept = append(rep.ByDept, r)
+	}
+	post, err := s.pool.Query(ctx, `select coalesce(nullif(i.post,''),'未填岗位'), count(*),
+		count(*) filter (where i.status='closed'),
+		count(*) filter (where i.status<>'closed')
+		from issue i group by 1 order by 2 desc`)
+	if err != nil {
+		return nil, wrapErr("统计岗位隐患", err)
+	}
+	defer post.Close()
+	for post.Next() {
+		var r PostIssueRow
+		if err := post.Scan(&r.Post, &r.Total, &r.Closed, &r.Open); err != nil {
+			return nil, err
+		}
+		rep.ByPost = append(rep.ByPost, r)
 	}
 	return rep, nil
 }

@@ -191,7 +191,7 @@ async function remove(row) {
             <template #tip>
               <div class="muted">
                 规程按「第X条」切分；制度、操作规程、事故案例没有条款号时按段落切分；FAQ 用 CSV（问题,答案）或 JSON。
-                doc / pdf 需要服务器安装 LibreOffice。
+                PDF 走 pdftotext（poppler-utils），doc / wps 需要服务器安装 LibreOffice。
               </div>
             </template>
           </el-upload>

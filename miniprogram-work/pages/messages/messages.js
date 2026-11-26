@@ -9,7 +9,8 @@ Page({
       { label: '未读', kind: '', unread: true },
       { label: '工单', kind: 'issue' },
       { label: '宣贯', kind: 'broadcast' },
-      { label: '带培', kind: 'training' }
+      { label: '带培', kind: 'training' },
+      { label: '报表', kind: 'report' }
     ],
     tab: 0,
     loading: true,

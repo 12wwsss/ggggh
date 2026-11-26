@@ -30,16 +30,21 @@
 
 ### 服务器依赖（知识库导入）
 
-`docx` 由内置解析器直接读，**不需要**额外软件；`pdf`、`doc`、`wps` 走 LibreOffice 子进程转换：
+| 格式 | 依赖 | 说明 |
+| --- | --- | --- |
+| `.docx` | 无 | 内置解析器直接读 `word/document.xml` |
+| `.txt` / `.md` / `.csv` / `.json` | 无 | FAQ 用 CSV（`问题,答案`）或 JSON（`[{"q":"…","a":"…"}]`） |
+| `.pdf` | `poppler-utils`（`pdftotext`） | 只抽文字层；扫描件没有文字层，需要 OCR |
+| `.doc` / `.wps` | `libreoffice-writer`（`soffice`） | 老 Word 格式 |
 
 ```bash
-# Ubuntu / 麒麟：装一次即可，之后 PDF 与老 Word 才能导入
-apt-get install -y libreoffice-writer --no-install-recommends
-soffice --version   # 能打印版本即就绪
+sudo apt-get install -y poppler-utils
+sudo apt-get install -y --no-install-recommends libreoffice-writer
+pdftotext -v && soffice --version   # 都能打印版本即就绪
 ```
 
-未安装时上传 PDF 会明确报「解析 PDF 需要安装 LibreOffice」，不会留下脏切片。
-FAQ 用 CSV（`问题,答案` 两列）或 JSON（`[{"q":"…","a":"…"}]`），不依赖 LibreOffice。
+PDF 优先走 `pdftotext`（不经过 Draw 转换，段落更完整）；没有它才会退回 LibreOffice；
+`.doc/.wps` 仍然只走 LibreOffice。缺少依赖时上传会明确报「需要 poppler-utils / LibreOffice」，不会留下脏切片。
 
 ## 1. DNS
 

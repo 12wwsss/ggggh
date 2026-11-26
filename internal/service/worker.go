@@ -30,6 +30,10 @@ func (w *Worker) Run(ctx context.Context) {
 	retention := time.NewTicker(24 * time.Hour)
 	defer retention.Stop()
 
+	// 报表按点投递：10 分钟看一次，8:00-8:09 之间投递当天日报（周一加投周报）。
+	reports := time.NewTicker(10 * time.Minute)
+	defer reports.Stop()
+
 	// 启动时先恢复僵死任务，并立刻做一次超时扫描。
 	if n, err := w.Svc.Store.RecoverStaleTasks(ctx, 10*time.Minute); err != nil {
 		w.Svc.Log.Error("恢复僵死任务失败", "err", err)
@@ -38,6 +42,7 @@ func (w *Worker) Run(ctx context.Context) {
 	}
 	w.enqueueSweeps(ctx)
 	w.enqueueRetention(ctx)
+	w.enqueueReports(ctx)
 
 	for {
 		select {
@@ -47,6 +52,8 @@ func (w *Worker) Run(ctx context.Context) {
 			w.enqueueSweeps(ctx)
 		case <-retention.C:
 			w.enqueueRetention(ctx)
+		case <-reports.C:
+			w.enqueueReports(ctx)
 		case <-tk.C:
 			w.processOnce(ctx)
 		}
@@ -67,6 +74,33 @@ func (w *Worker) enqueueRetention(ctx context.Context) {
 	}
 	if _, err := w.Svc.Store.Enqueue(ctx, TaskLogRetention, map[string]any{}, 0); err != nil {
 		w.Svc.Log.Error("投递日志清理失败", "err", err)
+	}
+}
+
+// enqueueReports 在每天 8:00-8:09 投递日报，周一额外投递周报；
+// HasTaskToday 保证重启或重复触发都不会一天发两次。
+func (w *Worker) enqueueReports(ctx context.Context) {
+	now := time.Now()
+	if now.Hour() != 8 || now.Minute() > 9 {
+		return
+	}
+	w.enqueueReportOnce(ctx, TaskIssueDailyReport)
+	if now.Weekday() == time.Monday {
+		w.enqueueReportOnce(ctx, TaskIssueWeeklyReport)
+	}
+}
+
+func (w *Worker) enqueueReportOnce(ctx context.Context, kind string) {
+	done, err := w.Svc.Store.HasTaskToday(ctx, kind)
+	if err != nil {
+		w.Svc.Log.Error("检查报表任务失败", "kind", kind, "err", err)
+		return
+	}
+	if done {
+		return
+	}
+	if _, err := w.Svc.Store.Enqueue(ctx, kind, map[string]any{}, 0); err != nil {
+		w.Svc.Log.Error("投递报表任务失败", "kind", kind, "err", err)
 	}
 }
 
@@ -141,6 +175,10 @@ func (w *Worker) handle(ctx context.Context, t *model.Task) error {
 			w.Svc.Log.Warn("考试超时自动交卷", "record_ids", ids, "count", len(ids))
 		}
 		return nil
+	case TaskIssueDailyReport:
+		return w.sendIssueDigest(ctx, "daily")
+	case TaskIssueWeeklyReport:
+		return w.sendIssueDigest(ctx, "weekly")
 	case TaskRetention:
 		days := w.Svc.Cfg.Task.RetentionDays
 		if days <= 0 {
@@ -179,6 +217,28 @@ func (w *Worker) handle(ctx context.Context, t *model.Task) error {
 	default:
 		return fmt.Errorf("未知任务类型 %s", t.Kind)
 	}
+}
+
+// sendIssueDigest 汇总并给管理员/安全科发站内消息。
+func (w *Worker) sendIssueDigest(ctx context.Context, period string) error {
+	d, err := w.Svc.IssueDigest(ctx, period, time.Now())
+	if err != nil {
+		return err
+	}
+	title := IssueDigestTitle(d)
+	body := d.DigestText()
+	ids, err := w.Svc.Store.UsersWithRoles(ctx, "admin", "safety")
+	if err != nil {
+		return err
+	}
+	for _, id := range ids {
+		if err := w.Svc.Store.CreateMessage(ctx, id, "report", title, body, "report", nil); err != nil {
+			w.Svc.Log.Error("发送隐患报表失败", "user_id", id, "err", err)
+		}
+	}
+	w.Svc.Log.Info("发送隐患报表", "period", period, "recipients", len(ids),
+		"reported", d.Reported, "closed", d.Closed)
+	return nil
 }
 
 func payloadInt64(payload json.RawMessage, key string) (int64, error) {

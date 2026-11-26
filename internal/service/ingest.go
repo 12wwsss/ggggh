@@ -31,6 +31,9 @@ const (
 	TaskExamTimeout   = "exam_timeout_sweep"
 	TaskRetention     = "task_retention"
 	TaskLogRetention  = "log_retention"
+	// 隐患日报/周报：定时汇总并发站内消息（管理端、安全科）。
+	TaskIssueDailyReport  = "issue_daily_report"
+	TaskIssueWeeklyReport = "issue_weekly_report"
 )
 
 // Service 是业务编排入口。

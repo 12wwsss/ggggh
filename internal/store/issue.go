@@ -11,7 +11,8 @@ import (
 const sqlIssueCols = `i.id, i.code, i.title, i.description, i.cate_id, coalesce(c.name,''),
 	i.dept_id, coalesce(d.name,''), i.reporter_id, coalesce(ru.name,''), i.assignee_id,
 	coalesce(au.name,''), i.severity, i.status, i.deadline, coalesce(i.result,''),
-	coalesce(i.verify_comment,''), i.overdue, i.created_at, i.updated_at, i.closed_at`
+	coalesce(i.verify_comment,''), i.overdue, i.created_at, i.updated_at, i.closed_at,
+	coalesce(i.post,'')`
 
 const sqlIssueFrom = ` from issue i
 	left join issue_cate c on c.id=i.cate_id
@@ -24,7 +25,7 @@ func scanIssue(r rowScanner) (*model.Issue, error) {
 	err := r.Scan(&i.ID, &i.Code, &i.Title, &i.Description, &i.CateID, &i.CateName,
 		&i.DeptID, &i.DeptName, &i.ReporterID, &i.Reporter, &i.AssigneeID, &i.Assignee,
 		&i.Severity, &i.Status, &i.Deadline, &i.Result, &i.VerifyComment, &i.Overdue,
-		&i.CreatedAt, &i.UpdatedAt, &i.ClosedAt)
+		&i.CreatedAt, &i.UpdatedAt, &i.ClosedAt, &i.Post)
 	if err != nil {
 		return nil, err
 	}
@@ -41,11 +42,11 @@ func (s *Store) CreateIssue(ctx context.Context, issue *model.Issue) (*model.Iss
 
 	var id int64
 	var createdAt time.Time
-	err = tx.QueryRow(ctx, `insert into issue(code, title, description, cate_id, dept_id,
+	err = tx.QueryRow(ctx, `insert into issue(code, title, description, cate_id, dept_id, post,
 		reporter_id, assignee_id, severity, status, deadline)
-		values ('PENDING-'||gen_random_uuid()::text, $1,$2,$3,$4,$5,$6,$7,'reported',$8)
+		values ('PENDING-'||gen_random_uuid()::text, $1,$2,$3,$4,$5,$6,$7,$8,'reported',$9)
 		returning id, created_at`,
-		issue.Title, issue.Description, issue.CateID, issue.DeptID, issue.ReporterID,
+		issue.Title, issue.Description, issue.CateID, issue.DeptID, issue.Post, issue.ReporterID,
 		issue.AssigneeID, issue.Severity, issue.Deadline).Scan(&id, &createdAt)
 	if err != nil {
 		return nil, wrapErr("上报问题", err)
@@ -139,7 +140,7 @@ func (s *Store) ListIssuesByUser(ctx context.Context, userID int64, limit, offse
 		if err := rows.Scan(&i.ID, &i.Code, &i.Title, &i.Description, &i.CateID, &i.CateName,
 			&i.DeptID, &i.DeptName, &i.ReporterID, &i.Reporter, &i.AssigneeID, &i.Assignee,
 			&i.Severity, &i.Status, &i.Deadline, &i.Result, &i.VerifyComment, &i.Overdue,
-			&i.CreatedAt, &i.UpdatedAt, &i.ClosedAt, &total); err != nil {
+			&i.CreatedAt, &i.UpdatedAt, &i.ClosedAt, &i.Post, &total); err != nil {
 			return nil, 0, err
 		}
 		out = append(out, i)
@@ -166,7 +167,7 @@ func (s *Store) ListIssues(ctx context.Context, status string, deptID, reporterI
 		if err := rows.Scan(&i.ID, &i.Code, &i.Title, &i.Description, &i.CateID, &i.CateName,
 			&i.DeptID, &i.DeptName, &i.ReporterID, &i.Reporter, &i.AssigneeID, &i.Assignee,
 			&i.Severity, &i.Status, &i.Deadline, &i.Result, &i.VerifyComment, &i.Overdue,
-			&i.CreatedAt, &i.UpdatedAt, &i.ClosedAt, &total); err != nil {
+			&i.CreatedAt, &i.UpdatedAt, &i.ClosedAt, &i.Post, &total); err != nil {
 			return nil, 0, err
 		}
 		out = append(out, i)

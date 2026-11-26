@@ -274,14 +274,16 @@ type Task struct {
 
 // Issue 问题（二期）。
 type Issue struct {
-	ID            int64      `json:"id"`
-	Code          string     `json:"code"`
-	Title         string     `json:"title"`
-	Description   string     `json:"description"`
-	CateID        *int64     `json:"cate_id,omitempty"`
-	CateName      string     `json:"cate_name,omitempty"`
-	DeptID        *int64     `json:"dept_id,omitempty"`
-	DeptName      string     `json:"dept_name,omitempty"`
+	ID          int64  `json:"id"`
+	Code        string `json:"code"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	CateID      *int64 `json:"cate_id,omitempty"`
+	CateName    string `json:"cate_name,omitempty"`
+	DeptID      *int64 `json:"dept_id,omitempty"`
+	DeptName    string `json:"dept_name,omitempty"`
+	// Post 是上报人岗位快照，上报时写入，之后改岗不影响历史统计。
+	Post          string     `json:"post,omitempty"`
 	ReporterID    *int64     `json:"reporter_id,omitempty"`
 	Reporter      string     `json:"reporter,omitempty"`
 	AssigneeID    *int64     `json:"assignee_id,omitempty"`

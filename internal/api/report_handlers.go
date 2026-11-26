@@ -3,8 +3,11 @@ package api
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
+
+	"coalrag/internal/service"
 )
 
 func (s *Server) reportsAllowed(c *gin.Context) bool {
@@ -64,4 +67,22 @@ func (s *Server) issueReport(c *gin.Context) {
 		}
 	}
 	ok(c, rep)
+}
+
+// issueDigestReport 预览日报/周报：与 worker 定时推送同一份统计，管理员可先看再等推送。
+func (s *Server) issueDigestReport(c *gin.Context) {
+	if !s.reportsAllowed(c) {
+		return
+	}
+	period := c.DefaultQuery("period", "daily")
+	if period != "daily" && period != "weekly" {
+		fail(c, http.StatusBadRequest, "period 只能是 daily 或 weekly")
+		return
+	}
+	d, err := s.Svc.IssueDigest(c.Request.Context(), period, time.Now())
+	if err != nil {
+		fail(c, http.StatusInternalServerError, "统计失败")
+		return
+	}
+	ok(c, gin.H{"digest": d, "title": service.IssueDigestTitle(d), "body": d.DigestText()})
 }

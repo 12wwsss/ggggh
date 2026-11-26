@@ -360,12 +360,28 @@ async function main() {
   shot = await cdp.send('Page.captureScreenshot', { format: 'png' })
   writeFileSync(join(shotDir, 'admin-doc-versions.png'), Buffer.from(shot.data, 'base64'))
 
-  // 造一条“已上报”的用例，保证“处理”按钮一定存在（历史数据可能都闭环了）
-  await fetch(`${base}/api/v1/issues`, {
+  // 造两条用例：一条留在“已上报”验证处理按钮，一条走完流程验证“查看”只读
+  const mkIssue = async (title, desc) => (await (await fetch(`${base}/api/v1/issues`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${worker.token}` },
-    body: JSON.stringify({ title: '界面回归用例', description: '用于验证处理按钮', severity: 'low' }),
-  })
+    body: JSON.stringify({ title, description: desc, severity: 'low' }),
+  })).json())?.data?.id
+
+  await mkIssue('界面回归用例', '用于验证处理按钮')
+
+  // 走完 上报→受理→整改→验收→闭环：管理员走强制通道，避免角色依赖
+  const closedID = await mkIssue('界面回归闭环用例', '用于验证只读查看')
+  if (closedID) {
+    const step = async (path, body) => fetch(`${base}/api/v1/issues/${closedID}/${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${admin.token}` },
+      body: JSON.stringify(body),
+    })
+    await step('accept', { force: true, reason: '界面回归' })
+    await step('rectify', { force: true, reason: '界面回归', result: '已整改' })
+    await step('verify', { force: true, reason: '界面回归', pass: true, comment: '界面回归验收' })
+    await step('close', { force: true, reason: '界面回归' })
+  }
 
   await cdp.send('Page.navigate', { url: `${base}/admin/issues` })
   await sleep(2200)
@@ -413,6 +429,18 @@ async function main() {
   const actionText = await cdp.evaluate(`document.querySelector('.el-drawer')?.innerText || ''`)
   check(actionText.includes('受理') && actionText.includes('驳回'), '待办单据可受理或驳回')
   check((await cdp.evaluate('document.title')) !== '', '页面标题可读')
+
+  // 二期：隐患报表按岗位分布 + 日报/周报预览
+  await cdp.send('Page.navigate', { url: `${base}/admin/reports` })
+  await sleep(2200)
+  await cdp.evaluate(`(() => { const t = [...document.querySelectorAll('.el-tabs__item')].find((x) => x.textContent.includes('隐患趋势')); if (t) { t.click(); return true } return false })()`)
+  await sleep(1200)
+  text = await cdp.evaluate('document.body.innerText')
+  check(text.includes('按岗位') && text.includes('隐患日报'), '报表有岗位分布与日报入口')
+  const clickedDigest = await cdp.evaluate(`(() => { const b = [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === '预览日报'); if (b) { b.click(); return true } return false })()`)
+  await sleep(1500)
+  text = await cdp.evaluate('document.body.innerText')
+  check(clickedDigest === true && text.includes('隐患日报：'), '报表可预览隐患日报')
 
   // 建设方案六（1）后台内容运营；六（6）宣贯按岗位下发 + 自动生成解读要点
   await cdp.send('Page.navigate', { url: `${base}/admin/content` })
