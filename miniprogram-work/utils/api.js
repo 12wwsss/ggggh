@@ -263,6 +263,11 @@ function login(username, password) {
   return request('/api/login', { username, password })
 }
 
+/** 首次登录修改初始口令 */
+function firstPassword(password) {
+  return request('/api/password/first', { password })
+}
+
 /** 当前登录人 */
 function me() {
   return request('/api/me', {}, 'GET')
@@ -282,7 +287,7 @@ function saveProfile(payload) {
 }
 
 module.exports = {
-  wxLogin, login, me, media, absUrl, options, questionGroups, practiceGroups, jobQuestions, employeeSummary, learnRead, risks, learnItems, learnItemDetail, learnProgress, wrongList, wrongSet, examRecords, examReview, faq, examList, examStart, examSubmit,
+  wxLogin, login, firstPassword, me, media, absUrl, options, questionGroups, practiceGroups, jobQuestions, employeeSummary, learnRead, risks, learnItems, learnItemDetail, learnProgress, wrongList, wrongSet, examRecords, examReview, faq, examList, examStart, examSubmit,
   culture, profile, saveProfile,
   chat, submitQuiz, health,
   content, article, training,

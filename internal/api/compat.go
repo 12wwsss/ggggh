@@ -865,19 +865,53 @@ func (s *Server) compatLogin(c *gin.Context) {
 		return
 	}
 	_ = s.Store.LoginSucceeded(ctx, u.ID)
+	mustChange, _ := s.Store.MustChangePassword(ctx, u.ID)
 	c.JSON(http.StatusOK, gin.H{
-		"ok":         true,
-		"token":      token,
-		"expires_at": exp,
+		"ok":                   true,
+		"token":                token,
+		"expires_at":           exp,
+		"must_change_password": mustChange,
 		"user": gin.H{
-			"id":       u.ID,
-			"username": u.Username,
-			"name":     u.Name,
-			"role":     u.Role,
-			"dept_id":  deptID,
-			"post":     u.Post,
+			"id":                   u.ID,
+			"username":             u.Username,
+			"name":                 u.Name,
+			"role":                 u.Role,
+			"dept_id":              deptID,
+			"post":                 u.Post,
+			"must_change_password": mustChange,
 		},
 	})
+}
+
+// compatFirstPassword 首次登录修改初始口令。
+func (s *Server) compatFirstPassword(c *gin.Context) {
+	u := s.compatCurrentUser(c)
+	if u == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"ok": false, "message": "请先登录"})
+		return
+	}
+	need, err := s.Store.MustChangePassword(c.Request.Context(), u.ID)
+	if err != nil || !need {
+		c.JSON(http.StatusConflict, gin.H{"ok": false, "message": "当前不需要修改初始口令"})
+		return
+	}
+	var req struct {
+		Password string `json:"password"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil || len([]rune(req.Password)) < 8 {
+		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "message": "新口令至少 8 位"})
+		return
+	}
+	hash, err := auth.HashPassword(req.Password)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "message": "口令处理失败"})
+		return
+	}
+	if err := s.Store.UpdatePassword(c.Request.Context(), u.ID, hash); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "message": "保存失败"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
 // compatMe 当前登录人信息。

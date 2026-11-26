@@ -89,11 +89,13 @@ func (s *Server) login(c *gin.Context) {
 	if err := s.Store.LoginSucceeded(ctx, u.ID); err != nil {
 		s.Log.Error("更新登录状态失败", "err", err)
 	}
+	mustChange, _ := s.Store.MustChangePassword(ctx, u.ID)
 
 	ok(c, gin.H{
-		"token":      token,
-		"expires_at": exp,
-		"user":       u,
+		"token":                token,
+		"expires_at":           exp,
+		"user":                 u,
+		"must_change_password": mustChange,
 	})
 }
 

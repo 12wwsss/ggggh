@@ -91,6 +91,7 @@ func New(cfg *config.Config, st *store.Store, svc *service.Service, mgr *auth.Ma
 	compat.GET("/health", s.compatHealth)
 	compat.POST("/chat", s.compatChat)
 	compat.POST("/login", s.compatLogin)
+	compat.POST("/password/first", s.compatFirstPassword)
 	compat.GET("/me", s.compatMe)
 	compat.GET("/profile", s.compatProfile)
 	compat.POST("/profile", s.compatSaveProfile)

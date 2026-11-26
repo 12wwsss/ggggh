@@ -41,6 +41,11 @@ Page({
   },
 
   onShow() {
+    const u = auth.user() || {}
+    if (auth.token() && u.must_change_password) {
+      wx.reLaunch({ url: '/pages/password/password' })
+      return
+    }
     this.load()
   },
 

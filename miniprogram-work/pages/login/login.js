@@ -11,9 +11,10 @@ Page({
   },
 
   onLoad() {
-    // 已登录直接进首页
+    // 已登录直接进首页；首次登录未改密先去设置口令
     if (auth.token()) {
-      wx.reLaunch({ url: '/pages/home/home' })
+      const u = auth.user() || {}
+      wx.reLaunch({ url: u.must_change_password ? '/pages/password/password' : '/pages/home/home' })
     }
   },
 
@@ -36,12 +37,19 @@ Page({
     this.setData({ loading: true, err: '' })
     api.login(username, password).then(res => {
       auth.setToken(res.token)
-      auth.setUser(Object.assign({}, res.user, { label: res.user && res.user.name }))
+      const must = !!(res.must_change_password || (res.user && res.user.must_change_password))
+      const user = Object.assign({}, res.user, {
+        label: res.user && res.user.name,
+        must_change_password: must
+      })
+      auth.setUser(user)
       const app = getApp()
       if (app && app.globalData) app.globalData.loginState = 'account'
       this.setData({ loading: false })
       wx.showToast({ title: '登录成功', icon: 'success' })
-      setTimeout(() => wx.reLaunch({ url: '/pages/home/home' }), 400)
+      setTimeout(() => {
+        wx.reLaunch({ url: must ? '/pages/password/password' : '/pages/home/home' })
+      }, 400)
     }).catch(e => {
       this.setData({ loading: false, err: e.message || '登录失败' })
     })

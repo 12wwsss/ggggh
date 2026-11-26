@@ -92,8 +92,8 @@ func (s *Store) ListUsers(ctx context.Context, deptID *int64, keyword string, li
 func (s *Store) CreateUser(ctx context.Context, u *model.User, passwordHash string) (int64, error) {
 	var id int64
 	err := s.pool.QueryRow(ctx, `insert into org_user
-		(dept_id, username, password_hash, name, phone, post, role, status)
-		values ($1,$2,$3,$4,nullif($5,''),nullif($6,''),$7,$8) returning id`,
+		(dept_id, username, password_hash, name, phone, post, role, status, must_change_password)
+		values ($1,$2,$3,$4,nullif($5,''),nullif($6,''),$7,$8,true) returning id`,
 		u.DeptID, u.Username, passwordHash, u.Name, u.Phone, u.Post, u.Role, u.Status).Scan(&id)
 	return id, wrapErr("新建用户", err)
 }
@@ -112,10 +112,33 @@ func (s *Store) UpdateUser(ctx context.Context, u *model.User) error {
 	return nil
 }
 
-// UpdatePassword 重置口令并解锁。
+// UpdatePassword 修改口令并解锁（用户自己改，清除首改标记）。
 func (s *Store) UpdatePassword(ctx context.Context, userID int64, hash string) error {
 	tag, err := s.pool.Exec(ctx, `update org_user set password_hash=$2, failed_attempts=0,
-		locked_until=null, updated_at=now() where id=$1`, userID, hash)
+		locked_until=null, must_change_password=false, updated_at=now() where id=$1`, userID, hash)
+	if err != nil {
+		return wrapErr("重置口令", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// MustChangePassword 是否需要首次修改口令。
+func (s *Store) MustChangePassword(ctx context.Context, userID int64) (bool, error) {
+	var need bool
+	err := s.pool.QueryRow(ctx, `select coalesce(must_change_password,false) from org_user where id=$1`, userID).Scan(&need)
+	if isNoRows(err) {
+		return false, ErrNotFound
+	}
+	return need, wrapErr("查询口令状态", err)
+}
+
+// ResetPassword 管理员重置口令（下次登录必须改）。
+func (s *Store) ResetPassword(ctx context.Context, userID int64, hash string) error {
+	tag, err := s.pool.Exec(ctx, `update org_user set password_hash=$2, failed_attempts=0,
+		locked_until=null, must_change_password=true, updated_at=now() where id=$1`, userID, hash)
 	if err != nil {
 		return wrapErr("重置口令", err)
 	}

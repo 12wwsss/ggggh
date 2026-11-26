@@ -183,7 +183,7 @@ func (s *Server) resetPassword(c *gin.Context) {
 		fail(c, http.StatusInternalServerError, "口令处理失败")
 		return
 	}
-	if err := s.Store.UpdatePassword(c.Request.Context(), id, hash); err != nil {
+	if err := s.Store.ResetPassword(c.Request.Context(), id, hash); err != nil {
 		fail(c, http.StatusNotFound, "用户不存在")
 		return
 	}
