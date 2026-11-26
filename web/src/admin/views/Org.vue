@@ -68,6 +68,40 @@ async function loadRoles() {
   }
 }
 
+const importVisible = ref(false)
+const importBusy = ref(false)
+const importFile = ref(null)
+const importResult = ref(null)
+
+function onImportFile(f) {
+  importFile.value = f.raw
+}
+
+function downloadUserTemplate() {
+  const csv = '\ufeff工号,姓名,部门,岗位,初始口令,手机号,角色\n' +
+    'w1001,张三,综采一队,采煤机司机,Coal@123456,13800000000,employee\n'
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob)
+  a.download = '员工导入模板.csv'
+  a.click()
+  URL.revokeObjectURL(a.href)
+}
+
+async function doImport() {
+  if (!importFile.value) return ElMessage.warning('请选择 CSV 文件')
+  importBusy.value = true
+  try {
+    const res = await api.upload('/api/v1/users/import', importFile.value)
+    importResult.value = res
+    ElMessage.success('导入完成：成功 ' + (res.created || 0) + ' 条')
+    loadUsers()
+  } catch (e) {
+    ElMessage.error(e.message)
+  } finally {
+    importBusy.value = false
+  }
+}
 onMounted(async () => {
   await loadUsers()
   await loadDepts()
@@ -180,6 +214,7 @@ async function saveRole() {
       <el-tab-pane label="用户" name="users">
         <div style="display: flex; margin-bottom: 12px">
           <el-button type="primary" @click="openUser(null)">新建账号</el-button>
+          <el-button @click="importVisible = true">批量导入</el-button>
           <div style="flex: 1"></div>
           <span class="muted">共 {{ total }} 人</span>
         </div>
@@ -312,6 +347,35 @@ async function saveRole() {
       <template #footer>
         <el-button @click="deptDialog = false">取消</el-button>
         <el-button type="primary" @click="saveDept">保存</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="importVisible" title="批量导入员工" width="640px">
+      <div class="muted" style="line-height: 1.8">
+        表头：工号、姓名、部门、岗位、初始口令、手机号、角色。<br />
+        部门必须与后台区队名称完全一致；角色可选 admin/dept_leader/safety/employee，留空为 employee；初始口令留空默认 Coal@123456。
+      </div>
+      <div style="margin: 10px 0">
+        <el-button size="small" @click="downloadUserTemplate">下载模板</el-button>
+      </div>
+      <el-upload :auto-upload="false" :limit="1" accept=".csv" :on-change="onImportFile">
+        <el-button>选择 CSV 文件</el-button>
+      </el-upload>
+      <div v-if="importResult" style="margin-top: 12px">
+        <el-alert
+          :title="`导入完成：成功 ${importResult.created} 条，跳过 ${importResult.skipped} 条`"
+          type="success"
+          :closable="false"
+        />
+        <el-table v-if="importResult.errors && importResult.errors.length" :data="importResult.errors" size="small" max-height="220" style="margin-top: 8px">
+          <el-table-column prop="row" label="行" width="60" />
+          <el-table-column prop="username" label="工号" width="120" />
+          <el-table-column prop="reason" label="原因" />
+        </el-table>
+      </div>
+      <template #footer>
+        <el-button @click="importVisible = false">关闭</el-button>
+        <el-button type="primary" :loading="importBusy" @click="doImport">开始导入</el-button>
       </template>
     </el-dialog>
   </div>

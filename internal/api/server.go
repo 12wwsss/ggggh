@@ -182,6 +182,7 @@ func New(cfg *config.Config, st *store.Store, svc *service.Service, mgr *auth.Ma
 	authed.PUT("/depts/:id", s.require("dept", "write"), s.updateDept)
 	authed.GET("/users", s.require("user", "read"), s.listUsers)
 	authed.POST("/users", s.require("user", "write"), s.createUser)
+	authed.POST("/users/import", s.require("user", "write"), s.importUsers)
 	authed.PUT("/users/:id", s.require("user", "write"), s.updateUser)
 	authed.POST("/users/:id/password", s.require("user", "write"), s.resetPassword)
 	authed.POST("/users/:id/unlock", s.require("user", "write"), s.unlockUser)
