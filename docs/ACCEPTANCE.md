@@ -111,4 +111,17 @@
 | 验证 | `/api/v1/issues` 200；`/reports/issues` 的 `by_post` 三项（采煤机司机 5 / 综采一队队长 1 / 支架工 1）；`/reports/issue-digest?period=daily` 返回「隐患日报」正文；同一份《煤矿安全规程（节选）》转成的 **PDF 与 DOC 各切出 21 条条款**（docx 也是 21 条）；远端后台 `Reports-Cosfck5k.js` 含「按岗位 / 预览日报」 |
 | 修复记录 | 首版部署发现两处问题并当日修复：① LibreOffice 以服务账号运行时报 `User installation could not be completed`（HOME 只读）→ 传 `-env:UserInstallation` 到临时目录；② pdftotext 结果先按 8 行合并导致条款号识别不到 → 改为一行一块，交给条款切分 |
 
+### 同晚问答体验修复（代码已推，待小程序重编译）
+
+| 项 | 内容 |
+| --- | --- |
+| 现象 | 文章详情点「问问 AI」后，聊天页把 `%E7%93%A6%E6%96%AF…` 当问题发出去，检索命中 0，只回「资料中未找到明确依据」 |
+| 原因 1 | `wx.navigateTo` 的 query 不会自动解码，`chat.js` 直接把 `options.q` 当问题发送 |
+| 修复 1 | `chat.js` 新增 `safeDecode`（最多解两次，兼容已解码与非法编码），并补 node 用例 |
+| 原因 2 | 103 上 `doc_embedding` 为 0（21 个切片没有向量），且 `min_score=0.35` 把纯词法命中全部过滤，检索永远为空 |
+| 修复 2 | 重新上传并发布《煤矿安全规程（节选）》为 doc 53，`doc_embedding` 0 → 21；检索恢复（第一百三十六条 score 0.68） |
+| 原因 3 | `llama-chat` 崩溃重启（restart counter 56）：日志 `failed to fit params to free device memory: n_gpu_layers already set by user to 99, abort`，GPU 同时被 gazebo 占用约 1.6 GB |
+| 处理 | 服务端改为「模型不可用 → 返回检索条款 + 前 3 条引用」的降级回答，不再 500/空白；`llama-chat` 的显存参数待定，`llama-embed` 正常 |
+| 验证 | `POST /qa/ask`（模型不可用）返回 `answered=false` + 「模型服务暂不可用，先列出检索到的条款…」+ 第一百三十六/一百三十八条引用；本地 8082 以 dead base_url 复现同一行为 |
+
 截图：`docs/screenshots/deploy-employee-home.png`。
