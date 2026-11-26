@@ -66,6 +66,12 @@ func (s *Store) UpdatePost(ctx context.Context, p *model.Post) error {
 		if _, err := tx.Exec(ctx, `update risk_point set post=$2 where post=$1`, old, p.Name); err != nil {
 			return wrapErr("同步风险点岗位", err)
 		}
+		if _, err := tx.Exec(ctx, `update learn_assign set post=$2 where post=$1`, old, p.Name); err != nil {
+			return wrapErr("同步学习分配岗位", err)
+		}
+		if _, err := tx.Exec(ctx, `update quiz_question set job=$2 where job=$1`, old, p.Name); err != nil {
+			return wrapErr("同步题库岗位", err)
+		}
 	}
 	return tx.Commit(ctx)
 }

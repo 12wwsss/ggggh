@@ -46,6 +46,15 @@ Page({
       wx.reLaunch({ url: '/pages/password/password' })
       return
     }
+    // 同步最新姓名/岗位（管理员改了岗位名称后，手机端不用重新登录）
+    if (auth.token()) {
+      api.me().then(res => {
+        if (res && res.user) {
+          auth.setUser(Object.assign({}, res.user, { label: res.user.name }))
+          this.setData({ meName: this.displayName() })
+        }
+      }).catch(() => {})
+    }
     this.load()
   },
 
