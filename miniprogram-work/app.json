@@ -16,6 +16,7 @@
     "pages/questions/questions",
     "pages/policy/policy",
     "pages/messages/messages",
+    "pages/todos/todos",
     "pages/issue/issue",
     "pages/me/me",
     "pages/settings/settings"

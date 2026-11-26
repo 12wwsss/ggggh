@@ -136,12 +136,7 @@ Page({
   },
 
   goTodos() {
-    const u = auth.user() || {}
-    if (['admin', 'safety', 'dept_leader'].indexOf(u.role) >= 0) {
-      wx.navigateTo({ url: '/pages/handle/handle' })
-    } else {
-      wx.navigateTo({ url: '/pages/issue/issue' })
-    }
+    wx.navigateTo({ url: '/pages/todos/todos' })
   },
 
   /** 待办提醒：员工看待整改/被驳回，管理层看待受理/待验收/待闭环 */
