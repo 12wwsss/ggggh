@@ -1,5 +1,8 @@
 const api = require('../../utils/api.js')
 
+// 图文与安全文化共用这一页：按分类取顶部渐变色，缺失时退回紫色卡片。
+const COVER = { 案例: 'case', 安全月: 'month', 寄语: 'word', 光荣榜: 'star', 知识卡: 'card' }
+
 Page({
   data: {
     id: '',
@@ -17,9 +20,12 @@ Page({
   fetch(id) {
     this.setData({ loading: true, err: '' })
     api.article(id).then(res => {
-      this.setData({ item: res.item, loading: false })
-      api.learnRead('art:' + id, res.item.minutes || 2)
-      wx.setNavigationBarTitle({ title: res.item.cat || '详情' })
+      const item = res.item || {}
+      item.cover = item.cover || COVER[item.cat] || 'card'
+      item.date = String(item.date || '').slice(0, 10)
+      this.setData({ item, loading: false })
+      api.learnRead('art:' + id, item.minutes || 2)
+      wx.setNavigationBarTitle({ title: item.tag || item.cat || '详情' })
     }).catch(e => {
       this.setData({ loading: false, err: e.message })
     })

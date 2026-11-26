@@ -1,10 +1,17 @@
+/* 安全文化列表：与 H5 同一分类口径（全部/案例/安全月/寄语/光荣榜/知识卡），
+   卡片沿用首页的圆角白卡与 24rpx 圆角；说明文字按大字号、够对比度。 */
+
 .page { background: #F3F2ED; min-height: 100vh; padding-bottom: 40rpx; }
 
+/* ── 分类栏 ── */
 .cats {
   white-space: nowrap;
-  padding: 20rpx 24rpx 4rpx;
-  background: #fff;
+  padding: 20rpx 24rpx;
+  background: #FFFFFF;
   border-bottom: 2rpx solid #ECEBE4;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 .cat {
   display: inline-block;
@@ -19,33 +26,52 @@
 
 .wrap { padding: 24rpx 32rpx; }
 
+/* ── 列表卡 ── */
 .item { display: flex; padding: 24rpx; margin-bottom: 20rpx; }
-
 .cover {
-  width: 150rpx; height: 150rpx; border-radius: 20rpx;
+  width: 140rpx; height: 140rpx; border-radius: 20rpx;
   margin-right: 22rpx; flex: none;
   display: flex; align-items: center; justify-content: center;
 }
-.cover-txt { font-size: 22rpx; font-weight: 700; color: #fff; }
+.cover-txt { font-size: 22rpx; font-weight: 700; color: #fff; letter-spacing: 2rpx; }
 .cover-case { background: linear-gradient(140deg, #8A5A00, #2A1C00); }
 .cover-month { background: linear-gradient(140deg, #2E6BE6, #1B4F8A); }
 .cover-word { background: linear-gradient(140deg, #12B76A, #0B8A50); }
 .cover-star { background: linear-gradient(140deg, #F79009, #D97706); }
 .cover-card { background: linear-gradient(140deg, #7C5CFF, #4C34B8); }
 
-.title { font-size: 29rpx; font-weight: 700; line-height: 42rpx; }
-.summary {
-  font-size: 23rpx; color: #7C8B99; line-height: 34rpx; margin-top: 10rpx;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+.title {
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+  overflow: hidden;
+  font-size: 30rpx; font-weight: 700; line-height: 42rpx; color: #10151A;
 }
-.meta { font-size: 21rpx; color: #A8B2BC; margin-top: 12rpx; }
-.dot { margin: 0 8rpx; }
+.summary {
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+  overflow: hidden;
+  font-size: 26rpx; color: #5A6672; line-height: 38rpx; margin-top: 8rpx;
+}
+.meta { font-size: 22rpx; color: #6F7B87; margin-top: 10rpx; }
 
-.tip { text-align: center; color: #98A2AC; font-size: 24rpx; padding: 60rpx 0; }
+/* ── 骨架 ── */
+.sk-cover { background: #EDECE5; }
+.sk-line {
+  height: 22rpx; border-radius: 6rpx; background: #EDECE5;
+  margin-bottom: 14rpx;
+  animation: sk 1.1s ease-in-out infinite alternate;
+}
+@keyframes sk { from { opacity: .55; } to { opacity: 1; } }
+
+/* ── 空态与错误 ── */
+.empty { padding: 120rpx 20rpx 40rpx; display: flex; flex-direction: column; align-items: center; }
+.empty-main { font-size: 30rpx; font-weight: 700; color: #10151A; }
+.empty-sub { font-size: 26rpx; color: #5A6672; margin-top: 12rpx; line-height: 38rpx; text-align: center; }
 
 .err { padding: 32rpx; }
+.err-main { display: block; font-size: 30rpx; font-weight: 700; color: #D93A3A; }
+.err-sub { display: block; font-size: 26rpx; color: #5A6672; margin-top: 8rpx; }
 .retry {
-  display: inline-block; margin-top: 20rpx;
-  background: #FFC400; color: #141A21; font-size: 24rpx;
-  padding: 12rpx 32rpx; border-radius: 28rpx;
+  display: inline-flex; align-items: center; justify-content: center;
+  margin-top: 22rpx; height: 72rpx; padding: 0 44rpx;
+  background: #FFC400; color: #141A21; font-size: 26rpx; font-weight: 700;
+  border-radius: 36rpx;
 }

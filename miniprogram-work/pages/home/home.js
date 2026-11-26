@@ -67,14 +67,14 @@ Page({
 
     Promise.all([
       api.media('').catch(() => ({ items: [] })),
-      api.culture().catch(() => ({ items: [] })),
+      api.cultureFeed().catch(() => ({ items: [] })),
       api.employeeSummary().catch(() => null)
     ]).then(([m, c, s]) => {
       const cultures = (c.items || []).slice(0, 2).map(it => ({
         id: it.id,
         tag: it.tag || it.cat || '',
         title: it.title || '',
-        body: Array.isArray(it.body) ? it.body.join(' ') : (it.body || '')
+        body: Array.isArray(it.body) ? it.body.join(' ') : (it.body || it.summary || '')
       }))
       const medias = (m.items || []).slice(0, 3).map(it => ({
         id: it.id,

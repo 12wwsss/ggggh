@@ -1,17 +1,27 @@
 <view class="page">
-  <scroll-view class="cats" scroll-x="{{true}}">
-    <text class="cat {{cat === '' ? 'cat-on' : ''}}" data-c="" bindtap="pickCat">全部</text>
-    <text class="cat {{cat === item ? 'cat-on' : ''}}" wx:for="{{cats}}" wx:key="*this"
-          data-c="{{item}}" bindtap="pickCat">{{item}}</text>
+  <scroll-view class="cats" scroll-x enable-flex>
+    <view class="cat {{cat === '' ? 'cat-on' : ''}}" data-c="" bindtap="pickCat">全部</view>
+    <view class="cat {{cat === item ? 'cat-on' : ''}}" wx:for="{{cats}}" wx:key="*this"
+          data-c="{{item}}" bindtap="pickCat">{{item}}</view>
   </scroll-view>
 
   <view class="wrap">
-    <view wx:if="{{loading}}" class="tip">正在加载…</view>
+    <!-- 骨架：等接口时先显示三张灰卡，比一行“正在加载”稳 -->
+    <block wx:if="{{loading}}">
+      <view class="card item" wx:for="{{skeleton}}" wx:key="*this">
+        <view class="cover sk-cover"></view>
+        <view class="grow">
+          <view class="sk-line" style="width: 70%"></view>
+          <view class="sk-line" style="width: 92%"></view>
+          <view class="sk-line" style="width: 55%"></view>
+        </view>
+      </view>
+    </block>
 
     <view wx:if="{{err}}" class="card err">
-      <view class="small bold" style="color:#E5484D">内容没加载出来</view>
-      <view class="tiny muted" style="margin-top:8rpx">{{err}}</view>
-      <text class="retry" bindtap="retry">重试</text>
+      <text class="err-main">内容没加载出来</text>
+      <text class="err-sub">{{err}}</text>
+      <view class="retry" bindtap="retry">重试</view>
     </view>
 
     <block wx:if="{{!loading && !err}}">
@@ -22,15 +32,14 @@
         <view class="grow">
           <view class="title">{{item.title}}</view>
           <view class="summary">{{item.summary}}</view>
-          <view class="meta">
-            <text>{{item.date}}</text>
-            <text class="dot">·</text>
-            <text>{{item.minutes}} 分钟</text>
-          </view>
+          <view wx:if="{{item.date}}" class="meta">{{item.date}}{{item.minutes ? ' · 阅读约 ' + item.minutes + ' 分钟' : ''}}</view>
         </view>
       </view>
 
-      <view wx:if="{{!items.length}}" class="tip">这个分类还没有内容</view>
+      <view wx:if="{{!items.length}}" class="empty">
+        <text class="empty-main">这个分类还没有内容</text>
+        <text class="empty-sub">安全科在后台「安全文化内容」发布后会出现在这里</text>
+      </view>
     </block>
   </view>
 </view>

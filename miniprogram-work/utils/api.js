@@ -254,6 +254,29 @@ function culture() {
   return request('/api/culture', {}, 'GET')
 }
 
+/**
+ * 文化流：图文（/api/content，案例/安全月/知识卡）+ 文化（/api/culture，寄语/光荣榜/知识卡）合并。
+ * 与 H5 同一口径：首页、文化列表、详情都用这一份数据，按日期倒序，按分类过滤。
+ */
+function cultureFeed(cat) {
+  const q = cat ? '?cat=' + encodeURIComponent(cat) : ''
+  return Promise.all([
+    request('/api/content' + q, {}, 'GET').catch(() => ({ items: [] })),
+    request('/api/culture', {}, 'GET').catch(() => ({ items: [] }))
+  ]).then(([a, c]) => {
+    const seen = {}
+    const out = []
+    ;(a.items || []).concat(c.items || []).forEach(it => {
+      if (!it || !it.id || seen[it.id]) return
+      seen[it.id] = 1
+      if (cat && it.cat !== cat) return
+      out.push(it)
+    })
+    out.sort((x, y) => String(y.date || '').localeCompare(String(x.date || '')))
+    return { items: out }
+  })
+}
+
 function wxLogin(code) {
   return request('/api/wx/login', { code })
 }
@@ -288,7 +311,7 @@ function saveProfile(payload) {
 
 module.exports = {
   wxLogin, login, firstPassword, me, media, absUrl, options, questionGroups, practiceGroups, jobQuestions, employeeSummary, learnRead, risks, learnItems, learnItemDetail, learnProgress, wrongList, wrongSet, examRecords, examReview, faq, examList, examStart, examSubmit,
-  culture, profile, saveProfile,
+  culture, cultureFeed, profile, saveProfile,
   chat, submitQuiz, health,
   content, article, training,
   createIssue, issues, handleIssue, issueFlow, issueRectify, issueResubmit, notifications, messages, messageRead, messageReadAll, users, issueStats, upload,

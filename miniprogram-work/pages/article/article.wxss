@@ -28,11 +28,14 @@
   margin-bottom: 26rpx;
 }
 .src {
-  font-size: 21rpx; color: #A8B2BC; line-height: 34rpx;
+  font-size: 24rpx; color: #6F7B87; line-height: 36rpx;
   padding-top: 18rpx; border-top: 2rpx solid #F2F5F8;
 }
 
 .gap { margin-top: 32rpx; align-items: stretch; }
+/* 问问 AI 始终占满剩余宽度；只有存在配套题目时才显示左侧按钮 */
+.btn-next { flex: 1; margin-left: 20rpx; }
+.btn-solo { flex: 1; }
 .btn-ghost {
   height: 96rpx; border-radius: 48rpx;
   background: #fff; border: 2rpx solid #E6E5DE;
