@@ -32,12 +32,15 @@ Page({
 
   /** 工号 + 口令登录 */
   login() {
-    if (this.data.loading) return
+    // 只有 15 秒内的“真在请求”才拦重复点击；否则自动解锁，避免一次失败后按钮再也点不动
+    if (this.data.loading && Date.now() - (this._loginAt || 0) < 15000) return
+    if (this.data.loading) this.setData({ loading: false })
     const username = String(this.data.username || '').trim()
     const password = String(this.data.password || '')
     if (!username || !password) {
       return wx.showToast({ title: '请输入工号和口令', icon: 'none' })
     }
+    this._loginAt = Date.now()
     this.setData({ loading: true, err: '', tip: '' })
     // 兜底：12 秒还没回来就把按钮解锁，避免真机断点/网络挂起时永远转圈
     if (this._slowTimer) clearTimeout(this._slowTimer)
@@ -69,6 +72,13 @@ Page({
 
   onUnload() {
     if (this._slowTimer) clearTimeout(this._slowTimer)
+  },
+
+  onShow() {
+    // 自愈：上次请求的回调丢了（切后台、热重载）时，别让按钮永远停在 loading
+    if (this.data.loading && Date.now() - (this._loginAt || 0) > 15000) {
+      this.setData({ loading: false })
+    }
   },
 
   onHide() {
