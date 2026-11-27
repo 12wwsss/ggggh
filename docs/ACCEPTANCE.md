@@ -1,7 +1,7 @@
 # 验收对照（按技术方案逐条）
 
 验证时间：2026-11-26（离线模型已在 Ubuntu 服务器上部署并实测）
-命令：`bin\smoke.exe`（146 项）、`web\scripts\verify-ui.mjs`（50 项）、`scripts\check.ps1`；准确率见 `docs/OFFLINE-EVAL.md`，并发与长稳见 `docs/CONCURRENCY.md`
+命令：`bin\smoke.exe`（147 项）、`web\scripts\verify-ui.mjs`（50 项）、`scripts\check.ps1`；准确率见 `docs/OFFLINE-EVAL.md`，并发与长稳见 `docs/CONCURRENCY.md`
 
 ## 一、工作项 S0–S10
 
@@ -97,6 +97,7 @@
 | 一人一档导出 | 达成 | `GET /export/training-archive?user_id=` 返回 xlsx（PK 头），解压校验 7 个 sheet：基本信息/学习记录/考试记录/宣贯签收/错题/上报问题/带培与小结；员工访问 403 |
 | 小程序同步 | 达成 | `/api/training` 带 `canWrite`/`notes[]`；`POST /api/training/note` 师傅 200、徒弟 403；远端实测同一份计划里小结即时可见 |
 | 师傅视角看带培 | 达成 | `/api/training` 同时返回「我是徒弟的计划」与「我带的人的计划」（`asMentor`/`userName`）；带培页支持多学员切换、师傅可写小结；自测「师傅能在小程序看到自己带的学员计划」，远端 `asMentor:true` 已验证 |
+| 考试成绩回看 | 达成 | 新增小程序页 `pages/exam-review`：按题展示选项（正确项 ✓、错选项 ✗）、你的答案、正确答案、解析；交卷响应带 `record_id`，成绩页可直接「查看完整答卷」；自测「成绩回看含选项、正确答案与解析」 |
 | 师傅确认阶段 | 达成 | `POST /api/training/stage`（师傅/培训员/管理员）；小程序阶段行有「确认完成/撤销完成」；确认后给徒弟发站内消息；自测：师傅确认 200、徒弟看到进度、徒弟操作 403 |
 | 删除带培计划 | 达成 | `DELETE /training/plans/:id` 仅管理员可用，阶段与师傅小结级联删除；后台「操作」列有删除按钮（二次确认）；自测：培训员 403、管理员 200、删后 GET 404 |
 | 带培进度统计 | 达成 | 列表原来不查阶段，所有计划都显示 0%；改为 SQL 子查询直接返回 `stage_done/stage_total`，陈刚 4/4 显示 100%、赵磊 0/4 |
@@ -157,6 +158,14 @@
 | 接口 | `GET /api/training` 返回 `canWrite`/`notes[]`；`POST /api/training/note` 写小结 |
 | 远端验证 | worker01 视角 `canWrite:false`、`notes` 随写随见；师傅（管理员）写 200；徒弟写 403；测试计划已清理 |
 | 小程序端 | 带培页新增「师傅小结」：可写角色显示表单（类型/月份/正文），所有人可看历史小结；**需在开发者工具重新编译** |
+
+### 2026-11-27 15:40：成绩回看
+
+| 项 | 内容 |
+| --- | --- |
+| 问题 | 小程序「历次成绩」回看用 `wx.showModal` 拼纯文本，只有题干 + 你的字母 + 正确字母，看不到选项内容、正确答案原文与解析 |
+| 修复 | 新增 `pages/exam-review/exam-review`：题干、4 个选项（正确绿✓、选错红✗）、你的答案、正确答案、解析；交卷响应增加 `record_id`，成绩页加「查看完整答卷」 |
+| 验证 | 本地与远端 `GET /api/exam/records/:id` 返回 `o/a/your/picked/right/e`；smoke 147 项通过 |
 
 ### 2026-11-27 15:10：小程序确认带培阶段
 

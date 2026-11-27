@@ -673,6 +673,7 @@ func (s *Server) compatExamSubmit(c *gin.Context) {
 		"result": gin.H{
 			"score": score, "total_score": paper.TotalScore, "passed": passed,
 			"pass_score": paper.PassScore, "attempt_no": rec.AttemptNo,
+			"record_id": rec.ID,
 		},
 		"detail": detail,
 	})

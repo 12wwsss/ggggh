@@ -1,0 +1,54 @@
+<view class="page">
+  <view wx:if="{{loading}}" class="tip">加载答卷…</view>
+
+  <view wx:if="{{err}}" class="wrap">
+    <view class="card err">
+      <view class="small bold" style="color:#E5484D">{{err}}</view>
+      <view class="tiny muted" style="margin-top:8rpx">可以返回成绩列表重试</view>
+    </view>
+  </view>
+
+  <block wx:if="{{!loading && !err && result}}">
+    <view class="head">
+      <view class="row" style="align-items:flex-end">
+        <text class="score {{result.passed ? 'ok' : 'bad'}}">{{result.score}}</text>
+        <text class="tiny muted" style="margin-left:10rpx;margin-bottom:10rpx">
+          分 / 及格 {{result.pass_score}} · {{result.passed ? '通过' : '未通过'}} · 第 {{result.attempt_no}} 次
+        </text>
+      </view>
+    </view>
+
+    <view class="wrap">
+      <view class="card q" wx:for="{{items}}" wx:key="no">
+        <view class="q-head">
+          <text class="q-no {{item.ok ? 'ok' : 'bad'}}">{{item.no}}</text>
+          <text class="q-stem">{{item.stem}}</text>
+        </view>
+
+        <view class="opt {{op.cls}}" wx:for="{{item.opts}}" wx:for-item="op" wx:for-index="oi" wx:key="*this">
+          <text class="opt-key">{{'ABCDEF'[oi]}}</text>
+          <text class="opt-text">{{op.text}}</text>
+          <text wx:if="{{op.mark}}" class="opt-mark">✓</text>
+          <text wx:if="{{op.cls === 'wrong'}}" class="opt-mark wrong">✗</text>
+        </view>
+
+        <view class="ans">
+          <text class="ans-item {{item.ok ? 'ok' : 'bad'}}">你：{{item.your}}</text>
+          <text class="ans-item right">正确：{{item.right}}</text>
+        </view>
+
+        <view wx:if="{{item.analysis}}" class="ana">
+          <text class="ana-label">解析</text>
+          <text class="ana-text">{{item.analysis}}</text>
+        </view>
+        <view wx:else class="ana">
+          <text class="ana-label">解析</text>
+          <text class="ana-text">这道题没有录入解析，可对照规程原文。</text>
+        </view>
+      </view>
+
+      <view class="btn-ghost" style="margin-top:24rpx" bindtap="back">返回</view>
+      <view class="bottom-space"></view>
+    </view>
+  </block>
+</view>

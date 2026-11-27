@@ -126,6 +126,8 @@
 | GET | `/training` | 当前用户的带培计划：徒弟返回自己的，师傅返回自己带的人（可能多份）。字段含 `asMentor`、`userName`、`canWrite`、`notes[]` |
 | POST | `/training/note` | 小程序写师傅小结：`{plan_id,kind:monthly|final,period,content}`，仅师傅/培训员/管理员 |
 | POST | `/training/stage` | 小程序确认/撤销阶段：`{stage_id,done}`，仅师傅/培训员/管理员；确认后给徒弟发站内消息 |
+| GET | `/exam/records/:id` | 成绩回看：`detail[]` 每题含 `q`、`o[]`、`a`（正确项下标）、`your`、`picked`、`right`、`e`（解析） |
+| POST | `/exam/submit` | 交卷，`result.record_id` 可用于回看 |
 
 ## 报表
 

@@ -10,6 +10,7 @@
     "pages/culture/culture",
     "pages/quiz/quiz",
     "pages/exam/exam",
+    "pages/exam-review/exam-review",
     "pages/study/study",
     "pages/media/media",
     "pages/wrong/wrong",

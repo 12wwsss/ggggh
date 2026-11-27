@@ -224,21 +224,13 @@ Page({
   },
 
   review(id) {
-    wx.showLoading({ title: '加载答卷', mask: true })
-    api.examReview(id).then(res => {
-      wx.hideLoading()
-      const lines = (res.detail || []).map((d, i) =>
-        (d.ok ? '✓' : '✗') + ' ' + (i + 1) + '. ' + d.q +
-        '\n   你：' + (d.your || '未答') + '　正确：' + ('ABCD'[d.a] || ''))
-      wx.showModal({
-        title: '得分 ' + (res.result ? res.result.score : '—') + ' 分',
-        content: lines.join('\n'),
-        showCancel: false
-      })
-    }).catch(err => {
-      wx.hideLoading()
-      wx.showToast({ title: err.message, icon: 'none' })
-    })
+    wx.navigateTo({ url: '/pages/exam-review/exam-review?id=' + encodeURIComponent(id) })
+  },
+
+  /** 刚交卷的成绩页直接看完整答卷 */
+  openReview(e) {
+    const id = e.currentTarget.dataset.id
+    if (id) this.review(id)
   },
 
   tick() {

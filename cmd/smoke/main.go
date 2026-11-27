@@ -441,6 +441,21 @@ func main() {
 		}
 	}
 
+	// 成绩回看：选项、正确答案、解析都要能拿到
+	recs := mustGet("/api/exam/records", worker.token)
+	if rl := asList(map[string]any{"list": recs["items"]}); len(rl) > 0 {
+		rid := int64(num(rl[0].(map[string]any)["id"]))
+		rv := mustGet(fmt.Sprintf("/api/exam/records/%d", rid), worker.token)
+		okDetail := false
+		if det := asList(map[string]any{"list": rv["detail"]}); len(det) > 0 {
+			if d0, ok := det[0].(map[string]any); ok {
+				opts := asList(map[string]any{"list": d0["o"]})
+				okDetail = len(opts) >= 2 && d0["e"] != "" && d0["right"] != ""
+			}
+		}
+		check(okDetail, "成绩回看含选项、正确答案与解析")
+	}
+
 	// 删除计划：管理员可删、培训员不可删
 	if workerID > 0 && adminID > 0 {
 		var delPlan map[string]any

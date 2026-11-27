@@ -112,7 +112,8 @@
         <view class="tiny muted" style="margin-top:8rpx;line-height:36rpx">{{item.e}}</view>
       </view>
 
-      <view class="btn-ghost" style="margin-top:28rpx" bindtap="back">返回考试列表</view>
+      <view wx:if="{{result.recordId}}" class="btn-primary" style="margin-top:28rpx" data-id="{{result.recordId}}" bindtap="openReview">查看完整答卷</view>
+      <view class="btn-ghost" style="margin-top:20rpx" bindtap="back">返回考试列表</view>
     </view>
   </block>
 </view>

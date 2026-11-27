@@ -1,0 +1,54 @@
+.page { background: #F3F2ED; min-height: 100vh; }
+.tip { text-align: center; color: #98A2AC; font-size: 24rpx; padding: 100rpx 0; }
+.err { padding: 32rpx; margin-top: 40rpx; }
+
+.head {
+  background: linear-gradient(180deg, #17222E 0%, #22303F 100%);
+  padding: 60rpx 32rpx 56rpx;
+}
+.score { font-size: 96rpx; font-weight: 800; color: #fff; line-height: 1; }
+.score.ok { color: #38D39F; }
+.score.bad { color: #FF7A7A; }
+
+.wrap { padding: 0 32rpx; margin-top: 24rpx; }
+
+.q { padding: 26rpx 26rpx 22rpx; margin-bottom: 20rpx; }
+.q-head { display: flex; gap: 12rpx; align-items: flex-start; }
+.q-no {
+  width: 42rpx; height: 42rpx; border-radius: 21rpx; flex: none;
+  font-size: 22rpx; font-weight: 700; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+}
+.q-no.ok { background: #12B76A; }
+.q-no.bad { background: #E5484D; }
+.q-stem { font-size: 27rpx; line-height: 42rpx; color: #10151A; font-weight: 600; }
+
+.opt {
+  display: flex; align-items: flex-start; gap: 10rpx;
+  margin-top: 14rpx; padding: 14rpx 16rpx;
+  background: #FAFAF7; border: 2rpx solid transparent; border-radius: 12rpx;
+}
+.opt.correct { background: #EAF9F1; border-color: #12B76A; }
+.opt.wrong { background: #FDECEC; border-color: #E5484D; }
+.opt-key { font-size: 23rpx; font-weight: 700; color: #98A2AC; line-height: 40rpx; }
+.opt-text { flex: 1; font-size: 25rpx; line-height: 40rpx; color: #2F3438; }
+.opt-mark { font-size: 25rpx; color: #12B76A; line-height: 40rpx; }
+.opt-mark.wrong { color: #E5484D; }
+
+.ans { display: flex; gap: 24rpx; margin-top: 16rpx; flex-wrap: wrap; }
+.ans-item { font-size: 23rpx; }
+.ans-item.ok { color: #12B76A; }
+.ans-item.bad { color: #E5484D; }
+.ans-item.right { color: #12B76A; }
+
+.ana {
+  margin-top: 16rpx; padding-top: 14rpx; border-top: 1px dashed #ECEBE4;
+  display: flex; gap: 12rpx;
+}
+.ana-label {
+  font-size: 21rpx; color: #A97900; font-weight: 700;
+  background: #FFF3C4; border-radius: 8rpx; padding: 2rpx 12rpx;
+  height: 34rpx; line-height: 34rpx; flex: none;
+}
+.ana-text { font-size: 24rpx; line-height: 38rpx; color: #59636E; flex: 1; }
+.bottom-space { height: 60rpx; }
