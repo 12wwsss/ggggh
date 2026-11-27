@@ -31,6 +31,7 @@
       </view>
       <view wx:if="{{loading}}" class="todo-empty">
         <text class="todo-sub">正在加载…</text>
+        <text wx:if="{{slow}}" class="todo-sub" style="margin-top:10rpx;color:#A97900" bindtap="retry">加载有点慢，点这里重试</text>
       </view>
     </view>
 

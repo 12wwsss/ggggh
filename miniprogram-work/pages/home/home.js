@@ -35,6 +35,10 @@ Page({
     this.load()
   },
 
+  retry() {
+    this.load()
+  },
+
   displayName() {
     const u = auth.user() || {}
     return auth.token() && u.name ? u.name : '工友'
@@ -55,7 +59,8 @@ Page({
         }
       }).catch(() => {})
     }
-    this.load()
+    // onLoad 已经拉过一次，5 秒内不重复拉，避免两个 load 并行把 loading 卡住
+    if (!this._lastLoadAt || Date.now() - this._lastLoadAt > 5000) this.load()
   },
 
   onPullDownRefresh() {
@@ -63,13 +68,27 @@ Page({
   },
 
   load(done) {
-    this.setData({ loading: true, err: '' })
+    const seq = (this._seq = (this._seq || 0) + 1)
+    this._lastLoadAt = Date.now()
+    this.setData({ loading: true, err: '', slow: false })
+
+    // 兜底：8 秒还没好就提示可重试，避免真机断点/网络挂起时一直「正在加载…」
+    const slowTimer = setTimeout(() => {
+      if (seq === this._seq) this.setData({ slow: true })
+    }, 8000)
+
+    // 每个请求单独设上限，Promise.all 就不会永远不落地
+    const timeout = (p, ms) => Promise.race([
+      p,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))
+    ])
 
     Promise.all([
-      api.media('').catch(() => ({ items: [] })),
-      api.cultureFeed().catch(() => ({ items: [] })),
-      api.employeeSummary().catch(() => null)
+      timeout(api.media(''), 10000).catch(() => ({ items: [] })),
+      timeout(api.cultureFeed(), 10000).catch(() => ({ items: [] })),
+      timeout(api.employeeSummary(), 10000).catch(() => null)
     ]).then(([m, c, s]) => {
+      if (seq !== this._seq) return false
       const cultures = (c.items || []).slice(0, 2).map(it => ({
         id: it.id,
         tag: it.tag || it.cat || '',
@@ -91,11 +110,14 @@ Page({
         cultures,
         summary: s,
         todo: this.buildTodo(s),
-        loading: false
+        loading: false,
+        slow: false
       })
-      done && done()
+      return true
     }).catch(e => {
-      this.setData({ loading: false, err: e.message })
+      if (seq === this._seq) this.setData({ loading: false, slow: false, err: e.message })
+    }).then(() => {
+      clearTimeout(slowTimer)
       done && done()
     })
   },
