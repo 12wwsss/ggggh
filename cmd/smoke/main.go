@@ -415,6 +415,30 @@ func main() {
 			}
 		}
 		check(mentorSees, "师傅能在小程序看到自己带的学员计划")
+
+		// 师傅在小程序确认阶段
+		_, det := admin.call("GET", fmt.Sprintf("/api/v1/training/plans/%d", pid), nil)
+		stages := asList(map[string]any{"list": det["stages"]})
+		if len(stages) > 0 {
+			sid := int64(num(stages[0].(map[string]any)["id"]))
+			code, _ = admin.call("POST", "/api/training/stage", map[string]any{"stage_id": sid, "done": true})
+			check(code == http.StatusOK, "师傅可在小程序确认阶段")
+			tr2 := mustGet("/api/training", worker.token)
+			plans2 := asList(map[string]any{"list": tr2["plans"]})
+			doneSeen := false
+			if len(plans2) > 0 {
+				if m2, ok := plans2[0].(map[string]any); ok {
+					for _, st := range asList(map[string]any{"list": m2["stages"]}) {
+						if sm, ok := st.(map[string]any); ok && int64(num(sm["id"])) == sid && sm["done"] == true {
+							doneSeen = true
+						}
+					}
+				}
+			}
+			check(doneSeen, "徒弟能看到阶段已完成")
+			code, _ = worker.call("POST", "/api/training/stage", map[string]any{"stage_id": sid, "done": true})
+			check(code == http.StatusForbidden, "徒弟不能确认阶段")
+		}
 	}
 
 	// 删除计划：管理员可删、培训员不可删

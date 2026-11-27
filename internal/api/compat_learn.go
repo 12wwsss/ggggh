@@ -181,7 +181,7 @@ func (s *Server) compatTraining(c *gin.Context) {
 		stages := make([]gin.H, 0, len(plan.Stages))
 		for _, st := range plan.Stages {
 			stages = append(stages, gin.H{
-				"name": st.Week, "goal": st.Goal, "tasks": st.Tasks, "done": st.Done,
+				"id": st.ID, "name": st.Week, "goal": st.Goal, "tasks": st.Tasks, "done": st.Done,
 			})
 		}
 		weak := []any{}

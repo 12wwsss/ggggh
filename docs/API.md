@@ -125,6 +125,7 @@
 | --- | --- | --- |
 | GET | `/training` | 当前用户的带培计划：徒弟返回自己的，师傅返回自己带的人（可能多份）。字段含 `asMentor`、`userName`、`canWrite`、`notes[]` |
 | POST | `/training/note` | 小程序写师傅小结：`{plan_id,kind:monthly|final,period,content}`，仅师傅/培训员/管理员 |
+| POST | `/training/stage` | 小程序确认/撤销阶段：`{stage_id,done}`，仅师傅/培训员/管理员；确认后给徒弟发站内消息 |
 
 ## 报表
 

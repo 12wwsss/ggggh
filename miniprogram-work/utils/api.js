@@ -89,6 +89,11 @@ function saveTrainingNote(payload) {
   return request('/api/training/note', payload)
 }
 
+/** 师傅/培训员确认或撤销某个带培阶段 */
+function toggleTrainingStage(payload) {
+  return request('/api/training/stage', payload)
+}
+
 // ---------- 问题工单 ----------
 
 function upload(dataUrl) {
@@ -318,7 +323,7 @@ module.exports = {
   wxLogin, login, firstPassword, me, media, absUrl, options, questionGroups, practiceGroups, jobQuestions, employeeSummary, learnRead, risks, learnItems, learnItemDetail, learnProgress, wrongList, wrongSet, examRecords, examReview, faq, examList, examStart, examSubmit,
   culture, cultureFeed, profile, saveProfile,
   chat, submitQuiz, health,
-  content, article, training, saveTrainingNote,
+  content, article, training, saveTrainingNote, toggleTrainingStage,
   createIssue, issues, handleIssue, issueFlow, issueRectify, issueResubmit, notifications, messages, messageRead, messageReadAll, users, issueStats, upload,
   notices, noticeRead, noticeAck, quizStats, questions,
 }

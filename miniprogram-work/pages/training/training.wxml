@@ -56,6 +56,13 @@
               <text class="stage-week">{{item.name}}</text>
             </view>
             <view class="task" wx:for="{{item.tasks}}" wx:for-item="t" wx:key="*this">· {{t}}</view>
+            <view
+              wx:if="{{canWrite}}"
+              class="stage-act {{item.done ? 'stage-act-off' : ''}}"
+              data-id="{{item.id}}"
+              data-done="{{item.done}}"
+              catchtap="toggleStage"
+            >{{item.done ? '撤销完成' : '确认完成'}}</view>
           </view>
         </view>
       </view>

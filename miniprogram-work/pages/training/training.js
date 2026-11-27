@@ -25,6 +25,7 @@ Page({
     period: '',
     content: '',
     saving: false,
+    stageBusy: false,
     loading: true,
     err: ''
   },
@@ -86,6 +87,21 @@ Page({
 
   onContent(e) {
     this.setData({ content: e.detail.value })
+  },
+
+  toggleStage(e) {
+    const id = Number(e.currentTarget.dataset.id)
+    const done = !e.currentTarget.dataset.done
+    if (!id || this.data.stageBusy) return
+    this.setData({ stageBusy: true })
+    api.toggleTrainingStage({ stage_id: id, done }).then(() => {
+      this.setData({ stageBusy: false })
+      wx.showToast({ title: done ? '已确认完成' : '已撤销', icon: 'success' })
+      this.fetch()
+    }).catch(err => {
+      this.setData({ stageBusy: false })
+      wx.showToast({ title: err.message || '操作失败', icon: 'none' })
+    })
   },
 
   saveNote() {
