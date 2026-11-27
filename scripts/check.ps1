@@ -58,3 +58,7 @@ if ($failed -gt 0) {
     exit 1
 }
 Write-Host "`nCHECK PASSED"
+
+# 小程序 WXML 静态检查（字符串下标、{{ }} 不配对这类「编译不过」的问题）
+node scripts/lint-wxml.mjs miniprogram-work
+if ($LASTEXITCODE -ne 0) { exit 1 }
