@@ -1,24 +1,11 @@
 const { baseUrl, timeout } = require('./config.js')
 const auth = require('./auth.js')
 
-// 服务器地址：默认取 config.js，真机调试时可在登录页临时改（存本地，不重新编译）
-const BASE_KEY = 'base_url'
-function serverUrl() {
-  const custom = wx.getStorageSync(BASE_KEY)
-  return String(custom || baseUrl || '').replace(/\/+$/, '')
-}
-function setServerUrl(url) {
-  const v = String(url || '').trim().replace(/\/+$/, '')
-  if (v) wx.setStorageSync(BASE_KEY, v)
-  else wx.removeStorageSync(BASE_KEY)
-  return serverUrl()
-}
-
 function request(path, data, method = 'POST', timeoutMs) {
   return new Promise((resolve, reject) => {
     const tk = auth.token ? auth.token() : ''
     wx.request({
-      url: serverUrl() + path,
+      url: baseUrl + path,
       method: method,
       data: data || {},
       timeout: timeoutMs || timeout || 40000,
@@ -50,19 +37,9 @@ function request(path, data, method = 'POST', timeoutMs) {
         reject(new Error(msg))
       },
       fail(err) {
-        const raw = (err && err.errMsg) || ''
-        console.warn('[request fail]', path, raw)
-        let msg
-        if (/domain|合法域名|not in domain list/i.test(raw)) {
-          // 浏览器能打开、小程序却连不上，九成是这个：微信的域名校验没过
-          msg = '域名校验未通过：开发者工具「详情 → 本地设置」勾选「不校验合法域名」，然后结束调试重新进'
-        } else if (/timeout/i.test(raw)) {
-          msg = '网络超时，稍后再试（' + serverUrl() + '）'
-        } else if (/ssl|https|certificate/i.test(raw)) {
-          msg = '证书/HTTPS 问题：' + raw
-        } else {
-          msg = '连不上 ' + serverUrl() + '（' + raw + '）'
-        }
+        const msg = /timeout/i.test((err && err.errMsg) || '')
+          ? '网络超时，井下信号可能不好，稍后再试'
+          : '连不上后端，检查手机和服务器是否在同一网络'
         reject(new Error(msg))
       }
     })
@@ -347,7 +324,7 @@ module.exports = {
   wxLogin, login, firstPassword, me, media, absUrl, options, questionGroups, practiceGroups, jobQuestions, employeeSummary, learnRead, risks, learnItems, learnItemDetail, learnProgress, wrongList, wrongSet, examRecords, examReview, faq, examList, examStart, examSubmit,
   culture, cultureFeed, profile, saveProfile,
   chat, submitQuiz, health,
-  content, article, training, saveTrainingNote, toggleTrainingStage, serverUrl, setServerUrl,
+  content, article, training, saveTrainingNote, toggleTrainingStage,
   createIssue, issues, handleIssue, issueFlow, issueRectify, issueResubmit, notifications, messages, messageRead, messageReadAll, users, issueStats, upload,
   notices, noticeRead, noticeAck, quizStats, questions,
 }
