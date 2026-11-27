@@ -94,3 +94,18 @@
 .ph-del { position: absolute; right: -8rpx; top: -8rpx; width: 36rpx; height: 36rpx; line-height: 32rpx; text-align: center; border-radius: 50%; background: rgba(0,0,0,.6); color: #fff; font-size: 26rpx; }
 .ph-add { width: 150rpx; height: 150rpx; border-radius: 12rpx; border: 2rpx dashed #D4DAE1; color: #B7C2CE; display: flex; align-items: center; justify-content: center; font-size: 52rpx; }
 .btn-mini.ghost { background: #FFF; border: 2rpx solid #D4DAE1; color: #59636E; }
+/* ── 工单详情 ── */
+.detail { max-height: 82vh; }
+.detail-meta { font-size: 22rpx; color: #98A2AC; margin-top: 6rpx; }
+.detail-row { font-size: 25rpx; color: #2F3438; line-height: 40rpx; margin-top: 10rpx; }
+.detail-label {
+  font-size: 22rpx; color: #98A2AC; font-weight: 700;
+  margin: 26rpx 0 12rpx;
+}
+.flow-item { display: flex; gap: 14rpx; padding: 8rpx 0; }
+.flow-dot {
+  width: 12rpx; height: 12rpx; border-radius: 6rpx;
+  background: #FFC400; margin-top: 12rpx; flex: none;
+}
+.flow-text { font-size: 24rpx; color: #2F3438; line-height: 36rpx; }
+.flow-meta { font-size: 21rpx; color: #98A2AC; margin-top: 4rpx; }

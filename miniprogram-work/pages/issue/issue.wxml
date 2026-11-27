@@ -89,6 +89,62 @@
   </view>
   <view class="bottom-space"></view>
 
+  <view wx:if="{{detailOpen}}" class="mask" catchtap="closeDetail">
+    <view class="sheet detail" catchtap="noop">
+      <view class="sheet-h">{{detail.title}}</view>
+      <view class="detail-meta">编号 {{detail.code || detail.id}} · {{detail.status_text}} · {{detail.type}}</view>
+      <view class="detail-row">位置：{{detail.loc || '未填写'}}</view>
+      <view class="detail-row" wx:if="{{detail.desc}}">描述：{{detail.desc}}</view>
+      <view class="detail-row">上报：{{detail.reporter || '—'}} · {{detail.createdAt}}</view>
+
+      <view class="detail-label">上报照片</view>
+      <view class="row photos" wx:if="{{detail.photos.length}}">
+        <image
+          wx:for="{{detail.photos}}"
+          wx:key="*this"
+          class="ph"
+          src="{{item}}"
+          mode="aspectFill"
+          data-src="{{item}}"
+          bindtap="previewDetailPhoto"
+        />
+      </view>
+      <view wx:else class="tiny muted">没有照片</view>
+
+      <block wx:if="{{detail.handleNote || detail.rectify_photos.length}}">
+        <view class="detail-label">整改结果</view>
+        <view class="detail-row">{{detail.handleNote || '—'}}</view>
+        <view class="row photos" wx:if="{{detail.rectify_photos.length}}">
+          <image
+            wx:for="{{detail.rectify_photos}}"
+            wx:key="*this"
+            class="ph"
+            src="{{item}}"
+            mode="aspectFill"
+            data-src="{{item}}"
+            data-kind="rectify"
+            bindtap="previewDetailPhoto"
+          />
+        </view>
+      </block>
+
+      <view class="detail-label">处理进度</view>
+      <view wx:if="{{detailLoading}}" class="tiny muted">加载中…</view>
+      <view wx:elif="{{!detailFlows.length}}" class="tiny muted">暂无流转记录</view>
+      <view wx:for="{{detailFlows}}" wx:key="index" class="flow-item">
+        <view class="flow-dot"></view>
+        <view class="grow">
+          <view class="flow-text">{{item.text || item.action}}</view>
+          <view class="flow-meta">{{item.actor}} · {{item.atText}}</view>
+        </view>
+      </view>
+
+      <view wx:if="{{detail.canRectify}}" class="btn-primary" style="margin-top:24rpx" bindtap="rectifyFromDetail">提交整改</view>
+      <view wx:elif="{{detail.canResubmit}}" class="btn-primary" style="margin-top:24rpx" bindtap="resubmitFromDetail">修改并重新提交</view>
+      <view class="sheet-cancel" bindtap="closeDetail">关闭</view>
+    </view>
+  </view>
+
   <view wx:if="{{rectifyOpen}}" class="mask" catchtap="cancelRectify">
     <view class="sheet" catchtap="noop">
       <view class="sheet-h">提交整改</view>

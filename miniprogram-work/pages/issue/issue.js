@@ -22,6 +22,10 @@ Page({
     items: [],
     tabs: ['全部', '我上报的', '指派给我'],
     tab: 0,
+    detailOpen: false,
+    detail: null,
+    detailFlows: [],
+    detailLoading: false,
     rectifyOpen: false,
     rectifyId: 0,
     rectifyResult: '',
@@ -544,44 +548,50 @@ Page({
     })
   },
 
+  /** 详情：完整信息 + 上报/整改照片 + 处理进度 + 按身份给操作 */
   openDetail(e) {
     const it = this.data.items[Number(e.currentTarget.dataset.i)]
     if (!it) return
-    const show = flows => {
-      const photos = it.photos || []
-      const lines = [
-        '编号：' + (it.code || it.id),
-        '类型：' + (it.type || '—'),
-        '位置：' + (it.loc || '—'),
-        '状态：' + (it.status_text || it.status),
-        '上报：' + (it.createdAt || ''),
-        it.rejectReason ? '驳回原因：' + it.rejectReason : (it.handleNote ? '处置：' + it.handleNote : '处置：等待安全科处理')
-      ]
-      if (flows && flows.length) {
-        lines.push('处理进度：')
-        flows.slice(0, 6).forEach(f => {
-          lines.push('· ' + (f.text || f.action) + ' ' + (f.actor || '') + ' ' + (f.atText || ''))
-        })
-        if (flows.length > 6) lines.push('…共 ' + flows.length + ' 条')
-      }
-      if (photos.length) lines.push('照片：' + photos.length + ' 张')
-      wx.showModal({
-        title: it.title,
-        content: lines.join('\n'),
-        showCancel: false,
-        confirmText: photos.length ? '看照片' : '知道了',
-        success: r => {
-          if (r.confirm && photos.length) {
-            wx.previewImage({ urls: photos, current: photos[0] })
-          }
-        }
-      })
-    }
-    this._flows = this._flows || {}
-    if (this._flows[it.id]) return show(this._flows[it.id])
+    this.setData({
+      detailOpen: true,
+      detail: it,
+      detailFlows: (this._flows && this._flows[it.id]) || [],
+      detailLoading: !(this._flows && this._flows[it.id])
+    })
+    if (this._flows && this._flows[it.id]) return
     api.issueFlow(it.id).then(res => {
+      this._flows = this._flows || {}
       this._flows[it.id] = res.items || []
-      show(this._flows[it.id])
-    }).catch(() => show([]))
+      this.setData({ detailFlows: this._flows[it.id], detailLoading: false })
+    }).catch(() => {
+      this.setData({ detailFlows: [], detailLoading: false })
+    })
+  },
+
+  closeDetail() {
+    this.setData({ detailOpen: false })
+  },
+
+  previewDetailPhoto(e) {
+    const src = e.currentTarget.dataset.src
+    const it = this.data.detail || {}
+    const list = (e.currentTarget.dataset.kind === 'rectify' ? it.rectify_photos : it.photos) || []
+    if (!src || !list.length) return
+    wx.previewImage({ urls: list, current: src })
+  },
+
+  rectifyFromDetail() {
+    const it = this.data.detail
+    if (!it) return
+    this.closeDetail()
+    this.startRectify({ currentTarget: { dataset: { id: it.id } } })
+  },
+
+  resubmitFromDetail() {
+    const it = this.data.detail
+    if (!it) return
+    const idx = this.data.items.findIndex(x => x.id === it.id)
+    this.closeDetail()
+    this.startResubmit({ currentTarget: { dataset: { i: idx } } })
   }
 })
