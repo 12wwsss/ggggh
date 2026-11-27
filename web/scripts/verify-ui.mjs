@@ -465,6 +465,21 @@ async function main() {
     check(true, '培训员账号不存在，跳过带培菜单检查')
   }
 
+  // 组织页：新建账号的角色下拉必须有培训员
+  await cdp.evaluate(
+    `localStorage.setItem('coalrag.token', ${JSON.stringify(admin.token)});
+     localStorage.setItem('coalrag.user', ${JSON.stringify(JSON.stringify(admin.user))});
+     'ok'`,
+  )
+  await cdp.send('Page.navigate', { url: `${base}/admin/org` })
+  await sleep(2200)
+  const openedUser = await cdp.evaluate(
+    `(() => { const b = [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === '新建账号'); if (b) { b.click(); return true } return false })()`,
+  )
+  await sleep(900)
+  text = await cdp.evaluate('document.body.innerText')
+  check(openedUser === true && text.includes('培训员'), '新建账号角色下拉有培训员')
+
   // 建设方案六（1）后台内容运营；六（6）宣贯按岗位下发 + 自动生成解读要点
   await cdp.send('Page.navigate', { url: `${base}/admin/content` })
   await sleep(2200)

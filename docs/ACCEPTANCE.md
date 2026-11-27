@@ -1,7 +1,7 @@
 # 验收对照（按技术方案逐条）
 
 验证时间：2026-11-26（离线模型已在 Ubuntu 服务器上部署并实测）
-命令：`bin\smoke.exe`（139 项）、`web\scripts\verify-ui.mjs`（48 项）、`scripts\check.ps1`；准确率见 `docs/OFFLINE-EVAL.md`，并发与长稳见 `docs/CONCURRENCY.md`
+命令：`bin\smoke.exe`（139 项）、`web\scripts\verify-ui.mjs`（49 项）、`scripts\check.ps1`；准确率见 `docs/OFFLINE-EVAL.md`，并发与长稳见 `docs/CONCURRENCY.md`
 
 ## 一、工作项 S0–S10
 
@@ -96,6 +96,7 @@
 | 师傅月度小结/期满总结 | 达成 | `training_note` 表；培训员写小结 200、按计划可查、员工写小结 403；带培展开区有「师傅小结」录入与列表 |
 | 一人一档导出 | 达成 | `GET /export/training-archive?user_id=` 返回 xlsx（PK 头），解压校验 7 个 sheet：基本信息/学习记录/考试记录/宣贯签收/错题/上报问题/带培与小结；员工访问 403 |
 | 小程序同步 | 达成 | `/api/training` 带 `canWrite`/`notes[]`；`POST /api/training/note` 师傅 200、徒弟 403；远端实测同一份计划里小结即时可见 |
+| 角色下拉包含培训员 | 达成 | 「新建账号 → 角色」原来写死四个角色，漏了培训员；补齐后浏览器回归「新建账号角色下拉有培训员」，远端 Org chunk 同时含「培训员 / trainer」 |
 
 ## 九、2026-11-26 增量部署记录（192.168.134.103）
 
@@ -152,5 +153,14 @@
 | 接口 | `GET /api/training` 返回 `canWrite`/`notes[]`；`POST /api/training/note` 写小结 |
 | 远端验证 | worker01 视角 `canWrite:false`、`notes` 随写随见；师傅（管理员）写 200；徒弟写 403；测试计划已清理 |
 | 小程序端 | 带培页新增「师傅小结」：可写角色显示表单（类型/月份/正文），所有人可看历史小结；**需在开发者工具重新编译** |
+
+### 2026-11-27 11:20：补齐角色下拉
+
+| 项 | 内容 |
+| --- | --- |
+| 版本 | sha256 `afa018e7de7a8eed6f9a16b7ebc1921f801c78e1f82e9e7ac582bd885f3686ab` |
+| 问题 | 组织与权限「新建账号 → 角色」写死 平台管理员/区队长/安全科/员工，没有培训员；`/api/v1/roles` 本来就返回 trainer，角色权限页有，只有这个下拉漏了 |
+| 修复 | `Org.vue` 下拉补 `<el-option label="培训员" value="trainer" />` |
+| 验证 | 浏览器回归 49 项全过（新增「新建账号角色下拉有培训员」）；远端 `/api/v1/roles` = admin,dept_leader,safety,trainer,employee，`Org-1mzlDfd1.js` 含「培训员 / trainer」 |
 
 截图：`docs/screenshots/deploy-employee-home.png`。
