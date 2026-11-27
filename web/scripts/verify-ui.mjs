@@ -171,9 +171,13 @@ async function main() {
     mobile: true,
   })
   await cdp.send('Page.navigate', { url: `${base}/` })
-  await sleep(1200)
-
-  let text = await cdp.evaluate('document.body.innerText')
+  // 首屏首包较慢，轮询等到登录页真正渲染出来再断言
+  let text = ''
+  for (let i = 0; i < 20; i++) {
+    await sleep(400)
+    text = await cdp.evaluate('document.body.innerText')
+    if (text.includes('煤矿安全员助手')) break
+  }
   check(text.includes('煤矿安全员助手'), '员工端登录页渲染')
   check(text.includes('演示账号'), '员工端提示演示账号')
 
@@ -523,6 +527,8 @@ async function main() {
     ['/wrong', '错题本', '员工端错题本可打开', 'employee-wrong.png'],
     ['/risks', '岗位风险', '员工端岗位风险可打开', 'employee-risks.png'],
     ['/todos', '待办', '员工端待办可打开', 'employee-todos.png'],
+    ['/practice', '练题', '员工端练题可打开', 'employee-practice.png'],
+    ['/settings', '帮助与设置', '员工端帮助与设置可打开', 'employee-settings.png'],
   ]) {
     await cdp.send('Page.navigate', { url: `${base}${path}` })
     await sleep(1900)

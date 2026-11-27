@@ -76,8 +76,10 @@ async function logout() {
         <van-cell title="待办" is-link @click="router.push('/todos')" />
         <van-cell title="消息中心" is-link @click="router.push('/messages')" />
         <van-cell title="新员工带培" is-link @click="router.push('/training')" />
+        <van-cell title="练题" is-link @click="router.push('/practice')" />
         <van-cell title="错题本" is-link @click="router.push('/wrong')" />
         <van-cell title="岗位风险" is-link @click="router.push('/risks')" />
+        <van-cell title="帮助与设置" is-link @click="router.push('/settings')" />
         <van-cell v-if="isLeader" title="问题处理" is-link @click="router.push('/issues')" />
         <van-cell v-else title="我的问题" is-link @click="router.push('/issues')" />
         <van-cell title="大字模式" label="字更大、按钮更大">

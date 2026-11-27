@@ -17,7 +17,11 @@ async function submit() {
   }
   loading.value = true
   try {
-    await login(username.value.trim(), password.value)
+    const data = await login(username.value.trim(), password.value)
+    if (data?.user?.must_change_password) {
+      router.replace('/password')
+      return
+    }
     const target = route.query.redirect || '/'
     router.replace(target)
   } catch (e) {

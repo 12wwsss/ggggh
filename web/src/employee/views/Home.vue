@@ -73,6 +73,11 @@ function ask(q) {
         <button class="lt-btn" @click="router.push('/learn')">学规程</button>
       </div>
 
+      <div class="lt-row">
+        <button class="lt-btn" @click="router.push('/practice')">练题</button>
+        <button class="lt-btn" @click="router.push('/broadcasts')">宣贯</button>
+      </div>
+
       <button class="lt-btn" style="margin-top: 8px" @click="router.push('/media')">
         看视频<span class="lt-sub">操作示范、事故案例</span>
       </button>
