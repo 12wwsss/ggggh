@@ -183,10 +183,22 @@ func (s *Server) compatTraining(c *gin.Context) {
 	if n, err := s.Store.WrongCount(c.Request.Context(), u.ID); err == nil && n > 0 {
 		weak = append(weak, gin.H{"title": "错题待巩固", "from": "错题本 " + strconv.Itoa(n) + " 道"})
 	}
+	// 师傅/培训员/管理员在手机上也能写小结；本人只看
+	canWrite := u.Role == model.RoleAdmin || u.Role == model.RoleSafety || u.Role == model.RoleTrainer ||
+		(plan.MentorUserID != nil && *plan.MentorUserID == u.ID)
+	notes := []gin.H{}
+	if list, err := s.Store.ListTrainingNotes(c.Request.Context(), plan.ID); err == nil {
+		for _, n := range list {
+			notes = append(notes, gin.H{
+				"id": n.ID, "kind": n.Kind, "period": n.Period, "content": n.Content,
+				"author": n.Author, "at": n.CreatedAt.Format("01-02 15:04"),
+			})
+		}
+	}
 	c.JSON(http.StatusOK, gin.H{"ok": true, "plans": []gin.H{{
 		"id": plan.ID, "title": plan.Title, "mentor": plan.Mentor,
-		"totalWeeks": plan.TotalWeeks, "target": plan.Target,
-		"stages": stages, "weakPoints": weak,
+		"mentorUserId": plan.MentorUserID, "totalWeeks": plan.TotalWeeks, "target": plan.Target,
+		"stages": stages, "weakPoints": weak, "canWrite": canWrite, "notes": notes,
 	}}})
 }
 

@@ -105,6 +105,7 @@ func New(cfg *config.Config, st *store.Store, svc *service.Service, mgr *auth.Ma
 	compat.POST("/learn/read", s.compatLearnRead)
 	compat.GET("/wrongbook", s.compatWrongList)
 	compat.GET("/training", s.compatTraining)
+	compat.POST("/training/note", s.compatSaveTrainingNote)
 	compat.POST("/wrongbook", s.compatWrongSet)
 	compat.GET("/exam/records", s.compatExamRecords)
 	compat.GET("/exam/records/:id", s.compatExamReview)

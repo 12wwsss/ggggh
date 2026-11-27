@@ -118,6 +118,13 @@
 | GET | `/issues/:id/attachments/:aid` | issue:read | 下载附件原文件（按数据范围校验） |
 | GET | `/issues/stats` | issue:read | 各状态计数与超时数 |
 
+## 小程序兼容层（`/api/*`，返回 `{ok:true,...}`）
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| GET | `/training` | 当前员工的带培计划；新增 `canWrite`（师傅/培训员/管理员为 true）与 `notes[]`（师傅小结） |
+| POST | `/training/note` | 小程序写师傅小结：`{plan_id,kind:monthly|final,period,content}`，仅师傅/培训员/管理员 |
+
 ## 报表
 
 | 方法 | 路径 | 权限 | 说明 |

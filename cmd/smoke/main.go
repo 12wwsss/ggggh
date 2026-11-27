@@ -385,6 +385,27 @@ func main() {
 		check(code == http.StatusForbidden, "员工不能导出培训档案")
 	}
 
+	// 小程序端：计划里带 canWrite / notes；师傅可写、徒弟 403
+	if pid := int64(num(plan["id"])); pid > 0 && workerID > 0 {
+		tr := mustGet("/api/training", worker.token)
+		plans := asList(map[string]any{"list": tr["plans"]})
+		check(len(plans) == 1, "小程序带培计划返回")
+		if len(plans) == 1 {
+			m := plans[0].(map[string]any)
+			check(m["canWrite"] == false, "小程序：徒弟只能看不能写")
+			check(len(asList(map[string]any{"list": m["notes"]})) >= 1, "小程序：能读到师傅小结")
+		}
+		code, _ = admin.call("POST", "/api/training/note", map[string]any{
+			"plan_id": pid, "kind": "final", "period": "2026-11",
+			"content": "期满总结：已通过岗位安全考试，具备独立上岗条件。",
+		})
+		check(code == http.StatusOK, "小程序接口可写期满总结")
+		code, _ = worker.call("POST", "/api/training/note", map[string]any{
+			"plan_id": pid, "content": "徒弟不该能写小结，这里故意提交一条超长内容验证越权。",
+		})
+		check(code == http.StatusForbidden, "小程序接口拦截徒弟写小结")
+	}
+
 	code, rk := admin.call("POST", "/api/v1/risks", map[string]any{
 		"post": "通用", "category": "自测", "title": "案例字段自测", "level": "中",
 		"measures": []string{"措施一"}, "case_text": "某矿案例：未按规定支护。",

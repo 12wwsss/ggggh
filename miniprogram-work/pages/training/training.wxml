@@ -52,6 +52,37 @@
         <view class="small" style="margin-top:10rpx">{{plan.mentor}}</view>
       </view>
 
+      <view class="label">师傅小结</view>
+
+      <view wx:if="{{canWrite}}" class="card note-form">
+        <view class="row between note-head">
+          <picker range="{{kinds}}" value="{{kindIndex}}" bindchange="onKindChange">
+            <view class="pick">{{kinds[kindIndex]}} ▾</view>
+          </picker>
+          <input class="period" value="{{period}}" bindinput="onPeriod" placeholder="2026-11" />
+        </view>
+        <textarea
+          class="note-input"
+          value="{{content}}"
+          bindinput="onContent"
+          maxlength="600"
+          placeholder="本月跟班情况、掌握的技能、存在的问题与下月重点（至少 10 字）"
+        />
+        <view class="btn-note" bindtap="saveNote">{{saving ? '保存中…' : '提交小结'}}</view>
+      </view>
+
+      <view wx:if="{{!notes.length}}" class="card note-empty">
+        <text class="tiny muted">{{canWrite ? '还没有小结，写一条吧' : '师傅还没有提交小结'}}</text>
+      </view>
+
+      <view wx:for="{{notes}}" wx:key="id" class="card note-item">
+        <view class="row between">
+          <text class="note-meta">{{item.period}} · {{item.kind === 'final' ? '期满总结' : '月度小结'}} · {{item.author}}</text>
+          <text class="tiny muted">{{item.at}}</text>
+        </view>
+        <view class="note-body">{{item.content}}</view>
+      </view>
+
       <view class="row gap">
         <view class="btn-ghost" bindtap="toQuiz">去练题</view>
         <view class="btn-primary" style="flex:1;margin-left:20rpx" bindtap="toChat">模拟问答</view>

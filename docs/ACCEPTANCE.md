@@ -1,7 +1,7 @@
 # 验收对照（按技术方案逐条）
 
 验证时间：2026-11-26（离线模型已在 Ubuntu 服务器上部署并实测）
-命令：`bin\smoke.exe`（134 项）、`web\scripts\verify-ui.mjs`（48 项）、`scripts\check.ps1`；准确率见 `docs/OFFLINE-EVAL.md`，并发与长稳见 `docs/CONCURRENCY.md`
+命令：`bin\smoke.exe`（139 项）、`web\scripts\verify-ui.mjs`（48 项）、`scripts\check.ps1`；准确率见 `docs/OFFLINE-EVAL.md`，并发与长稳见 `docs/CONCURRENCY.md`
 
 ## 一、工作项 S0–S10
 
@@ -95,6 +95,7 @@
 | 培训员可见后台带培 | 达成 | 菜单与新建按钮都放行 `trainer`；浏览器回归「培训员可见带培菜单与新建按钮」 |
 | 师傅月度小结/期满总结 | 达成 | `training_note` 表；培训员写小结 200、按计划可查、员工写小结 403；带培展开区有「师傅小结」录入与列表 |
 | 一人一档导出 | 达成 | `GET /export/training-archive?user_id=` 返回 xlsx（PK 头），解压校验 7 个 sheet：基本信息/学习记录/考试记录/宣贯签收/错题/上报问题/带培与小结；员工访问 403 |
+| 小程序同步 | 达成 | `/api/training` 带 `canWrite`/`notes[]`；`POST /api/training/note` 师傅 200、徒弟 403；远端实测同一份计划里小结即时可见 |
 
 ## 九、2026-11-26 增量部署记录（192.168.134.103）
 
@@ -142,5 +143,14 @@
 | 迁移 | `0034_training_note`（新建 `training_note` 表） |
 | 备份 | `/opt/coalrag/backups/pre-batch3-20261127-105940.dump`（788 KB） |
 | 验证 | 建计划 → 写小结 200 → 小结列表可见；导出档案 200、5,155 字节、`PK` 头、7 个 sheet；远端 `Training-H5RM5heE.js` 含「师傅小结」、`Reports-Bvby0d6R.js` 含「training-archive / 培训档案」 |
+
+### 2026-11-27 中午：小程序同步师傅小结
+
+| 项 | 内容 |
+| --- | --- |
+| 版本 | sha256 `111d4066dda6be78b06f8429a10bf68729d769062df8a536bee68dcda0b377c8`（16,322,712 B） |
+| 接口 | `GET /api/training` 返回 `canWrite`/`notes[]`；`POST /api/training/note` 写小结 |
+| 远端验证 | worker01 视角 `canWrite:false`、`notes` 随写随见；师傅（管理员）写 200；徒弟写 403；测试计划已清理 |
+| 小程序端 | 带培页新增「师傅小结」：可写角色显示表单（类型/月份/正文），所有人可看历史小结；**需在开发者工具重新编译** |
 
 截图：`docs/screenshots/deploy-employee-home.png`。

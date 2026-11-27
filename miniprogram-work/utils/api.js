@@ -84,6 +84,11 @@ function training() {
   return request('/api/training', {}, 'GET')
 }
 
+/** 师傅/培训员写带培小结（月度小结或期满总结） */
+function saveTrainingNote(payload) {
+  return request('/api/training/note', payload)
+}
+
 // ---------- 问题工单 ----------
 
 function upload(dataUrl) {
@@ -313,7 +318,7 @@ module.exports = {
   wxLogin, login, firstPassword, me, media, absUrl, options, questionGroups, practiceGroups, jobQuestions, employeeSummary, learnRead, risks, learnItems, learnItemDetail, learnProgress, wrongList, wrongSet, examRecords, examReview, faq, examList, examStart, examSubmit,
   culture, cultureFeed, profile, saveProfile,
   chat, submitQuiz, health,
-  content, article, training,
+  content, article, training, saveTrainingNote,
   createIssue, issues, handleIssue, issueFlow, issueRectify, issueResubmit, notifications, messages, messageRead, messageReadAll, users, issueStats, upload,
   notices, noticeRead, noticeAck, quizStats, questions,
 }
