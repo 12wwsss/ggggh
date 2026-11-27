@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { api, getUser } from '../../shared/http'
 
 const role = (getUser() || {}).role
@@ -27,6 +27,25 @@ async function loadUsers() {
   try {
     const data = await api.get('/api/v1/users', { page_size: 200 })
     users.value = data.list || []
+  } catch (e) {
+    ElMessage.error(e.message)
+  }
+}
+
+async function removePlan(row) {
+  try {
+    await ElMessageBox.confirm(
+      `确定删除「${row.user_name} · ${row.title}」？阶段进度和师傅小结会一起删除，不可恢复。`,
+      '删除带培计划',
+      { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' },
+    )
+  } catch {
+    return
+  }
+  try {
+    await api.del(`/api/v1/training/plans/${row.id}`)
+    ElMessage.success('已删除')
+    load()
   } catch (e) {
     ElMessage.error(e.message)
   }
@@ -231,9 +250,10 @@ onMounted(load)
       <el-table-column label="状态" width="90">
         <template #default="{ row }">{{ statusText(row.status) }}</template>
       </el-table-column>
-      <el-table-column label="操作" width="110">
+      <el-table-column label="操作" width="150">
         <template #default="{ row }">
           <el-button link type="primary" @click="openMentor(row)">换师傅</el-button>
+          <el-button v-if="role === 'admin'" link type="danger" @click="removePlan(row)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>

@@ -480,6 +480,12 @@ async function main() {
   text = await cdp.evaluate('document.body.innerText')
   check(openedUser === true && text.includes('培训员'), '新建账号角色下拉有培训员')
 
+  // 管理员在带培页能看到删除按钮，状态是中文
+  await cdp.send('Page.navigate', { url: `${base}/admin/training` })
+  await sleep(2000)
+  text = await cdp.evaluate('document.body.innerText')
+  check(text.includes('删除') && (text.includes('进行中') || text.includes('已完成')), '带培列表有删除按钮且状态中文')
+
   // 建设方案六（1）后台内容运营；六（6）宣贯按岗位下发 + 自动生成解读要点
   await cdp.send('Page.navigate', { url: `${base}/admin/content` })
   await sleep(2200)

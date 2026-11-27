@@ -1,7 +1,7 @@
 # 验收对照（按技术方案逐条）
 
 验证时间：2026-11-26（离线模型已在 Ubuntu 服务器上部署并实测）
-命令：`bin\smoke.exe`（140 项）、`web\scripts\verify-ui.mjs`（49 项）、`scripts\check.ps1`；准确率见 `docs/OFFLINE-EVAL.md`，并发与长稳见 `docs/CONCURRENCY.md`
+命令：`bin\smoke.exe`（143 项）、`web\scripts\verify-ui.mjs`（50 项）、`scripts\check.ps1`；准确率见 `docs/OFFLINE-EVAL.md`，并发与长稳见 `docs/CONCURRENCY.md`
 
 ## 一、工作项 S0–S10
 
@@ -97,6 +97,8 @@
 | 一人一档导出 | 达成 | `GET /export/training-archive?user_id=` 返回 xlsx（PK 头），解压校验 7 个 sheet：基本信息/学习记录/考试记录/宣贯签收/错题/上报问题/带培与小结；员工访问 403 |
 | 小程序同步 | 达成 | `/api/training` 带 `canWrite`/`notes[]`；`POST /api/training/note` 师傅 200、徒弟 403；远端实测同一份计划里小结即时可见 |
 | 师傅视角看带培 | 达成 | `/api/training` 同时返回「我是徒弟的计划」与「我带的人的计划」（`asMentor`/`userName`）；带培页支持多学员切换、师傅可写小结；自测「师傅能在小程序看到自己带的学员计划」，远端 `asMentor:true` 已验证 |
+| 删除带培计划 | 达成 | `DELETE /training/plans/:id` 仅管理员可用，阶段与师傅小结级联删除；后台「操作」列有删除按钮（二次确认）；自测：培训员 403、管理员 200、删后 GET 404 |
+| 带培进度统计 | 达成 | 列表原来不查阶段，所有计划都显示 0%；改为 SQL 子查询直接返回 `stage_done/stage_total`，陈刚 4/4 显示 100%、赵磊 0/4 |
 | 角色下拉包含培训员 | 达成 | 「新建账号 → 角色」原来写死四个角色，漏了培训员；补齐后浏览器回归「新建账号角色下拉有培训员」，远端 Org chunk 同时含「培训员 / trainer」 |
 
 ## 九、2026-11-26 增量部署记录（192.168.134.103）
@@ -154,6 +156,15 @@
 | 接口 | `GET /api/training` 返回 `canWrite`/`notes[]`；`POST /api/training/note` 写小结 |
 | 远端验证 | worker01 视角 `canWrite:false`、`notes` 随写随见；师傅（管理员）写 200；徒弟写 403；测试计划已清理 |
 | 小程序端 | 带培页新增「师傅小结」：可写角色显示表单（类型/月份/正文），所有人可看历史小结；**需在开发者工具重新编译** |
+
+### 2026-11-27 14:40：删除计划与进度修正
+
+| 项 | 内容 |
+| --- | --- |
+| 版本 | sha256 `891a3935ed529d516bfdd41c2f903522304dd8e36e5a893096c2fb8cd5b00b43` |
+| 新增 | 管理员可删除带培计划（阶段/小结级联），后台操作列「删除」+ 二次确认 |
+| 修复 | 列表接口 `stage_done/stage_total` 恒为 0（没查阶段），后台进度永远 0%；改为 SQL 子查询统计 |
+| 数据清理 | 删除赵磊重复的「李四带培计划」（已 1/4 进度）；现存赵磊 0/4 进行中、陈刚 4/4 已完成 |
 
 ### 2026-11-27 14:05：师傅视角
 

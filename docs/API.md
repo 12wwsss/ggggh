@@ -97,6 +97,7 @@
 | GET | `/broadcast/tasks/:id/records` | broadcast:read | 签收明细 |
 | POST | `/broadcast/tasks/:id/ack` | broadcast:write | `{ack:true}` 签收 |
 | GET | `/broadcast/mine` | broadcast:read | 我的待办宣贯（`pending=true`） |
+| DELETE | `/training/plans/:id` | 管理员 | 删除带培计划（阶段与小结级联删除） |
 | GET | `/training/plans/:id/notes` | training:read | 带培小结列表（师傅/培训员/本队队长/本人可看） |
 | POST | `/training/plans/:id/notes` | training:write | 写师傅月度小结或期满总结：`{kind:monthly|final, period:"2026-11", content}`，至少 10 字 |
 

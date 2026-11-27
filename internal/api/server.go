@@ -189,6 +189,7 @@ func New(cfg *config.Config, st *store.Store, svc *service.Service, mgr *auth.Ma
 	authed.POST("/training/plans/:id/notes", s.createTrainingNote)
 	authed.POST("/training/plans/:id/mentor", s.changeTrainingMentor)
 	authed.GET("/training/plans/:id", s.getTrainingPlan)
+	authed.DELETE("/training/plans/:id", s.deleteTrainingPlan)
 	authed.POST("/training/stages/:id", s.setTrainingStage)
 
 	// 组织与权限

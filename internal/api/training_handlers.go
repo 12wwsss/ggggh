@@ -1,12 +1,14 @@
 package api
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 
 	"coalrag/internal/auth"
+	"coalrag/internal/model"
 	"coalrag/internal/store"
 )
 
@@ -218,4 +220,25 @@ func (s *Server) createTrainingPlansBatch(c *gin.Context) {
 		created = append(created, id)
 	}
 	ok(c, gin.H{"created": created, "skipped": skipped, "count": len(created)})
+}
+
+// deleteTrainingPlan 删除带培计划（仅管理员；阶段与小结级联删除）。
+func (s *Server) deleteTrainingPlan(c *gin.Context) {
+	id, okID := idParam(c)
+	if !okID {
+		return
+	}
+	if claims(c).Role != model.RoleAdmin {
+		fail(c, http.StatusForbidden, "只有管理员可以删除带培计划")
+		return
+	}
+	if err := s.Store.DeleteTrainingPlan(c.Request.Context(), id); err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			fail(c, http.StatusNotFound, "计划不存在")
+			return
+		}
+		fail(c, http.StatusInternalServerError, "删除失败")
+		return
+	}
+	ok(c, gin.H{"deleted": true})
 }

@@ -37,7 +37,9 @@ type TrainingPlan struct {
 
 const trainingPlanCols = `select p.id, p.user_id, p.title, coalesce(p.mentor,''), p.total_weeks,
 	coalesce(p.target,''), p.status, coalesce(u.name,''), coalesce(d.name,''), u.dept_id,
-	coalesce(m.name,''), p.mentor_user_id
+	coalesce(m.name,''), p.mentor_user_id,
+	(select count(*) from training_stage s where s.plan_id=p.id),
+	(select count(*) from training_stage s where s.plan_id=p.id and s.done)
 	from training_plan p
 	left join org_user u on u.id=p.user_id
 	left join org_user m on m.id=p.mentor_user_id
@@ -45,7 +47,8 @@ const trainingPlanCols = `select p.id, p.user_id, p.title, coalesce(p.mentor,'')
 
 func scanPlan(row interface{ Scan(...any) error }, p *TrainingPlan) error {
 	return row.Scan(&p.ID, &p.UserID, &p.Title, &p.Mentor, &p.TotalWeeks, &p.Target, &p.Status,
-		&p.UserName, &p.DeptName, &p.UserDeptID, &p.Mentor, &p.MentorUserID)
+		&p.UserName, &p.DeptName, &p.UserDeptID, &p.Mentor, &p.MentorUserID,
+		&p.StageTotal, &p.StageDone)
 }
 
 func (s *Store) loadStages(ctx context.Context, p *TrainingPlan) error {
@@ -111,6 +114,18 @@ func (s *Store) GetPlanIDByStage(ctx context.Context, stageID int64) (int64, err
 		return 0, ErrNotFound
 	}
 	return planID, wrapErr("查询带培计划", err)
+}
+
+// DeleteTrainingPlan 删除计划，阶段与师傅小结随外键级联删除。
+func (s *Store) DeleteTrainingPlan(ctx context.Context, id int64) error {
+	ct, err := s.pool.Exec(ctx, `delete from training_plan where id=$1`, id)
+	if err != nil {
+		return wrapErr("删除带培计划", err)
+	}
+	if ct.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 // ListTrainingPlansScoped 按部门/师傅账号过滤。

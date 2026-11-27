@@ -417,6 +417,22 @@ func main() {
 		check(mentorSees, "师傅能在小程序看到自己带的学员计划")
 	}
 
+	// 删除计划：管理员可删、培训员不可删
+	if workerID > 0 && adminID > 0 {
+		var delPlan map[string]any
+		code, delPlan = admin.call("POST", "/api/v1/training/plans", map[string]any{
+			"user_id": workerID, "mentor_user_id": adminID, "title": "待删除自测计划", "total_weeks": 2,
+		})
+		if did := int64(num(delPlan["id"])); did > 0 {
+			code, _ = trSess.raw("DELETE", fmt.Sprintf("/api/v1/training/plans/%d", did))
+			check(code == http.StatusForbidden, "培训员不能删除带培计划")
+			code, _ = admin.raw("DELETE", fmt.Sprintf("/api/v1/training/plans/%d", did))
+			check(code == http.StatusOK, "管理员可删除带培计划")
+			code, _ = admin.call("GET", fmt.Sprintf("/api/v1/training/plans/%d", did), nil)
+			check(code == http.StatusNotFound, "删除后计划不存在")
+		}
+	}
+
 	code, rk := admin.call("POST", "/api/v1/risks", map[string]any{
 		"post": "通用", "category": "自测", "title": "案例字段自测", "level": "中",
 		"measures": []string{"措施一"}, "case_text": "某矿案例：未按规定支护。",
