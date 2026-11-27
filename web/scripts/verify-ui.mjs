@@ -511,6 +511,27 @@ async function main() {
   shot = await cdp.send('Page.captureScreenshot', { format: 'png' })
   writeFileSync(join(shotDir, 'admin-broadcast-draft.png'), Buffer.from(shot.data, 'base64'))
 
+  // 员工端新增页面（与小程序对齐）：消息、带培、错题本、岗位风险、待办
+  await cdp.evaluate(
+    `localStorage.setItem('coalrag.token', ${JSON.stringify(worker.token)});
+     localStorage.setItem('coalrag.user', ${JSON.stringify(JSON.stringify(worker.user))});
+     'ok'`,
+  )
+  for (const [path, kw, name, shotName] of [
+    ['/messages', '消息中心', '员工端消息中心可打开', 'employee-messages.png'],
+    ['/training', '新员工带培', '员工端带培页可打开', 'employee-training.png'],
+    ['/wrong', '错题本', '员工端错题本可打开', 'employee-wrong.png'],
+    ['/risks', '岗位风险', '员工端岗位风险可打开', 'employee-risks.png'],
+    ['/todos', '待办', '员工端待办可打开', 'employee-todos.png'],
+  ]) {
+    await cdp.send('Page.navigate', { url: `${base}${path}` })
+    await sleep(1900)
+    text = await cdp.evaluate('document.body.innerText')
+    check(text.includes(kw), name)
+    shot = await cdp.send('Page.captureScreenshot', { format: 'png' })
+    writeFileSync(join(shotDir, shotName), Buffer.from(shot.data, 'base64'))
+  }
+
   cdp.close()
   child.kill()
   console.log(`\n界面验证：通过 ${passed} 项，失败 ${failed} 项，截图见 ${shotDir}`)

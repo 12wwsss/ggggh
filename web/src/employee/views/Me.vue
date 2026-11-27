@@ -12,6 +12,7 @@ const oldPassword = ref('')
 const newPassword = ref('')
 const busy = ref(false)
 const large = useLarge()
+const isLeader = ['admin', 'dept_leader', 'safety'].includes((getUser() || {}).role)
 
 async function changePassword() {
   if (!oldPassword.value || !newPassword.value) {
@@ -72,7 +73,13 @@ async function logout() {
         <van-cell title="账号" :value="user.username" />
         <van-cell title="角色" :value="roleText[user.role] || user.role" />
         <van-cell title="智能问答" is-link @click="router.push('/ask')" />
-        <van-cell title="我的问题" is-link @click="router.push('/issues')" />
+        <van-cell title="待办" is-link @click="router.push('/todos')" />
+        <van-cell title="消息中心" is-link @click="router.push('/messages')" />
+        <van-cell title="新员工带培" is-link @click="router.push('/training')" />
+        <van-cell title="错题本" is-link @click="router.push('/wrong')" />
+        <van-cell title="岗位风险" is-link @click="router.push('/risks')" />
+        <van-cell v-if="isLeader" title="问题处理" is-link @click="router.push('/issues')" />
+        <van-cell v-else title="我的问题" is-link @click="router.push('/issues')" />
         <van-cell title="大字模式" label="字更大、按钮更大">
           <template #right-icon>
             <van-switch :model-value="large" size="26" @update:model-value="(v) => (large = v)" />

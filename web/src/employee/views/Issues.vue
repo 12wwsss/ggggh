@@ -3,8 +3,11 @@ import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { api } from '../../shared/http'
 import { fmtTime, issueStatus, severityText } from '../../shared/format'
+import { getUser } from '../../shared/http'
 
 const router = useRouter()
+const role = (getUser() || {}).role
+const isLeader = role === 'admin' || role === 'dept_leader' || role === 'safety'
 const list = ref([])
 const loading = ref(true)
 
@@ -20,7 +23,7 @@ onMounted(async () => {
 
 <template>
   <div class="page">
-    <van-nav-bar title="我的问题" left-arrow @click-left="$router.back()">
+    <van-nav-bar :title="isLeader ? '问题处理' : '我的问题'" left-arrow @click-left="$router.back()">
       <template #right>
         <span style="color: var(--seal)" @click="router.push('/issues/new')">上报</span>
       </template>

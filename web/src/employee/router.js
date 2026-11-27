@@ -28,6 +28,11 @@ const routes = [
   { path: '/issues', name: 'issues', component: () => import('./views/Issues.vue'), meta: { title: '我的问题' } },
   { path: '/issues/new', name: 'issue-new', component: () => import('./views/IssueNew.vue'), meta: { title: '上报问题' } },
   { path: '/issues/:id', name: 'issue-detail', component: () => import('./views/IssueDetail.vue'), meta: { title: '问题详情' } },
+  { path: '/messages', name: 'messages', component: () => import('./views/Messages.vue'), meta: { title: '消息中心' } },
+  { path: '/todos', name: 'todos', component: () => import('./views/Todos.vue'), meta: { title: '待办' } },
+  { path: '/training', name: 'training', component: () => import('./views/Training.vue'), meta: { title: '新员工带培' } },
+  { path: '/wrong', name: 'wrong', component: () => import('./views/Wrong.vue'), meta: { title: '错题本' } },
+  { path: '/risks', name: 'risks', component: () => import('./views/Risks.vue'), meta: { title: '岗位风险' } },
   { path: '/me', name: 'me', component: () => import('./views/Me.vue'), meta: { tab: true, title: '我的' } },
   { path: '/:pathMatch(.*)*', redirect: '/' },
 ]
