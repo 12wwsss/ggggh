@@ -21,6 +21,7 @@
     <view wx:if="{{tip}}" class="tip">{{tip}}</view>
 
     <view class="local" bindtap="useLocal">先以本机模式进入 ›</view>
+    <view class="server" bindtap="editServer">服务器：{{server}}</view>
   </view>
 
   <view class="foot">账号由矿上管理员分配，忘记口令请联系安全科</view>

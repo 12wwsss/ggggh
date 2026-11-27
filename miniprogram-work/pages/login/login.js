@@ -7,10 +7,12 @@ Page({
     password: '',
     loading: false,
     err: '',
-    tip: ''
+    tip: '',
+    server: ''
   },
 
   onLoad() {
+    this.setData({ server: api.serverUrl() })
     // 已登录直接进首页；首次登录未改密先去设置口令
     if (auth.token()) {
       const u = auth.user() || {}
@@ -52,6 +54,26 @@ Page({
       }, 400)
     }).catch(e => {
       this.setData({ loading: false, err: e.message || '登录失败' })
+    })
+  },
+
+  /** 真机调试：临时改服务器地址（存本地，不重新编译） */
+  editServer() {
+    wx.showModal({
+      title: '服务器地址',
+      editable: true,
+      placeholderText: api.serverUrl(),
+      content: this.data.server || api.serverUrl(),
+      success: r => {
+        if (!r.confirm) return
+        const v = (r.content || '').trim()
+        if (!v) return
+        if (!/^https?:\/\//.test(v)) {
+          return wx.showToast({ title: '要带 http:// 或 https://', icon: 'none' })
+        }
+        this.setData({ server: api.setServerUrl(v), err: '' })
+        wx.showToast({ title: '已切换服务器', icon: 'success' })
+      }
     })
   },
 
