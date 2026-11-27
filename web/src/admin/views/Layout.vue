@@ -26,7 +26,7 @@ const groups = [
       { path: '/content', label: '安全文化内容' },
       { path: '/media', label: '视频资料' },
       { path: '/risks', label: '岗位风险' },
-      { path: '/training', label: '新员工带培', roles: ['admin', 'safety', 'dept_leader', 'employee'] },
+      { path: '/training', label: '新员工带培', roles: ['admin', 'safety', 'trainer', 'dept_leader'] },
     ],
   },
   {

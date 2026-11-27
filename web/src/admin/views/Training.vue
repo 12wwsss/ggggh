@@ -4,7 +4,7 @@ import { ElMessage } from 'element-plus'
 import { api, getUser } from '../../shared/http'
 
 const role = (getUser() || {}).role
-const canCreate = computed(() => ['admin', 'safety', 'dept_leader'].includes(role))
+const canCreate = computed(() => ['admin', 'safety', 'trainer', 'dept_leader'].includes(role))
 const batch = ref(false)
 
 const rows = ref([])
@@ -15,6 +15,9 @@ const createVisible = ref(false)
 const saving = ref(false)
 const users = ref([])
 const form = ref({ user_id: null, user_ids: [], mentor_user_id: null, title: '新员工入矿带培计划', total_weeks: 4, target: '' })
+const notes = ref({})
+const noteForm = ref({ kind: 'monthly', period: new Date().toISOString().slice(0, 7), content: '' })
+const noteSaving = ref(false)
 const mentorVisible = ref(false)
 const mentorForm = ref({ plan_id: 0, user_name: '', mentor_user_id: null })
 
@@ -106,8 +109,38 @@ async function onExpand(row, expandedRows) {
   try {
     const data = await api.get(`/api/v1/training/plans/${row.id}`)
     stages.value = { ...stages.value, [row.id]: data.stages || [] }
+    await loadNotes(row.id)
   } catch (e) {
     ElMessage.error(e.message)
+  }
+}
+
+async function loadNotes(planID) {
+  try {
+    const data = await api.get(`/api/v1/training/plans/${planID}/notes`)
+    notes.value = { ...notes.value, [planID]: data.list || [] }
+  } catch (e) {
+    notes.value = { ...notes.value, [planID]: [] }
+  }
+}
+
+async function saveNote(row) {
+  const content = (noteForm.value.content || '').trim()
+  if (content.length < 10) return ElMessage.warning('小结至少写 10 个字')
+  noteSaving.value = true
+  try {
+    await api.post(`/api/v1/training/plans/${row.id}/notes`, {
+      kind: noteForm.value.kind,
+      period: noteForm.value.period,
+      content,
+    })
+    ElMessage.success('已保存')
+    noteForm.value.content = ''
+    await loadNotes(row.id)
+  } catch (e) {
+    ElMessage.error(e.message)
+  } finally {
+    noteSaving.value = false
   }
 }
 
@@ -146,6 +179,36 @@ onMounted(load)
               </div>
             </div>
             <el-empty v-if="!(stages[row.id] || []).length" description="没有阶段" :image-size="60" />
+
+            <el-divider content-position="left">师傅小结</el-divider>
+            <div class="note-form">
+              <el-select v-model="noteForm.kind" size="small" style="width: 120px">
+                <el-option label="月度小结" value="monthly" />
+                <el-option label="期满总结" value="final" />
+              </el-select>
+              <el-input v-model="noteForm.period" size="small" style="width: 120px" placeholder="2026-11" />
+              <el-input
+                v-model="noteForm.content"
+                type="textarea"
+                :rows="3"
+                placeholder="本月跟班情况、掌握的技能、存在的问题与下月重点（至少 10 字）"
+              />
+              <div style="text-align: right">
+                <el-button size="small" type="primary" :loading="noteSaving" @click="saveNote(row)">
+                  写小结
+                </el-button>
+              </div>
+            </div>
+            <div v-for="n in notes[row.id] || []" :key="n.id" class="note-item">
+              <div class="between">
+                <span class="note-meta">
+                  {{ n.period }} · {{ n.kind === 'final' ? '期满总结' : '月度小结' }} · {{ n.author || '—' }}
+                </span>
+                <span class="muted">{{ (n.created_at || '').slice(0, 10) }}</span>
+              </div>
+              <div class="note-body">{{ n.content }}</div>
+            </div>
+            <el-empty v-if="!(notes[row.id] || []).length" description="还没有小结" :image-size="50" />
           </div>
         </template>
       </el-table-column>
@@ -262,5 +325,33 @@ onMounted(load)
 }
 .grow {
   flex: 1;
+}
+.note-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #fafaf7;
+  border: 1px dashed #e2e0d6;
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+.note-item {
+  padding: 10px 2px;
+  border-bottom: 1px solid #f0f2f5;
+}
+.note-item:last-child {
+  border-bottom: none;
+}
+.note-meta {
+  font-size: 13px;
+  color: #59636e;
+  font-weight: 600;
+}
+.note-body {
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.8;
+  color: #2f3438;
+  white-space: pre-wrap;
 }
 </style>

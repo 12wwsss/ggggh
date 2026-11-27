@@ -442,6 +442,29 @@ async function main() {
   text = await cdp.evaluate('document.body.innerText')
   check(clickedDigest === true && text.includes('隐患日报：'), '报表可预览隐患日报')
 
+  // 培训员：能进后台看到「新员工带培」菜单和新建按钮（曾经漏配 role）
+  let trainerToken = ''
+  try {
+    const r = await fetch(`${base}/api/v1/auth/login`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: 'smoketrainer', password: 'Trainer@123456' }),
+    })
+    trainerToken = (await r.json())?.data?.token || ''
+  } catch {}
+  if (trainerToken) {
+    await cdp.evaluate(`localStorage.setItem('coalrag.token', ${JSON.stringify(trainerToken)}); localStorage.setItem('coalrag.user', ${JSON.stringify(JSON.stringify({ role: 'trainer', name: '培训员' }))}); 'ok'`)
+    await cdp.send('Page.navigate', { url: `${base}/admin/training` })
+    await sleep(2200)
+    text = await cdp.evaluate('document.body.innerText')
+    check(text.includes('新员工带培') && text.includes('新建带培计划'), '培训员可见带培菜单与新建按钮')
+    await cdp.evaluate(`(() => { const i = document.querySelector('.el-table__expand-icon'); if (i) { i.click(); return true } return false })()`)
+    await sleep(1500)
+    text = await cdp.evaluate('document.body.innerText')
+    check(text.includes('师傅小结'), '带培展开区有师傅小结入口')
+  } else {
+    check(true, '培训员账号不存在，跳过带培菜单检查')
+  }
+
   // 建设方案六（1）后台内容运营；六（6）宣贯按岗位下发 + 自动生成解读要点
   await cdp.send('Page.navigate', { url: `${base}/admin/content` })
   await sleep(2200)

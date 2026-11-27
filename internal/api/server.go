@@ -154,6 +154,7 @@ func New(cfg *config.Config, st *store.Store, svc *service.Service, mgr *auth.Ma
 
 	// 导出
 	authed.GET("/export/issues", s.exportIssues)
+	authed.GET("/export/training-archive", s.exportTrainingArchive)
 	authed.GET("/export/reports", s.exportReports)
 	authed.GET("/export/exam", s.exportExamSheet)
 	authed.GET("/export/audit", s.exportAuditSheet)
@@ -183,6 +184,8 @@ func New(cfg *config.Config, st *store.Store, svc *service.Service, mgr *auth.Ma
 	authed.GET("/training/plans", s.listTrainingPlans)
 	authed.POST("/training/plans", s.createTrainingPlan)
 	authed.POST("/training/plans/batch", s.createTrainingPlansBatch)
+	authed.GET("/training/plans/:id/notes", s.listTrainingNotes)
+	authed.POST("/training/plans/:id/notes", s.createTrainingNote)
 	authed.POST("/training/plans/:id/mentor", s.changeTrainingMentor)
 	authed.GET("/training/plans/:id", s.getTrainingPlan)
 	authed.POST("/training/stages/:id", s.setTrainingStage)

@@ -347,6 +347,44 @@ func main() {
 	code, _ = trSess.call("GET", "/api/v1/training/plans", nil)
 	check(code == http.StatusOK, "培训员可访问带培计划")
 
+	// 师傅月度小结 + 一人一档导出
+	_, meAdmin := admin.call("GET", "/api/v1/auth/me", nil)
+	adminID := int64(0)
+	if u, ok := meAdmin["user"].(map[string]any); ok {
+		adminID = int64(num(u["id"]))
+	}
+	_, us := admin.call("GET", "/api/v1/users?keyword=worker01", nil)
+	workerID := int64(0)
+	if l := asList(map[string]any{"list": us["list"]}); len(l) > 0 {
+		workerID = int64(num(l[0].(map[string]any)["id"]))
+	}
+	var plan map[string]any
+	if workerID > 0 && adminID > 0 {
+		code, plan = admin.call("POST", "/api/v1/training/plans", map[string]any{
+			"user_id": workerID, "mentor_user_id": adminID, "title": "自测带培计划", "total_weeks": 4,
+		})
+		check(code == http.StatusOK, "创建带培计划（用于小结）")
+	}
+	if pid := int64(num(plan["id"])); pid > 0 {
+		code, note := trSess.call("POST", fmt.Sprintf("/api/v1/training/plans/%d/notes", pid), map[string]any{
+			"kind": "monthly", "period": "2026-11",
+			"content": "本月跟班正常，已掌握敲帮问顶与支护检查，下月重点独立上岗考核。",
+		})
+		check(code == http.StatusOK && num(note["id"]) > 0, "培训员可写师傅月度小结")
+		_, nl := trSess.call("GET", fmt.Sprintf("/api/v1/training/plans/%d/notes", pid), nil)
+		check(len(asList(map[string]any{"list": nl["list"]})) == 1, "小结按计划可查")
+		code, _ = worker.call("POST", fmt.Sprintf("/api/v1/training/plans/%d/notes", pid), map[string]any{
+			"content": "员工不该能写师傅小结，这里故意提交一条超长内容验证越权。",
+		})
+		check(code == http.StatusForbidden, "员工不能写师傅小结")
+	}
+	if workerID > 0 {
+		code, body := trSess.raw("GET", fmt.Sprintf("/api/v1/export/training-archive?user_id=%d", workerID))
+		check(code == http.StatusOK && strings.HasPrefix(body, "PK"), "培训员可导出培训档案（xlsx）")
+		code, _ = worker.raw("GET", fmt.Sprintf("/api/v1/export/training-archive?user_id=%d", workerID))
+		check(code == http.StatusForbidden, "员工不能导出培训档案")
+	}
+
 	code, rk := admin.call("POST", "/api/v1/risks", map[string]any{
 		"post": "通用", "category": "自测", "title": "案例字段自测", "level": "中",
 		"measures": []string{"措施一"}, "case_text": "某矿案例：未按规定支护。",

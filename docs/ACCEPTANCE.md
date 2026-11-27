@@ -1,7 +1,7 @@
 # 验收对照（按技术方案逐条）
 
 验证时间：2026-11-26（离线模型已在 Ubuntu 服务器上部署并实测）
-命令：`bin\smoke.exe`（128 项）、`web\scripts\verify-ui.mjs`（46 项）、`scripts\check.ps1`；准确率见 `docs/OFFLINE-EVAL.md`，并发与长稳见 `docs/CONCURRENCY.md`
+命令：`bin\smoke.exe`（134 项）、`web\scripts\verify-ui.mjs`（48 项）、`scripts\check.ps1`；准确率见 `docs/OFFLINE-EVAL.md`，并发与长稳见 `docs/CONCURRENCY.md`
 
 ## 一、工作项 S0–S10
 
@@ -86,7 +86,17 @@
 | 七（二）PDF 导入 | 达成 | `parser.Pdf` 调 `pdftotext -enc UTF-8 -nopgbrk`；服务器 pdftotext 24.02；无文字层报「需要 OCR」 |
 | 七（二）doc/wps 导入 | 达成 | 服务器已装 LibreOffice 24.2.7（`--no-install-recommends libreoffice-writer`），`soffice --version` 正常 |
 
-## 八、2026-11-26 增量部署记录（192.168.134.103）
+## 八、培训管理补齐（2026-11-27）
+
+对照《煤矿安全培训规定》与矿上师带徒制度，补培训员/师傅职责对应的三块能力。
+
+| 项 | 结论 | 证据 |
+| --- | --- | --- |
+| 培训员可见后台带培 | 达成 | 菜单与新建按钮都放行 `trainer`；浏览器回归「培训员可见带培菜单与新建按钮」 |
+| 师傅月度小结/期满总结 | 达成 | `training_note` 表；培训员写小结 200、按计划可查、员工写小结 403；带培展开区有「师傅小结」录入与列表 |
+| 一人一档导出 | 达成 | `GET /export/training-archive?user_id=` 返回 xlsx（PK 头），解压校验 7 个 sheet：基本信息/学习记录/考试记录/宣贯签收/错题/上报问题/带培与小结；员工访问 403 |
+
+## 九、2026-11-26 增量部署记录（192.168.134.103）
 
 | 项 | 内容 |
 | --- | --- |
@@ -123,5 +133,14 @@
 | 原因 3 | `llama-chat` 崩溃重启（restart counter 56）：日志 `failed to fit params to free device memory: n_gpu_layers already set by user to 99, abort`，GPU 同时被 gazebo 占用约 1.6 GB |
 | 处理 | 服务端改为「模型不可用 → 返回检索条款 + 前 3 条引用」的降级回答，不再 500/空白；`llama-chat` 的显存参数待定，`llama-embed` 正常 |
 | 验证 | `POST /qa/ask`（模型不可用）返回 `answered=false` + 「模型服务暂不可用，先列出检索到的条款…」+ 第一百三十六/一百三十八条引用；本地 8082 以 dead base_url 复现同一行为 |
+
+### 2026-11-27 上午：培训管理补齐上线
+
+| 项 | 内容 |
+| --- | --- |
+| 版本 | sha256 `f97f7f7d383ff7c963714e5677e9d9eb06e22b3e7edd90dae6bacd2bd687befe`（16,314,520 B），10:59 重启 |
+| 迁移 | `0034_training_note`（新建 `training_note` 表） |
+| 备份 | `/opt/coalrag/backups/pre-batch3-20261127-105940.dump`（788 KB） |
+| 验证 | 建计划 → 写小结 200 → 小结列表可见；导出档案 200、5,155 字节、`PK` 头、7 个 sheet；远端 `Training-H5RM5heE.js` 含「师傅小结」、`Reports-Bvby0d6R.js` 含「training-archive / 培训档案」 |
 
 截图：`docs/screenshots/deploy-employee-home.png`。

@@ -130,6 +130,18 @@
 | 七（二）PDF 导入 | `parser.Pdf`（pdftotext） | 只抽文字层，段落按空行/每 8 行切块；扫描件明确报「需要 OCR」，不再谎报解析成功 |
 | 七（二）doc/wps 导入 | LibreOffice 子进程 | 服务器已装 `libreoffice-writer`；缺依赖时报错并提示安装命令 |
 
+## 培训管理补齐（2026-11-27）
+
+对照《煤矿安全培训规定》和矿上师带徒制度补的三块。迁移 `0034`。
+
+| 能力 | 落地 | 说明 |
+| --- | --- | --- |
+| 培训员能用后台带培 | `Layout.vue` 菜单加 `trainer`、`Training.vue` 新建按钮加 `trainer` | 后端 `canManagePlan` / `ListTrainingPlans` 早就放行 trainer，前端漏配导致「看不到菜单、看不到新建按钮」 |
+| 师傅月度小结 / 期满总结 | `training_note` 表 + `/training/plans/:id/notes` + 带培页展开区录入 | `kind=monthly|final`、`period=2026-11`、正文 ≥10 字；师傅/培训员/管理员/本队队长可写，计划本人可看 |
+| 一人一档培训档案 | `GET /export/training-archive?user_id=` + 报表页「培训档案 → 导出」 | 多 sheet xlsx：基本信息、学习记录、考试记录、宣贯签收、错题、上报问题、带培与小结；培训员全矿、区队长限本队 |
+
+导出用 `export.XLSXBook`（新增多 sheet 支持），原来的单 sheet `export.XLSX` 保持不变。
+
 ## 前端
 
 方案要求 Vue3 + Vant（H5）与 Element Plus（后台）。两个入口同仓库、同构建：

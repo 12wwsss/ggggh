@@ -97,6 +97,8 @@
 | GET | `/broadcast/tasks/:id/records` | broadcast:read | 签收明细 |
 | POST | `/broadcast/tasks/:id/ack` | broadcast:write | `{ack:true}` 签收 |
 | GET | `/broadcast/mine` | broadcast:read | 我的待办宣贯（`pending=true`） |
+| GET | `/training/plans/:id/notes` | training:read | 带培小结列表（师傅/培训员/本队队长/本人可看） |
+| POST | `/training/plans/:id/notes` | training:write | 写师傅月度小结或期满总结：`{kind:monthly|final, period:"2026-11", content}`，至少 10 字 |
 
 ## 问题闭环（二期）
 
@@ -124,6 +126,7 @@
 | GET | `/reports/wrong` | 管理员/安全科 | 错题统计 |
 | GET | `/reports/issues` | 管理员/安全科 | 隐患趋势，含 `by_dept`、`by_post`、`status`、环比 |
 | GET | `/reports/issue-digest` | 管理员/安全科 | `?period=daily|weekly` 预览隐患日报/周报（与定时推送同一份统计）：`{digest,title,body}` |
+| GET | `/export/training-archive` | 管理员/安全科/培训员/区队长（限本队） | `?user_id=` 导出「一人一档」xlsx：基本信息 / 学习记录 / 考试记录 / 宣贯签收 / 错题 / 上报问题 / 带培与小结 共 7 个 sheet |
 
 ## 安全文化内容
 

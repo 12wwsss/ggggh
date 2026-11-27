@@ -78,6 +78,17 @@ onMounted(load)
           <el-table-column prop="completed" label="完成条目" width="100" />
           <el-table-column prop="hours" label="学时" width="80" />
           <el-table-column prop="last_at" label="最近学习" width="140" />
+          <el-table-column label="培训档案" width="100">
+            <template #default="{ row }">
+              <el-button
+                link
+                type="primary"
+                @click="download(`/api/v1/export/training-archive?user_id=${row.user_id}`, `培训档案-${row.name}.xlsx`)"
+              >
+                导出
+              </el-button>
+            </template>
+          </el-table-column>
         </el-table>
       </el-tab-pane>
 
