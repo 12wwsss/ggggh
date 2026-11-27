@@ -15,7 +15,7 @@ import { getToken } from '../shared/http'
 const routes = [
   { path: '/login', name: 'login', component: () => import('./views/Login.vue'), meta: { public: true } },
   { path: '/', name: 'home', component: () => import('./views/Home.vue'), meta: { tab: true, title: '首页' } },
-  { path: '/ask', name: 'ask', component: () => import('./views/Ask.vue'), meta: { title: '问规程' } },
+  { path: '/ask', name: 'ask', component: () => import('./views/Ask.vue'), meta: { tab: true, title: '问答' } },
   { path: '/learn', name: 'learn', component: () => import('./views/Learn.vue'), meta: { tab: true, title: '学规程' } },
   { path: '/learn/:id', name: 'learn-detail', component: () => import('./views/LearnDetail.vue'), meta: { title: '学习' } },
   { path: '/quiz/:id', name: 'quiz', component: () => import('./views/Quiz.vue'), meta: { title: '小测' } },

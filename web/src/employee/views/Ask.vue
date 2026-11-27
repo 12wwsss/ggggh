@@ -182,7 +182,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="app-shell">
-    <van-nav-bar title="问规程" left-arrow @click-left="goBack" />
+    <van-nav-bar title="问答" left-arrow @click-left="goBack" />
 
     <div ref="scroller" class="page pad">
       <div v-for="(m, i) in messages" :key="i" :class="['bubble', m.role === 'me' ? 'me' : 'ai']">
@@ -318,7 +318,9 @@ onBeforeUnmount(() => {
 .lt-composer {
   align-items: center;
   gap: 10px;
-  padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
+  padding: 12px 14px;
+  background: var(--paper);
+  border-top: 1px solid var(--rule);
 }
 .lt-mic {
   flex: 0 0 56px;

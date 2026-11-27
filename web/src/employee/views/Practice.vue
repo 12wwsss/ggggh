@@ -8,7 +8,7 @@ const router = useRouter()
 const letters = 'ABCDEF'
 const stage = ref('start') // start | run | result
 const jobs = ref([])
-const job = ref('')
+const job = ref('全部')
 const counts = [5, 10, 20]
 const count = ref(10)
 const questions = ref([])
@@ -96,31 +96,29 @@ function restart() {
         </div>
 
         <div class="muted" style="margin: 14px 0 6px">选择范围</div>
-        <div class="row" style="flex-wrap: wrap; gap: 8px">
-          <van-tag
+        <div class="lt-chips">
+          <button
             v-for="j in ['全部', ...jobs]"
             :key="j"
-            :type="job === j ? 'primary' : 'default'"
-            size="large"
-            style="cursor: pointer"
+            class="lt-chip"
+            :class="{ on: job === j }"
             @click="job = j"
           >
             {{ j }}
-          </van-tag>
+          </button>
         </div>
 
         <div class="muted" style="margin: 14px 0 6px">题目数量</div>
-        <div class="row" style="gap: 8px">
-          <van-tag
+        <div class="lt-chips lt-chips-count">
+          <button
             v-for="c in counts"
             :key="c"
-            :type="count === c ? 'primary' : 'default'"
-            size="large"
-            style="cursor: pointer"
+            class="lt-chip"
+            :class="{ on: count === c }"
             @click="count = c"
           >
             {{ c }} 题
-          </van-tag>
+          </button>
         </div>
 
         <van-button block type="primary" style="margin-top: 20px" :loading="loading" @click="start">
@@ -192,3 +190,30 @@ function restart() {
     </div>
   </div>
 </template>
+
+<style scoped>
+.lt-chips {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.lt-chips-count {
+  grid-template-columns: repeat(3, 1fr);
+}
+.lt-chip {
+  min-height: 42px;
+  padding: 6px 8px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 2px;
+  background: var(--paper-2);
+  color: var(--ink);
+  font-size: 14px;
+  cursor: pointer;
+}
+.lt-chip.on {
+  border-color: var(--seal);
+  color: var(--seal);
+  background: var(--seal-tint);
+  font-weight: 700;
+}
+</style>

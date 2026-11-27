@@ -9,6 +9,7 @@ const pendingAck = ref(0)
 const papers = ref(0)
 const recent = ref([])
 const culture = ref([])
+const risks = ref([])
 const loading = ref(true)
 
 // 头部说的是“几件事要办”，不是场次：考试 5 场也只是 1 件事。
@@ -23,16 +24,21 @@ const presets = [
 
 onMounted(async () => {
   try {
-    const [mine, examList, logs, cultureArticles, cultureCards] = await Promise.all([
+    const [mine, examList, logs, cultureArticles, cultureCards, riskList] = await Promise.all([
       api.get('/api/v1/broadcast/mine', { pending: true }),
       api.get('/api/v1/exam/papers', { page_size: 5 }),
       api.get('/api/v1/qa/logs', { page_size: 3 }),
       api.get('/api/v1/culture', { kind: 'article' }).catch(() => ({ items: [] })),
       api.get('/api/v1/culture', { kind: 'culture' }).catch(() => ({ items: [] })),
+      api.get('/api/risks').catch(() => ({ items: [] })),
     ])
     pendingAck.value = (mine || []).length
     papers.value = (examList.list || []).length
     recent.value = (logs.list || []).slice(0, 3)
+    const all = (riskList && riskList.items) || []
+    const post = String(user.value.post || '')
+    const matched = all.filter((r) => !post || !r.job || r.job === '通用' || post.includes(r.job))
+    risks.value = (matched.length ? matched : all).slice(0, 2)
     // 六（1）：首页主动推送安全文化——寄语/光荣榜/案例各取前几条
     culture.value = [...((cultureCards.items) || []), ...((cultureArticles.items) || [])]
       .map((it) => ({
@@ -58,28 +64,12 @@ function ask(q) {
       <h1 class="lt-name">{{ user.name || '安全员' }}，欢迎回来</h1>
       <p class="lt-meta">
         {{ user.dept_name || '矿部' }} · {{ user.post || '员工' }}
-        <span v-if="todoKinds"> · 今天有 {{ todoKinds }} 件事要办</span>
-        <span v-else> · 今天暂无待办</span>
       </p>
     </header>
 
     <div class="pad">
       <button class="lt-btn lt-primary" @click="ask()">
         问规程<span class="lt-sub">点一下就能问</span>
-      </button>
-
-      <div class="lt-row">
-        <button class="lt-btn" @click="router.push('/issues/new')">报隐患</button>
-        <button class="lt-btn" @click="router.push('/learn')">学规程</button>
-      </div>
-
-      <div class="lt-row">
-        <button class="lt-btn" @click="router.push('/practice')">练题</button>
-        <button class="lt-btn" @click="router.push('/broadcasts')">宣贯</button>
-      </div>
-
-      <button class="lt-btn" style="margin-top: 8px" @click="router.push('/media')">
-        看视频<span class="lt-sub">操作示范、事故案例</span>
       </button>
 
       <div class="lt-card">
@@ -99,6 +89,28 @@ function ask(q) {
         <div v-if="!papers && !pendingAck && !loading" class="lt-empty">
           今天没有待办，可以查条款
         </div>
+      </div>
+
+      <div class="lt-quick">
+        <button class="lt-quick-item" @click="router.push('/issues/new')">报隐患</button>
+        <button class="lt-quick-item" @click="router.push('/learn')">学规程</button>
+        <button class="lt-quick-item" @click="router.push('/practice')">练题</button>
+        <button class="lt-quick-item" @click="router.push('/broadcasts')">宣贯</button>
+      </div>
+
+      <button class="lt-btn lt-media" style="margin-top: 12px" @click="router.push('/media')">
+        看视频<span class="lt-sub">操作示范、事故案例</span>
+      </button>
+
+      <div v-if="risks.length" class="lt-card">
+        <div class="lt-card-head">
+          <span class="lt-tag">本岗位必知</span>
+          <button class="lt-more" @click="router.push('/risks')">全部 →</button>
+        </div>
+        <button v-for="r in risks" :key="r.id" class="lt-todo" @click="router.push('/risks')">
+          <span class="lt-todo-main">{{ r.title }}</span>
+          <span class="lt-todo-side">{{ r.level ? '风险 ' + r.level : '一般' }} →</span>
+        </button>
       </div>
 
       <div class="lt-culture">
@@ -144,7 +156,7 @@ function ask(q) {
 }
 .lt-name {
   font-family: var(--font-serif);
-  font-size: 30px;
+  font-size: clamp(26px, 7vw, 32px);
   margin: 0 0 8px;
   letter-spacing: 0.02em;
 }
@@ -153,6 +165,32 @@ function ask(q) {
   font-size: 17px;
   line-height: 1.6;
   opacity: 0.75;
+}
+
+.lt-quick {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+.lt-quick-item {
+  min-height: 52px;
+  padding: 8px 10px;
+  border: 2px solid var(--ink);
+  border-radius: 4px;
+  background: var(--sheet);
+  color: var(--ink);
+  font-family: var(--font-serif);
+  font-size: 20px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.lt-quick-item:active {
+  background: var(--ink);
+  color: var(--paper-2);
+}
+.lt-media {
+  min-height: 56px;
 }
 
 .lt-btn {
@@ -192,7 +230,33 @@ function ask(q) {
   gap: 12px;
   margin-bottom: 16px;
 }
-.lt-row .lt-btn {
+.lt-row .lt-quick {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+.lt-quick-item {
+  min-height: 52px;
+  padding: 8px 10px;
+  border: 2px solid var(--ink);
+  border-radius: 4px;
+  background: var(--sheet);
+  color: var(--ink);
+  font-family: var(--font-serif);
+  font-size: 20px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.lt-quick-item:active {
+  background: var(--ink);
+  color: var(--paper-2);
+}
+.lt-media {
+  min-height: 56px;
+}
+
+.lt-btn {
   min-height: 58px;
   font-size: 21px;
 }
@@ -346,6 +410,10 @@ function ask(q) {
   line-height: 1.4;
 }
 .lt-culture-sum {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
   display: block;
   margin-top: 4px;
   font-size: 16px;

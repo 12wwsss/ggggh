@@ -221,6 +221,8 @@ async function main() {
   text = await cdp.evaluate('document.body.innerText')
   check(text.includes('欢迎回来'), '员工首页加载')
   check(text.includes('问规程') && text.includes('学规程'), '首页功能入口渲染')
+  const tabTexts = await cdp.evaluate(`[...document.querySelectorAll('.van-tabbar-item')].map((x) => x.textContent.trim()).join('/')`)
+  check(['首页', '问答', '学习', '我的'].every((t) => tabTexts.includes(t)), '底栏四项与小程序一致')
   // 大字模式开关：默认开启，可关闭且立即生效
   await cdp.send('Page.navigate', { url: `${base}/me` })
   await sleep(1600)
@@ -297,11 +299,11 @@ async function main() {
   await cdp.send('Page.navigate', { url: `${base}/` })
   await sleep(1500)
   const tabbed = await cdp.evaluate(
-    `(() => { const b = [...document.querySelectorAll('.van-tabbar-item')].find((x) => x.textContent.includes('问规程')); if (b) { b.click(); return true } return false })()`,
+    `(() => { const b = [...document.querySelectorAll('.van-tabbar-item')].find((x) => x.textContent.includes('问答')); if (b) { b.click(); return true } return false })()`,
   )
-  check(tabbed === true, '底栏有问规程入口')
+  check(tabbed === true, '底栏有问答入口')
   await sleep(1600)
-  check((await cdp.evaluate('document.body.innerText')).includes('我是安全员助手'), '底栏可进入问规程')
+  check((await cdp.evaluate('document.body.innerText')).includes('我是安全员助手'), '底栏可进入问答')
   await cdp.evaluate(
     `(() => { const b = document.querySelector('.van-nav-bar__left'); if (b) { b.click(); return true } return false })()`,
   )
