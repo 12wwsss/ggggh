@@ -9,6 +9,20 @@
     </view>
   </view>
 
+  <view wx:if="{{!plan && !loading && !err}}" class="wrap">
+    <view class="card empty-plan">
+      <view class="small bold">还没有带培计划</view>
+      <view class="tiny muted" style="margin-top:10rpx;line-height:1.9">
+        新员工入矿、转岗或复训时，由培训员/区队长在电脑端后台建计划并指定带培师傅；
+        建好后这里会显示每周的阶段任务、完成进度和师傅小结。
+      </view>
+      <view class="row gap" style="margin-top:24rpx">
+        <view class="btn-ghost" bindtap="toQuiz">先练题</view>
+        <view class="btn-primary" style="flex:1;margin-left:20rpx" bindtap="toChat">问 AI</view>
+      </view>
+    </view>
+  </view>
+
   <block wx:if="{{plan}}">
     <view class="head">
       <view class="head-kicker">新员工带培 · 共 {{plan.totalWeeks}} 周</view>

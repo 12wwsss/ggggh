@@ -152,6 +152,10 @@ Page({
 
   toMedia() { wx.navigateTo({ url: '/pages/media/media' }) },
   toCulture() { wx.navigateTo({ url: '/pages/culture/culture' }) },
+  goTraining() {
+    wx.navigateTo({ url: '/pages/training/training' })
+  },
+
   goLearn() { wx.navigateTo({ url: '/pages/study/study' }) },
 
   openCulture(e) {

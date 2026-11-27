@@ -19,9 +19,15 @@ function buildMenus(best, wrongCount, quizCount, s, contact, manager, hasTrainin
   if (manager) {
     list.unshift({ t: '问题处理', ch: '处', sub: '受理 · 整改 · 验收 · 闭环', c: '#12B76A', bg: '#E8F7EF', path: '/pages/handle/handle' })
   }
-  if (hasTraining) {
-    list.splice(1, 0, { t: '新员工带培', ch: '带', sub: '4 周带培计划 · 阶段进度', c: '#0E9F6E', bg: '#E8F7EF', path: '/pages/training/training' })
-  }
+  // 带培入口常驻：没有计划的人也要能看到入口和说明，否则培训员/新员工根本找不到
+  list.splice(1, 0, {
+    t: '新员工带培',
+    ch: '带',
+    sub: hasTraining ? '阶段进度 · 师傅小结' : '暂无计划 · 联系师傅或培训员',
+    c: '#0E9F6E',
+    bg: '#E8F7EF',
+    path: '/pages/training/training'
+  })
   return list
 }
 

@@ -89,3 +89,6 @@
   margin-top: 10rpx; font-size: 26rpx; line-height: 42rpx;
   color: #2F3438; white-space: pre-wrap;
 }
+
+/* ── 空状态 ── */
+.empty-plan { padding: 32rpx 30rpx; margin-top: 40rpx; }

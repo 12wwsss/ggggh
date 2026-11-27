@@ -85,7 +85,10 @@
     <view class="card stats" bindtap="goLearn">
       <view class="st-head">
         <text class="st-title">我的学习</text>
-        <text class="st-more">去学习 ›</text>
+        <view class="row">
+          <text class="st-more" catchtap="goTraining">带培 ›</text>
+          <text class="st-more" style="margin-left:18rpx">去学习 ›</text>
+        </view>
       </view>
       <view class="st-row">
         <view class="st-item">
