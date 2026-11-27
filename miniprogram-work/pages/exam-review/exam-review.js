@@ -23,10 +23,11 @@ Page({
       const result = res.result || {}
       const items = (res.detail || []).map((d, qi) => {
         const opts = (d.o || []).map((text, oi) => {
+          const key = 'ABCDEF'[oi]
           let cls = ''
           if (oi === d.a) cls = 'correct'
-          else if (d.your && 'ABCDEF'[oi] === String(d.your).toUpperCase()) cls = 'wrong'
-          return { text, cls, mark: oi === d.a ? '✓' : '' }
+          else if (d.your && key === String(d.your).toUpperCase()) cls = 'wrong'
+          return { key, text, cls, mark: oi === d.a ? '✓' : '' }
         })
         return {
           no: qi + 1,

@@ -25,8 +25,8 @@
           <text class="q-stem">{{item.stem}}</text>
         </view>
 
-        <view class="opt {{op.cls}}" wx:for="{{item.opts}}" wx:for-item="op" wx:for-index="oi" wx:key="*this">
-          <text class="opt-key">{{'ABCDEF'[oi]}}</text>
+        <view class="opt {{op.cls}}" wx:for="{{item.opts}}" wx:for-item="op" wx:key="key">
+          <text class="opt-key">{{op.key}}</text>
           <text class="opt-text">{{op.text}}</text>
           <text wx:if="{{op.mark}}" class="opt-mark">✓</text>
           <text wx:if="{{op.cls === 'wrong'}}" class="opt-mark wrong">✗</text>
