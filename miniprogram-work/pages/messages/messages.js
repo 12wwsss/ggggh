@@ -10,6 +10,7 @@ Page({
       { label: '工单', kind: 'issue' },
       { label: '宣贯', kind: 'broadcast' },
       { label: '带培', kind: 'training' },
+      { label: '问答', kind: 'qa' },
       { label: '报表', kind: 'report' }
     ],
     tab: 0,
@@ -57,6 +58,9 @@ Page({
     if (it.ref_type === 'issue') wx.navigateTo({ url: '/pages/issue/issue' })
     else if (it.ref_type === 'broadcast') wx.navigateTo({ url: '/pages/policy/policy' })
     else if (it.ref_type === 'training') wx.navigateTo({ url: '/pages/training/training' })
+    else if (it.ref_type === 'qa_ticket') {
+      wx.showModal({ title: it.title || '安全科回复', content: it.body || '', showCancel: false })
+    }
   },
 
   readAll() {

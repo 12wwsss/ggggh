@@ -480,6 +480,12 @@ async function main() {
   text = await cdp.evaluate('document.body.innerText')
   check(openedUser === true && text.includes('培训员'), '新建账号角色下拉有培训员')
 
+  // 问答转人工：后台页面能打开，有待回复/已回复分类
+  await cdp.send('Page.navigate', { url: `${base}/admin/qa-tickets` })
+  await sleep(2000)
+  text = await cdp.evaluate('document.body.innerText')
+  check(text.includes('待回复') && text.includes('问答转人工'), '问答转人工页面可打开')
+
   // 管理员在带培页能看到删除按钮，状态是中文
   await cdp.send('Page.navigate', { url: `${base}/admin/training` })
   await sleep(2000)

@@ -354,7 +354,22 @@ Page({
   },
 
   toHuman() {
-    wx.showToast({ title: '已转当班安全员', icon: 'none' })
+    const q = String(this.data.lastQ || '').trim()
+    const ai = (this.data.msgs || []).filter(m => m.role === 'ai' && m.full).pop() || {}
+    if (!q) return wx.showToast({ title: '先问一个问题再转人工', icon: 'none' })
+    if (this.data.transferring) return
+    this.setData({ transferring: true })
+    api.qaTransfer({ question: q, answer: ai.full || '', log_id: ai.logId || 0 }).then(() => {
+      this.setData({ transferring: false })
+      wx.showModal({
+        title: '已转人工',
+        content: '安全科回复后会出现在「消息中心 → 问答」里，也会收到一条站内消息。',
+        showCancel: false
+      })
+    }).catch(e => {
+      this.setData({ transferring: false })
+      wx.showToast({ title: e.message || '提交失败', icon: 'none' })
+    })
   },
 
   /** 朗读最后一条 AI 回答（同声传译插件 TTS） */

@@ -13,6 +13,7 @@ const routes = [
       { path: 'docs', name: 'docs', component: () => import('./views/Docs.vue'), meta: { title: '文档与条款' } },
       { path: 'docs/:id', name: 'doc-detail', component: () => import('./views/DocDetail.vue'), meta: { title: '文档详情' } },
       { path: 'qa', name: 'qa', component: () => import('./views/QaLogs.vue'), meta: { title: '问答留痕' } },
+      { path: 'qa-tickets', name: 'qa-tickets', component: () => import('./views/QaTickets.vue'), meta: { title: '问答转人工' } },
       { path: 'learn', name: 'learn', component: () => import('./views/Learn.vue'), meta: { title: '学习与题库' } },
       { path: 'exams', name: 'exams', component: () => import('./views/Exams.vue'), meta: { title: '考试管理' } },
       { path: 'broadcasts', name: 'broadcasts', component: () => import('./views/Broadcasts.vue'), meta: { title: '宣贯管理' } },

@@ -20,6 +20,7 @@ const groups = [
     items: [
       { path: '/docs', label: '文档与条款' },
       { path: '/qa', label: '问答留痕' },
+      { path: '/qa-tickets', label: '问答转人工', roles: ['admin', 'safety'] },
       { path: '/learn', label: '学习与题库' },
       { path: '/exams', label: '考试管理' },
       { path: '/broadcasts', label: '宣贯管理' },

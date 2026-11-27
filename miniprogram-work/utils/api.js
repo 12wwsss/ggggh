@@ -125,6 +125,16 @@ function issueResubmit(payload) {
   return request('/api/issue/resubmit', payload)
 }
 
+/** 问答转人工：把这次问题和 AI 回答一起提交给安全科 */
+function qaTransfer(payload) {
+  return request('/api/qa/transfer', payload)
+}
+
+/** 我提交过的转人工及回复 */
+function myQaTickets() {
+  return request('/api/qa/tickets', {}, 'GET')
+}
+
 function notifications() {
   return request('/api/notifications', {}, 'GET')
 }
@@ -325,6 +335,6 @@ module.exports = {
   culture, cultureFeed, profile, saveProfile,
   chat, submitQuiz, health,
   content, article, training, saveTrainingNote, toggleTrainingStage,
-  createIssue, issues, handleIssue, issueFlow, issueRectify, issueResubmit, notifications, messages, messageRead, messageReadAll, users, issueStats, upload,
+  createIssue, issues, handleIssue, qaTransfer, myQaTickets, issueFlow, issueRectify, issueResubmit, notifications, messages, messageRead, messageReadAll, users, issueStats, upload,
   notices, noticeRead, noticeAck, quizStats, questions,
 }

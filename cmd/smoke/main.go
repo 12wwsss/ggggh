@@ -441,6 +441,28 @@ func main() {
 		}
 	}
 
+	// 问答转人工：员工提交 → 安全科看到 → 回复 → 员工消息里能收到
+	code, tr := callRaw("POST", "/api/qa/transfer", worker.token, map[string]any{
+		"question": "瓦斯超限除了停电撤人还有哪些要求？",
+		"answer":   "停止工作、切断电源、撤出人员",
+	})
+	tid := int64(num(tr["id"]))
+	check(code == http.StatusOK && tid > 0, "员工可提交问答转人工")
+	if tid > 0 {
+		code, tl := admin.call("GET", "/api/v1/qa/tickets?status=pending", nil)
+		check(code == http.StatusOK && len(asList(map[string]any{"list": tl["list"]})) >= 1, "安全科能看到待回复工单")
+		code, _ = worker.call("POST", fmt.Sprintf("/api/v1/qa/tickets/%d/reply", tid), map[string]any{
+			"reply": "员工不该能回复工单，这里是越权测试内容。",
+		})
+		check(code == http.StatusForbidden, "员工不能回复转人工工单")
+		code, _ = admin.call("POST", fmt.Sprintf("/api/v1/qa/tickets/%d/reply", tid), map[string]any{
+			"reply": "依据《煤矿安全规程》第一百三十六条，必须停止工作、切断电源、撤出人员并报告矿调度室。",
+		})
+		check(code == http.StatusOK, "安全科可回复转人工")
+		msg := mustGet("/api/messages?kind=qa", worker.token)
+		check(len(asList(map[string]any{"list": msg["items"]})) >= 1, "员工在消息中心收到问答回复")
+	}
+
 	// 成绩回看：选项、正确答案、解析都要能拿到
 	recs := mustGet("/api/exam/records", worker.token)
 	if rl := asList(map[string]any{"list": recs["items"]}); len(rl) > 0 {

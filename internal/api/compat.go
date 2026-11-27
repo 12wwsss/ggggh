@@ -1138,5 +1138,6 @@ func (s *Server) compatChat(c *gin.Context) {
 		"cites":    cites,
 		"grounded": res.Answered,
 		"model":    res.Model,
+		"log_id":   res.LogID,
 	})
 }
