@@ -42,7 +42,7 @@ Page({
     if (this._slowTimer) clearTimeout(this._slowTimer)
     this._slowTimer = setTimeout(() => {
       if (!this.data.loading) return
-      this.setData({ loading: false, err: '登录超时，检查手机和服务器是否在同一网络后重试' })
+      this.setData({ loading: false, err: '请求 13 秒没响应（' + api.serverUrl() + '），可点下方「网络诊断」看服务器是否可达' })
     }, 13000)
     api.login(username, password).then(res => {
       if (this._slowTimer) clearTimeout(this._slowTimer)
@@ -72,6 +72,28 @@ Page({
 
   onHide() {
     if (this._slowTimer) clearTimeout(this._slowTimer)
+  },
+
+  /** 网络诊断：直接打 /api/health，区分「服务器不可达」和「账号/口令问题」 */
+  diagnose() {
+    wx.showLoading({ title: '检测中', mask: true })
+    const started = Date.now()
+    api.health().then(res => {
+      wx.hideLoading()
+      const ms = Date.now() - started
+      wx.showModal({
+        title: '服务器可达',
+        content: api.serverUrl() + '\n耗时 ' + ms + 'ms · 状态 ' + ((res && res.status) || 'ok') + '\n\n如果这里能通但登录超时，多半是账号接口问题，把时间点告诉管理员查日志。',
+        showCancel: false
+      })
+    }).catch(e => {
+      wx.hideLoading()
+      wx.showModal({
+        title: '连不上服务器',
+        content: api.serverUrl() + '\n' + (e.message || '') + '\n\n检查手机是否和设备在同一 WiFi（不是 5G）、或者服务器是否在运行。',
+        showCancel: false
+      })
+    })
   },
 
   /** 真机调试：临时改服务器地址（存本地，不重新编译） */
