@@ -13,6 +13,7 @@ Page({
 
   onLoad() {
     this.setData({ server: api.serverUrl() })
+    this._slowTimer = null
     // 已登录直接进首页；首次登录未改密先去设置口令
     if (auth.token()) {
       const u = auth.user() || {}
@@ -36,8 +37,15 @@ Page({
     if (!username || !password) {
       return wx.showToast({ title: '请输入工号和口令', icon: 'none' })
     }
-    this.setData({ loading: true, err: '' })
+    this.setData({ loading: true, err: '', tip: '' })
+    // 兜底：12 秒还没回来就把按钮解锁，避免真机断点/网络挂起时永远转圈
+    if (this._slowTimer) clearTimeout(this._slowTimer)
+    this._slowTimer = setTimeout(() => {
+      if (!this.data.loading) return
+      this.setData({ loading: false, err: '登录超时，检查手机和服务器是否在同一网络后重试' })
+    }, 13000)
     api.login(username, password).then(res => {
+      if (this._slowTimer) clearTimeout(this._slowTimer)
       auth.setToken(res.token)
       const must = !!(res.must_change_password || (res.user && res.user.must_change_password))
       const user = Object.assign({}, res.user, {
@@ -53,8 +61,17 @@ Page({
         wx.reLaunch({ url: must ? '/pages/password/password' : '/pages/home/home' })
       }, 400)
     }).catch(e => {
+      if (this._slowTimer) clearTimeout(this._slowTimer)
       this.setData({ loading: false, err: e.message || '登录失败' })
     })
+  },
+
+  onUnload() {
+    if (this._slowTimer) clearTimeout(this._slowTimer)
+  },
+
+  onHide() {
+    if (this._slowTimer) clearTimeout(this._slowTimer)
   },
 
   /** 真机调试：临时改服务器地址（存本地，不重新编译） */

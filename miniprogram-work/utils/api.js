@@ -14,14 +14,14 @@ function setServerUrl(url) {
   return serverUrl()
 }
 
-function request(path, data, method = 'POST') {
+function request(path, data, method = 'POST', timeoutMs) {
   return new Promise((resolve, reject) => {
     const tk = auth.token ? auth.token() : ''
     wx.request({
       url: serverUrl() + path,
       method: method,
       data: data || {},
-      timeout: timeout || 40000,
+      timeout: timeoutMs || timeout || 40000,
       header: {
         'content-type': 'application/json',
         'X-Device-Id': auth.deviceId ? auth.deviceId() : '',
@@ -306,7 +306,8 @@ function wxLogin(code) {
 
 /** 工号登录 */
 function login(username, password) {
-  return request('/api/login', { username, password })
+  // 登录单独给 12 秒：真机调试网络切换时，40 秒默认超时会让按钮一直转圈
+  return request('/api/login', { username, password }, 'POST', 12000)
 }
 
 /** 首次登录修改初始口令 */
