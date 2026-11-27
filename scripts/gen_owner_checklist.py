@@ -58,12 +58,12 @@ wb = openpyxl.Workbook()
 ws = wb.active
 ws.title = "外部条件清单"
 
-headers = ["序号", "类别", "项目", "具体指什么（含示例）", "规格 / 要求", "为什么需要", "必需性", "提供方", "建议提供时间", "备注 / 常见坑"]
+headers = ["序号", "类别", "项目", "具体指什么（含示例）", "规格 / 要求", "为什么需要", "必需性", "提供方", "建议提供时间", "备注 / 常见坑", "测试阶段"]
 title_block(
     ws,
     "甲方需提供的外部条件清单",
     "版本 2026-11-27 ｜ 用途：云服务器部署 + 甲方远程网页版测试 ｜ 红=必需，黄=建议，灰=后期/可选 ｜ 标 ★ 为开测前必须到位",
-    10,
+    11,
 )
 header_row(ws, 3, headers)
 
@@ -125,9 +125,25 @@ for i, row in enumerate(rows, start=4):
 
 body_rows(ws, 4, rows, fills)
 
-widths = [6, 12, 20, 52, 40, 34, 10, 16, 14, 34]
+widths = [6, 12, 20, 52, 40, 34, 10, 16, 14, 34, 13]
 for i, w in enumerate(widths, start=1):
     ws.column_dimensions[get_column_letter(i)].width = w
+
+TEST_FLAGS = [
+    "测试必需", "测试必需", "测试必需", "测试必需", "建议提供", "建议提供", "本次可删", "本次可删",
+    "测试必需", "测试必需", "测试必需", "测试必需", "测试必需", "测试必需", "测试必需", "可延后",
+    "本次可删", "测试必需", "可延后", "可延后", "可延后", "可延后", "建议提供", "可延后",
+    "本次可删", "可延后", "测试必需", "建议提供", "本次可删", "本次可删", "测试必需", "本次可删",
+    "本次可删", "本次可删", "本次可删", "本次可删", "本次可删", "本次可删",
+]
+assert len(TEST_FLAGS) == len(rows), (len(TEST_FLAGS), len(rows))
+TEST_FILL = {"测试必需": "DFF0E2", "建议提供": "FFF4D6", "可延后": "F2F2F2", "本次可删": "FBE4E4"}
+for i, flag in enumerate(TEST_FLAGS):
+    c = ws.cell(row=4 + i, column=11, value=flag)
+    c.font = Font(name="微软雅黑", size=10, bold=flag == "测试必需")
+    c.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    c.border = border
+    c.fill = PatternFill("solid", fgColor=TEST_FILL[flag])
 
 import math
 def auto_height(ws, start_row, rows, widths, line=12.5, pad=6, cap=80):
@@ -176,6 +192,50 @@ for i, w in enumerate([6, 20, 46, 22, 14, 34], start=1):
 for r in range(4, 4 + len(rows2)):
     ws2.row_dimensions[r].height = 30
 ws2.freeze_panes = "A4"
+
+# ---------------- Sheet2b 测试最小清单 ----------------
+ws_min = wb.create_sheet("测试最小清单")
+h_min = ["序号", "项目", "具体指什么（含示例）", "规格 / 要求", "提供方", "建议时间", "备注"]
+title_block(
+    ws_min,
+    "现阶段（网页版测试）最小清单 —— 只保留这些就能开测",
+    "其余项可以等测试通过后再补；完整 38 项见「外部条件清单」页",
+    len(h_min),
+)
+header_row(ws_min, 3, h_min)
+
+must = [i for i, f in enumerate(TEST_FLAGS) if f == "测试必需"]
+sugg = [i for i, f in enumerate(TEST_FLAGS) if f == "建议提供"]
+r = 4
+for idx in must:
+    row = rows[idx]
+    for col, v in enumerate([row[0], row[2], row[3], row[4], row[7], row[8], row[9]], start=1):
+        c = ws_min.cell(row=r, column=col, value=v)
+        c.font = Font(name="微软雅黑", size=10)
+        c.alignment = Alignment(vertical="top", wrap_text=True)
+        c.border = border
+    r += 1
+
+ws_min.merge_cells(start_row=r + 1, start_column=1, end_row=r + 1, end_column=len(h_min))
+c = ws_min.cell(row=r + 1, column=1, value="以下为「建议提供」，不影响开测，但体验更完整")
+c.font = Font(name="微软雅黑", size=10, bold=True, color="7A5A00")
+c.fill = PatternFill("solid", fgColor=AMBER)
+c.alignment = Alignment(horizontal="left", vertical="center", indent=1)
+ws_min.row_dimensions[r + 1].height = 24
+
+r += 2
+for idx in sugg:
+    row = rows[idx]
+    for col, v in enumerate([row[0], row[2], row[3], row[4], row[7], row[8], row[9]], start=1):
+        c = ws_min.cell(row=r, column=col, value=v)
+        c.font = Font(name="微软雅黑", size=10)
+        c.alignment = Alignment(vertical="top", wrap_text=True)
+        c.border = border
+    r += 1
+
+for i, w in enumerate([6, 20, 50, 38, 16, 14, 34], start=1):
+    ws_min.column_dimensions[get_column_letter(i)].width = w
+ws_min.freeze_panes = "A4"
 
 # ---------------- Sheet3 人员名单模板 ----------------
 ws3 = wb.create_sheet("模板-人员名单")
@@ -234,5 +294,10 @@ for r in range(4, 30):
     ws5.row_dimensions[r].height = 24
 ws5.freeze_panes = "A4"
 
-wb.save(OUT)
-print("saved:", OUT)
+try:
+    wb.save(OUT)
+    print("saved:", OUT)
+except PermissionError:
+    alt = OUT.replace(".xlsx", "_测试版.xlsx")
+    wb.save(alt)
+    print("原文件被占用（可能正在 Excel 里打开），已另存为:", alt)
