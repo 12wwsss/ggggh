@@ -4,6 +4,7 @@ import { ElMessage } from 'element-plus'
 import { api, getUser } from '../../shared/http'
 
 const role = (getUser() || {}).role
+const statusText = (st) => ({ active: '进行中', done: '已完成', paused: '已暂停' }[st] || st)
 const canCreate = computed(() => ['admin', 'safety', 'trainer', 'dept_leader'].includes(role))
 const batch = ref(false)
 
@@ -227,7 +228,9 @@ onMounted(load)
           />
         </template>
       </el-table-column>
-      <el-table-column prop="status" label="状态" width="90" />
+      <el-table-column label="状态" width="90">
+        <template #default="{ row }">{{ statusText(row.status) }}</template>
+      </el-table-column>
       <el-table-column label="操作" width="110">
         <template #default="{ row }">
           <el-button link type="primary" @click="openMentor(row)">换师傅</el-button>

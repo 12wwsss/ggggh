@@ -27,6 +27,7 @@
     <view class="head">
       <view class="head-kicker">新员工带培 · 共 {{plan.totalWeeks}} 周</view>
       <view class="head-title">{{plan.title}}</view>
+      <view wx:if="{{plan.asMentor}}" class="head-sub">学员：{{plan.userName}}<text wx:if="{{plan.deptName}}"> · {{plan.deptName}}</text></view>
       <view class="bar"><view class="bar-in" style="width: {{progress}}%"></view></view>
       <view class="row between" style="margin-top: 12rpx">
         <text class="tiny" style="color:#8FA3B8">目标：{{plan.target}}</text>
@@ -35,6 +36,13 @@
     </view>
 
     <view class="wrap">
+      <view wx:if="{{labels.length > 1}}" class="card plan-pick">
+        <text class="tiny muted">带培对象</text>
+        <picker range="{{labels}}" value="{{planIndex}}" bindchange="onPlanChange">
+          <view class="pick-row">{{labels[planIndex]}} ▾</view>
+        </picker>
+      </view>
+
       <view class="label">阶段进度</view>
       <view class="card stages">
         <view class="stage" wx:for="{{plan.stages}}" wx:key="name">

@@ -404,6 +404,17 @@ func main() {
 			"plan_id": pid, "content": "徒弟不该能写小结，这里故意提交一条超长内容验证越权。",
 		})
 		check(code == http.StatusForbidden, "小程序接口拦截徒弟写小结")
+
+		// 师傅身份：管理员是这份计划的师傅，/api/training 也要能看到带的人
+		mt := mustGet("/api/training", admin.token)
+		mplans := asList(map[string]any{"list": mt["plans"]})
+		mentorSees := false
+		for _, it := range mplans {
+			if m, ok := it.(map[string]any); ok && m["asMentor"] == true && int64(num(m["id"])) == pid {
+				mentorSees = true
+			}
+		}
+		check(mentorSees, "师傅能在小程序看到自己带的学员计划")
 	}
 
 	code, rk := admin.call("POST", "/api/v1/risks", map[string]any{

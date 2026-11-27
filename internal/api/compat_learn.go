@@ -162,44 +162,68 @@ func (s *Server) compatQuizStatsReal(c *gin.Context) {
 }
 
 // compatTraining 新员工带培计划。
+// 徒弟看自己的计划；师傅看自己带的人（可能多个）。两种身份都可能同时存在。
 func (s *Server) compatTraining(c *gin.Context) {
 	u := s.compatCurrentUser(c)
 	if u == nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"ok": false, "message": "请先登录"})
 		return
 	}
-	plan, err := s.Store.GetTrainingPlan(c.Request.Context(), u.ID)
-	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"ok": true, "plans": []any{}})
-		return
-	}
-	stages := make([]gin.H, 0, len(plan.Stages))
-	for _, st := range plan.Stages {
-		stages = append(stages, gin.H{
-			"name": st.Week, "goal": st.Goal, "tasks": st.Tasks, "done": st.Done,
-		})
-	}
-	weak := []any{}
-	if n, err := s.Store.WrongCount(c.Request.Context(), u.ID); err == nil && n > 0 {
-		weak = append(weak, gin.H{"title": "错题待巩固", "from": "错题本 " + strconv.Itoa(n) + " 道"})
-	}
-	// 师傅/培训员/管理员在手机上也能写小结；本人只看
-	canWrite := u.Role == model.RoleAdmin || u.Role == model.RoleSafety || u.Role == model.RoleTrainer ||
-		(plan.MentorUserID != nil && *plan.MentorUserID == u.ID)
-	notes := []gin.H{}
-	if list, err := s.Store.ListTrainingNotes(c.Request.Context(), plan.ID); err == nil {
-		for _, n := range list {
-			notes = append(notes, gin.H{
-				"id": n.ID, "kind": n.Kind, "period": n.Period, "content": n.Content,
-				"author": n.Author, "at": n.CreatedAt.Format("01-02 15:04"),
+	ctx := c.Request.Context()
+	items := []gin.H{}
+	seen := map[int64]bool{}
+
+	add := func(plan *store.TrainingPlan, asMentor bool) {
+		if plan == nil || seen[plan.ID] {
+			return
+		}
+		seen[plan.ID] = true
+		stages := make([]gin.H, 0, len(plan.Stages))
+		for _, st := range plan.Stages {
+			stages = append(stages, gin.H{
+				"name": st.Week, "goal": st.Goal, "tasks": st.Tasks, "done": st.Done,
 			})
 		}
+		weak := []any{}
+		if !asMentor {
+			if n, err := s.Store.WrongCount(ctx, u.ID); err == nil && n > 0 {
+				weak = append(weak, gin.H{"title": "错题待巩固", "from": "错题本 " + strconv.Itoa(n) + " 道"})
+			}
+		}
+		canWrite := u.Role == model.RoleAdmin || u.Role == model.RoleSafety || u.Role == model.RoleTrainer ||
+			(plan.MentorUserID != nil && *plan.MentorUserID == u.ID)
+		notes := []gin.H{}
+		if list, err := s.Store.ListTrainingNotes(ctx, plan.ID); err == nil {
+			for _, n := range list {
+				notes = append(notes, gin.H{
+					"id": n.ID, "kind": n.Kind, "period": n.Period, "content": n.Content,
+					"author": n.Author, "at": n.CreatedAt.Format("01-02 15:04"),
+				})
+			}
+		}
+		items = append(items, gin.H{
+			"id": plan.ID, "title": plan.Title, "mentor": plan.Mentor,
+			"mentorUserId": plan.MentorUserID, "userName": plan.UserName, "deptName": plan.DeptName,
+			"asMentor": asMentor, "totalWeeks": plan.TotalWeeks, "target": plan.Target,
+			"status": plan.Status, "stages": stages, "weakPoints": weak,
+			"canWrite": canWrite, "notes": notes,
+		})
 	}
-	c.JSON(http.StatusOK, gin.H{"ok": true, "plans": []gin.H{{
-		"id": plan.ID, "title": plan.Title, "mentor": plan.Mentor,
-		"mentorUserId": plan.MentorUserID, "totalWeeks": plan.TotalWeeks, "target": plan.Target,
-		"stages": stages, "weakPoints": weak, "canWrite": canWrite, "notes": notes,
-	}}})
+
+	// 我是徒弟：自己的计划（取最新一份）
+	if plan, err := s.Store.GetTrainingPlan(ctx, u.ID); err == nil {
+		add(plan, false)
+	}
+	// 我是师傅：我带的人，可能有多个
+	if plans, _, err := s.Store.ListTrainingPlansScoped(ctx, nil, &u.ID, 20, 0); err == nil {
+		for i := range plans {
+			full, err := s.Store.GetTrainingPlanByID(ctx, plans[i].ID)
+			if err == nil {
+				add(full, true)
+			}
+		}
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true, "plans": items})
 }
 
 // compatWrongList 错题本列表。

@@ -92,3 +92,13 @@
 
 /* ── 空状态 ── */
 .empty-plan { padding: 32rpx 30rpx; margin-top: 40rpx; }
+
+/* ── 多学员切换 ── */
+.head-sub {
+  margin-top: 10rpx; font-size: 24rpx; color: #C7D3E0;
+}
+.plan-pick {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 22rpx 26rpx; margin-top: 24rpx;
+}
+.pick-row { font-size: 26rpx; font-weight: 700; color: #10151A; }

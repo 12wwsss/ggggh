@@ -122,7 +122,7 @@
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
-| GET | `/training` | 当前员工的带培计划；新增 `canWrite`（师傅/培训员/管理员为 true）与 `notes[]`（师傅小结） |
+| GET | `/training` | 当前用户的带培计划：徒弟返回自己的，师傅返回自己带的人（可能多份）。字段含 `asMentor`、`userName`、`canWrite`、`notes[]` |
 | POST | `/training/note` | 小程序写师傅小结：`{plan_id,kind:monthly|final,period,content}`，仅师傅/培训员/管理员 |
 
 ## 报表

@@ -140,6 +140,7 @@
 | 师傅月度小结 / 期满总结 | `training_note` 表 + `/training/plans/:id/notes` + 带培页展开区录入 | `kind=monthly|final`、`period=2026-11`、正文 ≥10 字；师傅/培训员/管理员/本队队长可写，计划本人可看 |
 | 一人一档培训档案 | `GET /export/training-archive?user_id=` + 报表页「培训档案 → 导出」 | 多 sheet xlsx：基本信息、学习记录、考试记录、宣贯签收、错题、上报问题、带培与小结；培训员全矿、区队长限本队 |
 | 小程序同步 | `/api/training` 增加 `canWrite` + `notes[]`；`POST /api/training/note` | 师傅/培训员在手机上也能写月度小结、期满总结；徒弟只看不写（403） |
+| 师傅视角 | `/api/training` 同时返回「我带的人的计划」（`asMentor`/`userName`），带培页可按学员切换 | 原来只查 `user_id=我`，师傅登录小程序会显示「暂无计划」 |
 
 导出用 `export.XLSXBook`（新增多 sheet 支持），原来的单 sheet `export.XLSX` 保持不变。
 
