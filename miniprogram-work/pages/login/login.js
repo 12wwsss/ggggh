@@ -12,6 +12,7 @@ Page({
   },
 
   onLoad() {
+    wx.hideLoading()
     this.setData({ server: api.serverUrl() })
     this._slowTimer = null
     // 已登录直接进首页；首次登录未改密先去设置口令
@@ -76,21 +77,29 @@ Page({
 
   /** 网络诊断：直接打 /api/health，区分「服务器不可达」和「账号/口令问题」 */
   diagnose() {
+    if (this._diagBusy) return
+    this._diagBusy = true
     wx.showLoading({ title: '检测中', mask: true })
     const started = Date.now()
-    api.health().then(res => {
+    const finish = () => {
+      this._diagBusy = false
       wx.hideLoading()
-      const ms = Date.now() - started
+    }
+    const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('6 秒无响应')), 6000))
+    Promise.race([api.health(), timeout]).then(res => {
+      finish()
       wx.showModal({
         title: '服务器可达',
-        content: api.serverUrl() + '\n耗时 ' + ms + 'ms · 状态 ' + ((res && res.status) || 'ok') + '\n\n如果这里能通但登录超时，多半是账号接口问题，把时间点告诉管理员查日志。',
+        content: api.serverUrl() + '\n耗时 ' + (Date.now() - started) + 'ms · 状态 ' + ((res && res.status) || 'ok') +
+          '\n\n能通但登录超时，多半是账号接口问题，把时间点告诉管理员查日志。',
         showCancel: false
       })
     }).catch(e => {
-      wx.hideLoading()
+      finish()
       wx.showModal({
         title: '连不上服务器',
-        content: api.serverUrl() + '\n' + (e.message || '') + '\n\n检查手机是否和设备在同一 WiFi（不是 5G）、或者服务器是否在运行。',
+        content: api.serverUrl() + '\n' + (e.message || '') +
+          '\n\n检查手机是否和设备在同一 WiFi（不是 5G），或服务器是否在运行。',
         showCancel: false
       })
     })
