@@ -99,7 +99,8 @@ Page({
       wx.showModal({
         title: '连不上服务器',
         content: api.serverUrl() + '\n' + (e.message || '') +
-          '\n\n检查手机是否和设备在同一 WiFi（不是 5G），或服务器是否在运行。',
+          '\n\n如果手机浏览器能打开这个地址，但这里失败，是微信的域名校验没过：' +
+          '开发者工具「详情 → 本地设置」勾选「不校验合法域名」，再结束调试重新进。',
         showCancel: false
       })
     })

@@ -50,9 +50,19 @@ function request(path, data, method = 'POST', timeoutMs) {
         reject(new Error(msg))
       },
       fail(err) {
-        const msg = /timeout/i.test(err.errMsg || '')
-          ? '网络超时，井下信号可能不好，稍后再试'
-          : '连不上 ' + serverUrl() + '，检查手机和服务器是否在同一网络'
+        const raw = (err && err.errMsg) || ''
+        console.warn('[request fail]', path, raw)
+        let msg
+        if (/domain|合法域名|not in domain list/i.test(raw)) {
+          // 浏览器能打开、小程序却连不上，九成是这个：微信的域名校验没过
+          msg = '域名校验未通过：开发者工具「详情 → 本地设置」勾选「不校验合法域名」，然后结束调试重新进'
+        } else if (/timeout/i.test(raw)) {
+          msg = '网络超时，稍后再试（' + serverUrl() + '）'
+        } else if (/ssl|https|certificate/i.test(raw)) {
+          msg = '证书/HTTPS 问题：' + raw
+        } else {
+          msg = '连不上 ' + serverUrl() + '（' + raw + '）'
+        }
         reject(new Error(msg))
       }
     })
